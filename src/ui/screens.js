@@ -1,5 +1,6 @@
 import { HEIGHT, WIDTH } from '../core/config.ts';
 import { ctx } from '../core/canvas.ts';
+import { BOSS_PORTRAITS } from '../data/boss-portraits.js';
 import { ECHO_TYPES } from '../data/echoes.js';
 import { BOSS_ORDER, levels } from '../data/levels.js';
 import { MAP_COLS, HUB_ROOM, infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.ts';
@@ -18,6 +19,7 @@ import {
 } from '../render/primitives.js';
 import { drawBackground, drawPaperBackground } from '../render/background.js';
 import { drawHero } from '../render/characters.js';
+import { SPRITES, isSpriteReady } from '../render/sprites.js';
 import { emblem } from '../render/bosses.js';
 export function drawTitle() {
   drawPaperBackground();
@@ -109,9 +111,106 @@ export function drawTitle() {
     'Échos gagnés : ' +
       ((gameState.hasTimeEcho ? ['Temps'] : []).concat(o.map((i) => ECHO_TYPES[i].n)).join(' · ') || 'aucun'),
     WIDTH / 2,
-    HEIGHT - 14,
+    HEIGHT - 7,
   );
+  drawBossPortraits();
 }
+
+const PORTRAIT_SIZE = 34;
+const PORTRAIT_GAP = 10;
+const PORTRAIT_Y = 487;
+
+/** Le boss est-il vaincu ? (le Roi : une partie terminée figure au classement) */
+function isBossDefeated(echo) {
+  if (echo === 'king') return scores.runs.length > 0;
+  if (echo === 'time') return !!gameState.hasTimeEcho;
+  return !!gameState.echoesOwned[echo];
+}
+
+/** Rangée de têtes de boss sous les boutons ; celles des boss vaincus sont grisées et barrées. */
+function drawBossPortraits() {
+  const count = BOSS_PORTRAITS.length;
+  const totalWidth = count * PORTRAIT_SIZE + (count - 1) * PORTRAIT_GAP;
+  let x = (WIDTH - totalWidth) / 2;
+  const y = PORTRAIT_Y;
+  for (const portrait of BOSS_PORTRAITS) {
+    const defeated = isBossDefeated(portrait.echo);
+    ctx.save();
+    ctx.fillStyle = '#F6EBCB';
+    roundRectPath(x, y, PORTRAIT_SIZE, PORTRAIT_SIZE, 9);
+    ctx.fill();
+    ctx.save();
+    roundRectPath(x + 2, y + 2, PORTRAIT_SIZE - 4, PORTRAIT_SIZE - 4, 7);
+    ctx.clip();
+    ctx.globalAlpha = defeated ? 0.35 : 1;
+    if (portrait.sprite && isSpriteReady(portrait.sprite)) {
+      const [sx, sy, sw, sh] = portrait.crop;
+      const scale = (PORTRAIT_SIZE - 4) / Math.max(sw, sh);
+      const dw = sw * scale;
+      const dh = sh * scale;
+      ctx.drawImage(
+        SPRITES[portrait.sprite],
+        sx,
+        sy,
+        sw,
+        sh,
+        x + (PORTRAIT_SIZE - dw) / 2,
+        y + (PORTRAIT_SIZE - dh) / 2,
+        dw,
+        dh,
+      );
+    } else if (!portrait.sprite) {
+      drawCrown(x + PORTRAIT_SIZE / 2, y + PORTRAIT_SIZE / 2 + 2, 20);
+    }
+    ctx.restore();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK_COLOR;
+    roundRectPath(x, y, PORTRAIT_SIZE, PORTRAIT_SIZE, 9);
+    ctx.stroke();
+    if (defeated) {
+      const a = 6;
+      ctx.lineCap = 'round';
+      for (const [w, color] of [
+        [8, INK_COLOR],
+        [4.5, '#D0402E'],
+      ]) {
+        ctx.lineWidth = w;
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x + a, y + a);
+        ctx.lineTo(x + PORTRAIT_SIZE - a, y + PORTRAIT_SIZE - a);
+        ctx.moveTo(x + PORTRAIT_SIZE - a, y + a);
+        ctx.lineTo(x + a, y + PORTRAIT_SIZE - a);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+    x += PORTRAIT_SIZE + PORTRAIT_GAP;
+  }
+}
+
+/** Petite couronne dorée centrée en (cx, cy), de largeur `w`. */
+function drawCrown(cx, cy, w) {
+  const h = w * 0.7;
+  const left = cx - w / 2;
+  const top = cy - h / 2;
+  ctx.beginPath();
+  ctx.moveTo(left, top + h);
+  ctx.lineTo(left, top + h * 0.2);
+  ctx.lineTo(left + w * 0.25, top + h * 0.6);
+  ctx.lineTo(cx, top);
+  ctx.lineTo(left + w * 0.75, top + h * 0.6);
+  ctx.lineTo(left + w, top + h * 0.2);
+  ctx.lineTo(left + w, top + h);
+  ctx.closePath();
+  ctx.fillStyle = '#E2A93B';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = INK_COLOR;
+  ctx.stroke();
+}
+
 export function drawScores() {
   drawPaperBackground();
   uiHitBoxes.length = 0;
