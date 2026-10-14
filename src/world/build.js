@@ -1,3 +1,4 @@
+import { roomNumberOf } from '../data/room-numbers.js';
 import {
   BOSS_ARENAS,
   kingRoom,
@@ -610,5 +611,9 @@ export function buildWorld(seed) {
       const o = levels[k.to].links.find((q) => q.to === i);
       if (!o) throw new Error('lien sans retour ' + i + '>' + k.to);
     }
+  // numéro stable de chaque salle (voir data/room-numbers.js)
+  levels.forEach((l, i) => {
+    l.number = roomNumberOf(l, ROOM_POSITIONS[i]);
+  });
   return levels;
 }

@@ -229,10 +229,11 @@ export function drawHUD() {
   ctx.fillStyle = '#FFF8E1';
   ctx.fillText(tt, 16, 88);
   // nom du niveau, discret
-  ctx.fillStyle = 'rgba(27,22,18,.4)';
+  ctx.fillStyle = 'rgba(27,22,18,.55)';
   ctx.font = '800 11px ' + FONT_BODY;
   ctx.textAlign = 'left';
-  ctx.fillText(runtime.level.name.toUpperCase(), 16, HEIGHT - 8);
+  const roomTag = runtime.level.number !== undefined ? 'N° ' + runtime.level.number + ' · ' : '';
+  ctx.fillText(roomTag + runtime.level.name.toUpperCase(), 16, HEIGHT - 8);
   if (gameState.isNearBed && gameState.mode === 'play') {
     const tx = IS_TOUCH_DEVICE ? 'Touche ici pour dormir' : 'Entrée : dormir';
     ctx.font = '800 15px ' + FONT_BODY;

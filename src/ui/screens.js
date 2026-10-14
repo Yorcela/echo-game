@@ -353,6 +353,22 @@ export function endTrial() {
   gameState.mode = 'title';
   playSfx('tick');
 }
+/** Petit numéro de salle dans le coin supérieur gauche d'une case de la carte. */
+function drawRoomNumber(number, x, y, known) {
+  if (number === undefined) return;
+  ctx.save();
+  ctx.font = '900 10px ' + FONT_BODY;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = known ? 'rgba(246,235,203,.95)' : 'rgba(14,10,22,.8)';
+  ctx.strokeText(String(number), x + 3, y + 2);
+  ctx.fillStyle = known ? INK_COLOR : 'rgba(246,235,203,.75)';
+  ctx.fillText(String(number), x + 3, y + 2);
+  ctx.restore();
+}
+
 export function drawMap() {
   drawBackground(0, 0);
   uiHitBoxes.length = 0;
@@ -363,8 +379,13 @@ export function drawMap() {
   ctx.font = '800 15px ' + FONT_BODY;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
+  const here = levels[gameState.loadedRoom];
   ctx.fillText(
-    Object.keys(gameState.visitedRooms).length + ' / ' + levels.length + ' salles explorées',
+    Object.keys(gameState.visitedRooms).length +
+      ' / ' +
+      levels.length +
+      ' salles explorées' +
+      (here && here.number !== undefined ? ' · tu es en salle n° ' + here.number : ''),
     WIDTH / 2,
     74,
   );
@@ -439,6 +460,7 @@ export function drawMap() {
       cur = i === gameState.loadedRoom,
       done = !!gameState.clearedBossRooms[i];
     if (!v && !bo) {
+      drawRoomNumber(levels[i].number, x, y, false);
       ctx.fillStyle = 'rgba(246,235,203,.14)';
       roundRectPath(x, y, cw, ch, 6);
       ctx.fill();
@@ -503,6 +525,7 @@ export function drawMap() {
       ctx.fillText('★', x + cw / 2, y + ch / 2 + 1);
       ctx.textBaseline = 'alphabetic';
     }
+    drawRoomNumber(levels[i].number, x, y, true);
     if (levels[i].rest && v) {
       // lit
       ctx.fillStyle = gameState.usedBeds[i] ? '#8A8F98' : '#D0402E';

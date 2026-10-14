@@ -31,6 +31,8 @@ export interface Entity extends Body {
 /** Salle : plan en 17 lignes de 30 caractères et métadonnées. */
 export interface Level {
   name: string;
+  /** numéro stable de la salle (voir src/data/room-numbers.js) */
+  number?: number;
   hint: string;
   rows: string[];
   boss?: BossDefinition;

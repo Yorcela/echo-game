@@ -85,6 +85,10 @@ Le jeu envoie des statistiques anonymes à Google Analytics 4 (propriété liée
 - Statues et salles de repos = voyage rapide ; le Hall devient l'arène du roi après 8 pouvoirs.
 - Chaque nouvel écho a une durée (10 s par défaut), les clones n'expirent jamais.
 
+### Numéros de salles
+
+Chaque salle a un **numéro stable** (affiché sur la carte, en bas à gauche en jeu et dans l'en-tête de la carte), identique d'une partie à l'autre même si la salle change de place : pratique pour la désigner ou préparer un plan de speedrun. La table complète est dans [docs/salles.md](docs/salles.md) (régénérée par `npm run rooms:doc`) ; le registre est [src/data/room-numbers.js](src/data/room-numbers.js). Les salles générées sont numérotées d'après leur case : `200 + 13 × ligne + colonne`.
+
 ### Principes de level design
 
 - **Un monde ouvert** : on peut aller presque partout dès le début. Il ne reste qu'**une seule porte fermée** (l'entrée de la première aile, avant l'écho du Temps) et les échelles de raccourci des boss.

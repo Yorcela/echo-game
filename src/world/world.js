@@ -1,3 +1,4 @@
+import { ARENA_PREFIX, ROOM_NUMBERS } from '../data/room-numbers.js';
 import { kingRoom, levels } from '../data/levels.js';
 import { HUB_ROOM, gameState } from '../state/state.ts';
 export const isKingReady = () =>
@@ -17,6 +18,7 @@ export const kingArenaLevel = () => {
     links: [],
     bench: false,
     rest: false,
+    number: ROOM_NUMBERS[ARENA_PREFIX + kingRoom.name],
   };
 };
 

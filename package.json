@@ -12,7 +12,8 @@
     "test": "vitest run --mode test",
     "lint": "eslint src tests",
     "format": "prettier --write \"src/**/*.{js,css}\" \"tests/**/*.js\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "rooms:doc": "node scripts/room-table.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

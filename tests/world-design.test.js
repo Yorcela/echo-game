@@ -101,6 +101,51 @@ describe('design du monde', () => {
     }
   });
 
+  describe('numéros de salles', () => {
+    it('chaque salle a un numéro, et les numéros sont uniques dans un même monde', () => {
+      for (const seed of SEEDS) {
+        const numbers = worlds[seed].levels.map((l, i) => ({ i, name: l.name, n: l.number }));
+        for (const r of numbers)
+          expect(r.n, `salle ${r.i} « ${r.name} » (graine ${seed}) sans numéro`).toBeTypeOf('number');
+        const seen = new Map();
+        for (const r of numbers) {
+          expect(seen.has(r.n), `numéro ${r.n} en double : « ${r.name} » et « ${seen.get(r.n)} »`).toBe(
+            false,
+          );
+          seen.set(r.n, r.name);
+        }
+      }
+    });
+
+    it('un numéro suit la salle, pas sa place : le même nom donne le même numéro sur toutes les graines', () => {
+      const byName = new Map();
+      for (const seed of SEEDS) {
+        for (const l of worlds[seed].levels) {
+          if (l.gen || l.hub) continue;
+          const key = (l.boss ? 'arène ' : '') + l.name;
+          if (byName.has(key))
+            expect(l.number, `« ${key} » change de numéro selon la graine`).toBe(byName.get(key));
+          else byName.set(key, l.number);
+        }
+      }
+      expect(byName.size).toBeGreaterThan(20);
+      // repères figés : ne doivent jamais bouger
+      expect(byName.get('Premiers pas')).toBe(1);
+      expect(byName.get('Derrière la porte')).toBe(10);
+      expect(byName.get('Le fossé')).toBe(20);
+      expect(byName.get('arène Le Gardien du Temps')).toBe(90);
+    });
+
+    it('les salles générées sont numérotées par leur case (200 + 13 × ligne + colonne), le Hall est 0', () => {
+      const w = worlds[SEEDS[0]].levels;
+      expect(w[T.HUB].number).toBe(0);
+      for (const l of w) {
+        if (!l.gen) continue;
+        expect(l.number).toBe(200 + l.pos[1] * 13 + l.pos[0]);
+      }
+    });
+  });
+
   it('le dash (Éclair, écho 4) est le 3e pouvoir à obtenir', () => {
     expect(T.ORDER.slice(0, 3)).toEqual(['t', 2, 4]);
     expect(T.ORDER.indexOf(5)).toBeGreaterThan(T.ORDER.indexOf(4));
