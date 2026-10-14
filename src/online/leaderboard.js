@@ -2,6 +2,7 @@
 // Une entrée par joueur (document `scores/<uid>`), mise à jour seulement si le score s'améliore.
 // Les règles de sécurité côté serveur sont dans /firestore.rules.
 import { FIREBASE_CONFIG } from '../config/firebase.js';
+import { getAppCheckToken } from './app-check.js';
 
 const AUTH_STORAGE_KEY = 'echo-auth';
 const BEST_STORAGE_KEY = 'echo-online-best';
@@ -25,10 +26,14 @@ const documentsUrl = () =>
   `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents`;
 
 async function request(url, options = {}) {
+  // App Check : prouve que la requête vient du jeu (sans jeton, la requête part quand même)
+  const appCheckToken = await getAppCheckToken();
+  const headers = { ...(options.headers || {}) };
+  if (appCheckToken) headers['X-Firebase-AppCheck'] = appCheckToken;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    return await fetch(url, { ...options, headers, signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }

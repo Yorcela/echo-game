@@ -38,7 +38,7 @@ npm run format       # Prettier
 | `src/render/` | Dessin : décor, tuiles, personnages, boss (`boss-*.js`, `bosses.js` en est le point d'entrée), scène, sprites |
 | `src/ui/` | HUD, écrans (titre, scores, carte, pause) |
 | `src/input/` | Clavier, tactile, boutons à l'écran |
-| `src/online/` | Classement mondial (Firestore via REST, authentification anonyme) |
+| `src/online/` | Classement mondial (Firestore via REST, authentification anonyme, App Check) |
 | `src/config/` | Configuration Firebase |
 | `src/audio/` | Musique et effets, entièrement synthétisés (Web Audio) |
 | `src/assets/sprites/` | PNG des boss (inlinés au build) |
@@ -60,8 +60,9 @@ Le jeu enregistre le meilleur score de chaque joueur dans Firestore (offre gratu
 - **Écran** : « SCORES » → onglets *Mes scores* (local) / *Mondial*. Hors ligne ou en cas d'erreur, le classement local reste disponible et la partie n'est jamais bloquée.
 - **Sécurité** : les règles [`firestore.rules`](firestore.rules) valident côté serveur le type et les bornes des champs, le nom (1 à 20 caractères), la cohérence de la clé de tri, l'unicité par joueur et l'amélioration obligatoire d'un score existant ; suppression interdite, lecture limitée à 50 lignes. Les règles publiées dans la console Firebase doivent rester identiques à ce fichier.
 - **Clé d'API restreinte par référent** : dans Google Cloud Console (Identifiants → « Browser key »), restrictions « Sites Web » : `https://yorcela.github.io/*` et `http://localhost:5173/*`. Un autre site web qui utiliserait la clé est refusé par Google. Si tu héberges le jeu ailleurs, ajoute ton domaine à cette liste.
+- **App Check** : chaque requête Firebase porte un jeton `X-Firebase-AppCheck` obtenu via reCAPTCHA Enterprise (clé de site dans `src/config/firebase.js`, domaines `yorcela.github.io` et `localhost`). L'application stricte (« Enforce ») est activée dans la console pour Firestore et Authentication : un script ou un autre site n'obtient pas de jeton valide et est refusé. Le script reCAPTCHA n'est chargé qu'à l'ouverture de l'écran Scores ou à l'envoi d'un score.
 - **Plausibilité** : une victoire exige au moins 20 salles explorées et 3 minutes de jeu ; temps minimal de 30 s dans tous les cas.
-- **Limite** : le jeu tourne dans le navigateur, un joueur motivé peut donc envoyer un score plausible mais faux ; les règles écartent les valeurs impossibles et le spam, pas la triche soignée. Le contrôle par référent n'arrête pas un script qui falsifie l'en-tête `Referer` (il protège contre la réutilisation de la clé depuis d'autres sites).
+- **Limite** : le jeu tourne dans le navigateur, un joueur motivé peut donc envoyer un score plausible mais faux (en pilotant le vrai jeu) ; les règles écartent les valeurs impossibles. App Check et le référent empêchent surtout les scripts et les autres sites de parler directement à la base.
 - **Configuration** : `src/config/firebase.js` (clés publiques par conception). Vider `apiKey` désactive le mondial.
 - **Réutiliser un autre projet Firebase** : créer un projet, activer Firestore (mode production) et l'authentification anonyme, publier `firestore.rules`, puis remplacer la configuration.
 

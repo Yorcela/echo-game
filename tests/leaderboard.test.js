@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('../src/online/app-check.js', () => ({ getAppCheckToken: vi.fn(async () => 'jeton-app-check') }));
 import {
   computeRankKey,
   fetchTopScores,
@@ -83,6 +85,19 @@ describe('réseau (fetch simulé)', () => {
     expect(res.ok).toBe(true);
     const write = calls.find((c) => c.method === 'PATCH');
     expect(write.url).toContain('/documents/scores/uid-1');
+  });
+
+  it('joint le jeton App Check à chaque requête Firebase', async () => {
+    const seen = [];
+    globalThis.fetch = vi.fn(async (url, opts) => {
+      seen.push(opts.headers['X-Firebase-AppCheck']);
+      return String(url).includes('accounts:signUp')
+        ? json({ localId: 'uid-1', idToken: 'tok', refreshToken: 'ref', expiresIn: '3600' })
+        : json({});
+    });
+    await submitScore({ n: 'A', l: 15, t: 200, v: 0 });
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    expect(seen.every((h) => h === 'jeton-app-check')).toBe(true);
   });
 
   it("n'envoie pas un score qui n'améliore pas le précédent", async () => {
