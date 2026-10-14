@@ -351,8 +351,11 @@ export function generateRoom(sp) {
     }
   }
   // ennemis et pièges supplémentaires (générateur indépendant : les salles sans mécanisme restent identiques)
-  if (!sp.rest && sp.mech && sp.mech !== 'switch') {
-    placeMechanism(g, sp.mech, used.slice(), seededRandom(((sp.seed | 0) ^ 0x5bd1e995) >>> 0));
+  // un sol de glace est semé de pointes (on glisse dessus), un sol de colle de crabes (ralentis eux aussi)
+  const mech =
+    sp.mech && sp.mech !== 'switch' ? sp.mech : sp.floor ? (sp.floor === 'ice' ? 'spikes' : 'swarm') : null;
+  if (!sp.rest && mech) {
+    placeMechanism(g, mech, used.slice(), seededRandom(((sp.seed | 0) ^ 0x5bd1e995) >>> 0));
   }
   // départ (apparition sur statue / rechargement)
   if (!g.some((r) => r.includes('P'))) {
@@ -363,8 +366,26 @@ export function generateRoom(sp) {
       }
     }
   }
+  if (sp.floor && !sp.rest) coverFloor(g, sp.floor);
   return {
     rows: g.map((r) => r.join('')),
     hs,
   };
+}
+
+/**
+ * Recouvre le sol libre de glace (`ice`) ou de colle (`glue`). La colle épargne les abords des fossés
+ * pour garder un élan correct (saut + dash), la glace s'étend partout : elle ne fait que donner de la vitesse.
+ */
+function coverFloor(grid, material) {
+  const ch = material === 'ice' ? '_' : ',';
+  const nearPit = (c) => {
+    for (let k = c - 5; k <= c + 5; k++) if (k >= 0 && k < 30 && grid[14][k] !== '#') return true;
+    return false;
+  };
+  for (let c = 1; c < 29; c++) {
+    if (grid[13][c] !== '.' || grid[14][c] !== '#' || grid[12][c] !== '.') continue;
+    if (material === 'glue' && nearPit(c)) continue;
+    grid[13][c] = ch;
+  }
 }

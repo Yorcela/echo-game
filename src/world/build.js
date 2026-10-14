@@ -42,6 +42,8 @@ import {
   verticalEdge,
 } from './edges.js';
 
+// salles dont tout le sol est englué ou verglacé (cases 8,7 et 9,7 : salles n° 299 et 300)
+const FLOOR_MATERIAL_AT_CELL = { '8,7': 'ice', '9,7': 'glue' };
 // mécanisme (ennemis, piège ou énigme) d'une salle générée : environ 7 salles sur 10, selon la graine du monde
 const MECHANISMS_FREE_ROOM = ['switch', 'guards', 'swarm', 'spikes', 'ice', 'glue', 'switch'];
 const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'spikes', 'ice', 'glue'];
@@ -518,6 +520,7 @@ export function buildWorld(seed) {
       tier: l.tier,
       rest: l.rest,
       seed: sd,
+      floor: FLOOR_MATERIAL_AT_CELL[key],
       crabs: l.rest ? 0 : l.tier === 'F' || l.tier === 'E' ? 1 + ((42 + o.k) % 2) : 0,
       mech: mechanismFor(
         'c' + key,
@@ -554,6 +557,7 @@ export function buildWorld(seed) {
       seed: i * 104729 + (seed & 0xffff),
       crabs: l.genFill === 'F' ? 1 : 0,
       mech: mechanismFor('f' + i, l.genFill, false, false, seed),
+      floor: ROOM_POSITIONS[i] && FLOOR_MATERIAL_AT_CELL[ROOM_POSITIONS[i].join(',')],
     });
     l.rows = g.rows;
     l.hs = g.hs;
