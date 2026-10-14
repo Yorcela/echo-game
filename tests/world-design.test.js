@@ -109,6 +109,27 @@ describe('design du monde', () => {
     }
   });
 
+  describe('échelles', () => {
+    it("chaque échelle est continue jusqu'à la rangée 13 (sinon on ne peut plus la grimper)", () => {
+      for (const seed of SEEDS)
+        for (const l of worlds[seed].levels) {
+          if (!l.rows || l.boss) continue;
+          for (let c = 0; c < 30; c++) {
+            const rows = l.rows.map((r) => r[c]);
+            const first = rows.indexOf('|');
+            if (first < 0 || first > 13) continue;
+            const last = rows.lastIndexOf('|');
+            if (last < 13) continue;
+            for (let r = first; r <= last; r++)
+              expect(
+                rows[r],
+                `salle ${l.number} « ${l.name} » (graine ${seed}) : échelle coupée en colonne ${c}, rangée ${r}`,
+              ).toBe('|');
+          }
+        }
+    });
+  });
+
   describe('numéros de salles', () => {
     it('chaque salle a un numéro, et les numéros sont uniques dans un même monde', () => {
       for (const seed of SEEDS) {

@@ -328,7 +328,8 @@ export function generateRoom(sp) {
   }
   if (sp.rest) {
     g[13][17] = '=';
-    g[13][12] = 'P';
+    // le départ ne doit pas recouvrir l'échelle (sinon elle est coupée à la rangée 13 et on retombe en la montant)
+    g[13][g[13][12] === '|' ? 11 : 12] = 'P';
     if (!hs.length) hs.push([21, 10]);
     placePlatform(g, 11, 20, 22);
   } else if (sp.crabs) {
