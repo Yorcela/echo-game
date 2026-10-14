@@ -106,7 +106,7 @@ export function bossHit(e, dx, dmg = 1) {
       for (const x of bs) x.alive = 0;
       gameState.shake = 0.6;
       unsealRoom();
-      gameState.clearedBossRooms[gameState.lvl] = 1;
+      gameState.clearedBossRooms[gameState.loadedRoom] = 1;
       startGain();
       return true;
     }
@@ -141,7 +141,7 @@ export function bossHit(e, dx, dmg = 1) {
     e.alive = 0;
     if (!bossAI.any()) {
       unsealRoom();
-      gameState.clearedBossRooms[gameState.lvl] = 1;
+      gameState.clearedBossRooms[gameState.loadedRoom] = 1;
       if (runtime.level.king) {
         winRoom();
         return true;

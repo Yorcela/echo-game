@@ -574,8 +574,7 @@ export function drawFloorFx() {
   ctx.lineCap = 'round';
   // fissures sur les deux dalles qui tomberont aux prochains pas
   {
-    const heavy = (runtime.colossusFloor.steps || 0) % 2 === 1,
-      L = [];
+    const heavy = (runtime.colossusFloor.steps || 0) % 2 === 1;
     let l = -1,
       r = -1;
     for (let q = 1; q <= 10; q++)

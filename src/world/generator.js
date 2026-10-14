@@ -26,21 +26,7 @@ function placePit(g, a, b) {
   for (let c = a; c <= b; c++) for (let r = 14; r <= 16; r++) g[r][c] = '.';
 }
 // paliers : F libre · E dash ou double saut · J double saut · D dash · B les deux
-const TIERS = {
-  F: {},
-  E: {
-    any: [4, 5],
-  },
-  J: {
-    all: [5],
-  },
-  D: {
-    all: [4],
-  },
-  B: {
-    all: [4, 5],
-  },
-};
+
 // ----- montées (salle du bas, trou de plafond c0..c1). renvoie {zone,hs}
 function placeClimb(g, k, rnd) {
   const c0 = k.c0,
@@ -85,7 +71,6 @@ function placeClimb(g, k, rnd) {
     ];
   for (const [r, [a, b]] of list) placePlatform(g, r, a, b);
   const xs = list.flatMap(([r, [a, b]]) => [a, b]);
-  const hr = k.kind === 'dj' ? [3, (fr[0] + fr[1]) >> 1] : [7, (fr[0] + fr[1]) >> 1];
   return {
     zone: [Math.min(c0, ...xs) - 1, Math.max(c1, ...xs) + 1],
     hs: k.kind === 'dj' ? [[(nr[0] + nr[1]) >> 1, 3]] : [[(fr[0] + fr[1]) >> 1, 7]],
@@ -105,7 +90,6 @@ function placeTier(g, t, a, b, rnd) {
       };
     }
     if (v === 1) {
-      const w = 3;
       for (let c = m - 1; c <= m + 1; c++) g[13][c] = '^';
       return {
         zone: [m - 5, m + 5],

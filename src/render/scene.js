@@ -1,5 +1,5 @@
 import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, HEIGHT, TILE, WIDTH } from '../core/config.js';
+import { HEIGHT, TILE, WIDTH } from '../core/config.js';
 import { canvas, ctx } from '../core/canvas.js';
 import { ECHO_TYPES } from '../data/echoes.js';
 import { levels } from '../data/levels.js';
@@ -56,15 +56,15 @@ export function draw() {
     ctx.restore();
     return;
   }
-  drawBackground(boil, gameState.lvl);
+  drawBackground(boil, gameState.loadedRoom);
   drawMirrorBG();
   drawTunnelBG();
   drawTiles(boil);
   drawDoors();
   drawFloorFx();
   {
-    const up = gameState.time - (gameState.gateUpAt || -9),
-      fall = gameState.sealed === 1 ? Math.min(1, (gameState.time - gameState.sealAt) / 0.4) : 1;
+    const up = gameState.time - (gameState.gateRaisedAt || -9),
+      fall = gameState.sealed === 1 ? Math.min(1, (gameState.time - gameState.sealStartTime) / 0.4) : 1;
     if (gameState.sealed || up < 0.5) {
       const off = gameState.sealed
           ? -(1 - fall * fall) * (13 * TILE + 8)
@@ -196,7 +196,7 @@ export function draw() {
   if (runtime.bed) {
     const bx = runtime.bed.x,
       by = runtime.bed.y,
-      used = gameState.usedBeds[gameState.lvl];
+      used = gameState.usedBeds[gameState.loadedRoom];
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
@@ -444,7 +444,7 @@ export function draw() {
     ctx.fillStyle = '#F6EBCB';
     ctx.font = '800 18px ' + FONT_BODY;
     ctx.textAlign = 'center';
-    drawOutlinedText('⏱ ' + formatTime(gameState.lt), WIDTH / 2, HEIGHT / 2 + 52, 34, '#F6EBCB');
+    drawOutlinedText('⏱ ' + formatTime(gameState.roomTime), WIDTH / 2, HEIGHT / 2 + 52, 34, '#F6EBCB');
     if (gameState.newRecordKind)
       drawOutlinedText(
         gameState.newRecordKind === 1 ? 'PREMIER TEMPS !' : 'NOUVEAU RECORD !',
@@ -453,13 +453,13 @@ export function draw() {
         26,
         '#4DB8B1',
       );
-    else if (scores.best[gameState.lvl] !== undefined) {
+    else if (scores.best[gameState.loadedRoom] !== undefined) {
       ctx.font = '800 16px ' + FONT_BODY;
-      ctx.fillText('record : ' + formatTime(scores.best[gameState.lvl]), WIDTH / 2, HEIGHT / 2 + 86);
+      ctx.fillText('record : ' + formatTime(scores.best[gameState.loadedRoom]), WIDTH / 2, HEIGHT / 2 + 86);
     }
     ctx.font = '800 16px ' + FONT_BODY;
     ctx.fillText(
-      gameState.lvl + 1 >= levels.length ? 'Tu as fini la démo' : "Touche l'écran pour continuer",
+      gameState.loadedRoom + 1 >= levels.length ? 'Tu as fini la démo' : "Touche l'écran pour continuer",
       WIDTH / 2,
       HEIGHT / 2 + 120,
     );

@@ -33,7 +33,7 @@ export const uiHitBoxes = [];
 /* bouton « touche de clavier » : face orange, lèvre brune, ombre sombre décalée, texte blanc ombré */
 export function drawButton(id, x, y, w, h, label, o = {}) {
   const lip = o.lip || 10,
-    pr = gameState.press === id,
+    pr = gameState.pressedButton === id,
     d = pr ? lip - 3 : 0,
     col = o.c || '#F0A64B',
     dk = o.d || '#8A5419',

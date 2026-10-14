@@ -42,8 +42,7 @@ export function step(dt) {
     actions.cl = 0;
     useEcho();
   }
-  let hf = 0,
-    tf = 0;
+  let hf = 0;
   if (actions.hit) {
     actions.hit = 0;
     hf = doHit() ? 1 : 0;
@@ -81,7 +80,7 @@ export function step(dt) {
     bossAI.any()
   )
     sealRoom();
-  if (gameState.sealed === 1 && gameState.time - gameState.sealAt >= 0.4) sealLand();
+  if (gameState.sealed === 1 && gameState.time - gameState.sealStartTime >= 0.4) sealLand();
   gameState.perch =
     runtime.player.g && runtime.player.y + runtime.player.h < FLOOR_Y - 10 ? (gameState.perch || 0) + dt : 0;
   gameState.echoCooldown = Math.max(0, gameState.echoCooldown - dt);
@@ -224,7 +223,7 @@ export function step(dt) {
       gameState.collectedHearts[h.id] = 1;
       if (h.t === 'm') {
         gameState.hp = gameState.hpMax;
-        gameState.bonusHearts = Math.min(6, gameState.bonusHearts + 1);
+        gameState.shieldHearts = Math.min(6, gameState.shieldHearts + 1);
         showMessage('Cœur bleu ! Cœurs rechargés + un bouclier temporaire', 3);
       } else {
         gameState.hp = Math.min(gameState.hpMax, gameState.hp + 1);
@@ -252,16 +251,16 @@ export function step(dt) {
       const near =
         Math.abs(cxp - runtime.statue.x) < 30 &&
         Math.abs(runtime.player.y + runtime.player.h - runtime.statue.y) < 20;
-      if (!near) gameState.stA = 1;
-      else if (gameState.stA) {
-        gameState.stA = 0;
-        gameState.checkpointRoom = gameState.lvl;
+      if (!near) gameState.statueSaveArmed = 1;
+      else if (gameState.statueSaveArmed) {
+        gameState.statueSaveArmed = 0;
+        gameState.checkpointRoom = gameState.loadedRoom;
         saveGame();
         playSfx('win');
         showMessage('Statut : partie sauvegardée', 2.5);
       }
     }
-    gameState.bedNear = false;
+    gameState.isNearBed = false;
     if (runtime.bed) {
       const near =
         runtime.player.g &&
@@ -271,7 +270,7 @@ export function step(dt) {
         near &&
         (gameState.hp < gameState.hpMax - 1e-6 || (gameState.hasTimeEcho && gameState.gauge < 10 - 1e-6))
       )
-        gameState.bedNear = true;
+        gameState.isNearBed = true;
     }
   }
   stomp();

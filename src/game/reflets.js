@@ -185,10 +185,7 @@ export function mirrorBossAI(e, dt) {
     e.face = -(lead.face || 1);
     return;
   }
-  const m = e.hp > 4 ? 1 : e.hp > 2 ? 1.2 : 1.4,
-    cx = e.x + e.w / 2,
-    pcx = runtime.player.x + runtime.player.w / 2,
-    hx = pcx < WIDTH / 2 ? pcx : WIDTH - pcx;
+  const m = e.hp > 4 ? 1 : e.hp > 2 ? 1.2 : 1.4;
   if (runtime.knockbackTimer > 0) {
     runtime.knockbackTimer -= dt;
     if (runtime.knockbackTimer <= 0) {
@@ -431,4 +428,3 @@ export const hitSrc = () => {
     };
   return hitSrcOf(runtime.player);
 };
-const touched = () => !!hitSrc();

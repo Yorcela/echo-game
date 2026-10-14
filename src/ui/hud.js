@@ -167,9 +167,9 @@ export function drawHUD() {
             : 0;
       drawHeartF(hx + i * 31, 31 + bump, 29, f);
     }
-    const nb = Math.ceil(gameState.bonusHearts - 1e-6);
+    const nb = Math.ceil(gameState.shieldHearts - 1e-6);
     for (let j = 0; j < nb; j++)
-      drawHeartF(hx + (gameState.hpMax + j) * 31, 31, 29, Math.min(1, gameState.bonusHearts - j), true);
+      drawHeartF(hx + (gameState.hpMax + j) * 31, 31, 29, Math.min(1, gameState.shieldHearts - j), true);
   }
   // échos possédés : petites pastilles en haut à droite
   const o = IS_TOUCH_DEVICE ? [] : ownedEchoes();
@@ -230,7 +230,7 @@ export function drawHUD() {
   ctx.font = '800 11px ' + FONT_BODY;
   ctx.textAlign = 'left';
   ctx.fillText(runtime.level.name.toUpperCase(), 16, HEIGHT - 8);
-  if (gameState.bedNear && gameState.mode === 'play') {
+  if (gameState.isNearBed && gameState.mode === 'play') {
     const tx = IS_TOUCH_DEVICE ? 'Touche ici pour dormir' : 'Entrée : dormir';
     ctx.font = '800 15px ' + FONT_BODY;
     const w = ctx.measureText(tx).width + 36,

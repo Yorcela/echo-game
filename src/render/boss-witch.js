@@ -245,7 +245,6 @@ export function drawWitch(e, al) {
     walk = Math.abs(vx) > 8 && e.st === 'idle',
     sp = Math.min(1, Math.abs(vx) / 180);
   e._ph = (e._ph || 0) + (walk ? dtf * (6 + sp * 5) : 0);
-  const wf = e.wf || 1;
   let flick = 0,
     cock = 0;
   if (vol) {

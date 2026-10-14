@@ -19,7 +19,7 @@ import {
   isKingReady,
 } from './world/world.js';
 import { buildWorld, installRoom } from './world/build.js';
-import { loadRoom, pickBlue } from './world/rooms.js';
+import { loadRoom, pickBlueHeartSpots } from './world/rooms.js';
 import { gameOver, hurtPlayer, restoreSnapshot, rewindFrame, takeSnapshot } from './game/rewind.js';
 import { collide, gateOK, moveBody, sealed, solid } from './game/physics.js';
 import { pick, useEcho } from './game/echoes.js';
@@ -99,7 +99,7 @@ if (import.meta.env.MODE === 'test') {
     kingReady: isKingReady,
     hurtP: hurtPlayer,
     gameOver: gameOver,
-    pickBlue: pickBlue,
+    pickBlue: pickBlueHeartSpots,
     submitOver: submitOver,
     nmEl: nameInputElement,
     advance: advance,
@@ -127,6 +127,6 @@ if (import.meta.env.MODE === 'test') {
   };
 }
 loadSavedGame();
-loadRoom(gameState.cur);
+loadRoom(gameState.currentRoom);
 gameState.mode = 'title';
 requestAnimationFrame(frame);

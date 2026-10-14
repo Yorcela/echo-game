@@ -50,8 +50,8 @@ export function advance(fx, fy) {
   ensureAudio();
   const hit = fx !== undefined && fy !== undefined ? hitTestUI(fx, fy) : null;
   if (hit) {
-    gameState.press = hit;
-    gameState.pressT = 0.15;
+    gameState.pressedButton = hit;
+    gameState.pressedFeedbackTimer = 0.15;
   }
   if (gameState.mode === 'title') {
     if (hit === 'reset') {
@@ -76,7 +76,7 @@ export function advance(fx, fy) {
       return;
     }
     if (hit === 'play' || fx === undefined) {
-      loadRoom(gameState.cur);
+      loadRoom(gameState.currentRoom);
       gameState.fade = 0.4;
     }
   } else if (gameState.mode === 'trial') {
@@ -98,7 +98,7 @@ export function advance(fx, fy) {
     else if (hit === 'rew') {
       actions.r5 = 1;
     } else if (hit === 'bedz') {
-      if (gameState.bedNear) {
+      if (gameState.isNearBed) {
         gameState.mode = 'sleep';
         input.l = input.r = input.jh = input.u = input.d = 0;
         playSfx('tick');
@@ -112,7 +112,7 @@ export function advance(fx, fy) {
             : 'Approche-toi du lit pour y dormir.',
           2.5,
         );
-    } else if (hit === 'bed' || (fx === undefined && gameState.bedNear)) {
+    } else if (hit === 'bed' || (fx === undefined && gameState.isNearBed)) {
       gameState.mode = 'sleep';
       input.l = input.r = input.jh = input.u = input.d = 0;
       playSfx('tick');

@@ -54,8 +54,7 @@ function drawBoss0(e) {
     )
   ) {
     const blink = e.inv > 0 && e.inv < 5 && Math.floor(gameState.time * 20) % 2,
-      cx = e.x + e.w / 2,
-      f = e.face || 1;
+      cx = e.x + e.w / 2;
     let tint = null;
     if (e.st === 'arm' && e.t < 0.6) tint = ['#D0402E', 0.14 + 0.12 * Math.sin(gameState.time * 40)];
     ctx.save();

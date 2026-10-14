@@ -70,19 +70,7 @@ export function drawTitle() {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.font = '800 17px ' + FONT_BODY;
-  const n = gameState.cur || 0;
-  const arrow = (dir) => (x, y) => {
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(x + dir * 8, y - 11);
-    ctx.lineTo(x - dir * 8, y);
-    ctx.lineTo(x + dir * 8, y + 11);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.fill();
-  };
+  const n = gameState.currentRoom || 0;
   ctx.fillStyle = INK_COLOR;
   ctx.font = '900 21px ' + FONT_BODY;
   ctx.textAlign = 'center';
@@ -212,7 +200,7 @@ export function startTrial(r) {
       break;
     }
   gameState.hp = gameState.hpMax = 3;
-  gameState.bonusHearts = 0;
+  gameState.shieldHearts = 0;
   gameState.gauge = 10;
   gameState.clearedBossRooms = {};
   gameState.solvedRooms = {};
@@ -227,7 +215,7 @@ export function endTrial() {
   gameState.trial = 0;
   gameState.clearedBossRooms = {};
   loadSavedGame();
-  loadRoom(gameState.cur);
+  loadRoom(gameState.currentRoom);
   gameState.mode = 'title';
   playSfx('tick');
 }
@@ -314,7 +302,7 @@ export function drawMap() {
     const { x, y } = at(i),
       v = !!gameState.visitedRooms[i],
       bo = levels[i].boss,
-      cur = i === gameState.lvl,
+      cur = i === gameState.loadedRoom,
       done = !!gameState.clearedBossRooms[i];
     if (!v && !bo) {
       ctx.fillStyle = 'rgba(246,235,203,.14)';
@@ -421,8 +409,8 @@ export function drawMap() {
     }
   }
   // le héros sur la salle active : petit saut, halo qui pulse, flèche qui rebondit
-  if (ROOM_POSITIONS[gameState.lvl]) {
-    const { x, y } = at(gameState.lvl),
+  if (ROOM_POSITIONS[gameState.loadedRoom]) {
+    const { x, y } = at(gameState.loadedRoom),
       t = gameState.time,
       cxp = x + cw / 2,
       ph = t * 5.5,

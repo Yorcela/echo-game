@@ -30,7 +30,7 @@ const BED_SPOT_BY_ROOM = {
   'Double plaque et mur': [9, 11],
 };
 // 10 % des salles contiennent un cœur bleu, tirées au hasard à chaque nouvelle partie
-export function pickBlue(seed) {
+export function pickBlueHeartSpots(seed) {
   const rnd = seededRandom(seed),
     pool = [];
   for (const [nm, sp] of Object.entries(BED_SPOT_BY_ROOM)) {
@@ -52,12 +52,12 @@ export const hasBed = (i) => !!levels[i].bench;
 export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
   const seen = !!gameState.visitedRooms[i];
   gameState.visitedRooms[i] = 1;
-  gameState.cur = i;
+  gameState.currentRoom = i;
   gameState.entry = from;
   gameState.entryRoom = fromRoom;
   gameState.entryRow = frow;
   runtime.level = i === HUB_ROOM && isKingReady() ? kingArenaLevel() : levels[i];
-  gameState.lvl = i;
+  gameState.loadedRoom = i;
   runtime.grid = runtime.level.rows.map((r) => r.split(''));
   runtime.plates = [];
   runtime.anchors = [];
@@ -210,10 +210,10 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
     ladCd: 0,
   };
   runtime.echoClone = null;
-  gameState.stA = 1;
+  gameState.statueSaveArmed = 1;
   gameState.sealed = 0;
   runtime.sealedTiles = [];
-  gameState.gateUpAt = -9;
+  gameState.gateRaisedAt = -9;
   gameState.perch = 0;
   runtime.colossusFloor = {
     cnt: [],
@@ -299,7 +299,7 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
         ? runtime.level.boss.hp
         : runtime.entities.filter((e) => e.k === 'b').length * runtime.level.boss.hp
     : 0;
-  gameState.lt = 0;
+  gameState.roomTime = 0;
   gameState.newRecordKind = 0;
   gameState.history = [takeSnapshot()];
   gameState.echoCooldown = 0;
@@ -311,7 +311,7 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
   if (o.length && !gameState.echoesOwned[gameState.selectedEcho]) gameState.selectedEcho = o[0];
   {
     const hl = [],
-      bl = gameState.blue && gameState.blue[i];
+      bl = gameState.blueHeartSpots && gameState.blueHeartSpots[i];
     for (const [c, r, t] of HEART_SPOTS[runtime.level.name] || []) {
       if (bl && bl[0] === c && bl[1] === r) continue;
       hl.push([c, r, t]);

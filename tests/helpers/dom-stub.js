@@ -51,19 +51,19 @@ export function runScenario(T) {
   const out = {};
   const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); };
   for (const seed of [11, 222, 3333]) {
-    T.S.seed = seed; T.buildWorld(seed); T.S.blue = T.pickBlue(seed);
+    T.S.seed = seed; T.buildWorld(seed); T.S.blueHeartSpots = T.pickBlue(seed);
     const rooms = T.LV.map((l) => (l && l.rows ? l.rows.join('') : ''));
     const rec = { n: T.LV.length, world: hash(rooms.join('|')), order: hash(JSON.stringify(T.ORDER)) , runs: [] };
     const picks = [0, 1, 5, 8, 12, 20, 33, 43, 50, 70, 99].filter((i) => i < T.LV.length);
     for (const room of picks) {
       seedRandom(seed * 7919 + room);
-      T.resetAll(); T.S.seed = seed; T.buildWorld(seed); T.S.blue = T.pickBlue(seed);
+      T.resetAll(); T.S.seed = seed; T.buildWorld(seed); T.S.blueHeartSpots = T.pickBlue(seed);
       T.load(room); T.S.mode = 'play';
       const trace = [];
       for (let f = 0; f < 900; f++) {
         T.I.r = f % 220 < 130 ? 1 : 0; T.I.l = f % 220 >= 160 ? 1 : 0; T.I.jp = f % 47 === 0 ? 1 : 0; T.I.jh = f % 47 < 22 ? 1 : 0;
         T.step(1 / 60);
-        if (f % 30 === 0) trace.push([Math.round(T.P.x), Math.round(T.P.y), T.S.hp, T.S.mode, T.S.cur]);
+        if (f % 30 === 0) trace.push([Math.round(T.P.x), Math.round(T.P.y), T.S.hp, T.S.mode, T.S.currentRoom]);
         if (T.S.mode !== 'play') { T.S.mode = 'play'; }
       }
       rec.runs.push([room, hash(JSON.stringify(trace))]);

@@ -74,26 +74,26 @@ export function startRewind(sec, free) {
   if (gameState.history.length <= 2) return;
   if (!free) gameState.gauge -= sec;
   gameState.mode = 'rewind';
-  gameState.free = free ? 1 : 0;
+  gameState.freeRewind = free ? 1 : 0;
   gameState.rewindTargetFrame = Math.max(1, gameState.history.length - sec * 60);
-  gameState.rwStart = gameState.time;
-  gameState.rExt = 0;
+  gameState.rewindStartTime = gameState.time;
+  gameState.rewindExtended = 0;
   playSfx('rewind');
 }
 export function extendRewind() {
   // 2e appui rapide sur R pendant le retour : 5 s de plus (10 s au total)
   if (
     gameState.mode !== 'rewind' ||
-    gameState.free ||
-    gameState.rExt ||
-    gameState.time - gameState.rwStart > 0.8 ||
+    gameState.freeRewind ||
+    gameState.rewindExtended ||
+    gameState.time - gameState.rewindStartTime > 0.8 ||
     gameState.gauge < 5 - 1e-6 ||
     gameState.rewindTargetFrame <= 1
   )
     return;
   gameState.gauge -= 5;
   gameState.rewindTargetFrame = Math.max(1, gameState.rewindTargetFrame - 300);
-  gameState.rExt = 1;
+  gameState.rewindExtended = 1;
   playSfx('rewind');
 }
 export function rewindFrame(dt) {
@@ -116,7 +116,7 @@ function respawn() {
       : HUB_ROOM;
   gameState.deaths = (gameState.deaths | 0) + 1;
   gameState.hp = gameState.hpMax;
-  gameState.bonusHearts = 0;
+  gameState.shieldHearts = 0;
   gameState.gauge = 10;
   gameState.idleTime = 0;
   gameState.invulnerableTimer = 1.8;
@@ -167,13 +167,13 @@ export function hurtPlayer(amt, haz, sx) {
   playSfx('death');
   gameState.shake = 0.35;
   gameState.idleTime = 0;
-  const fatal = amt >= gameState.hp + gameState.bonusHearts - 1e-6;
+  const fatal = amt >= gameState.hp + gameState.shieldHearts - 1e-6;
   if (fatal) {
     if (gameState.hasTimeEcho && gameState.gauge >= 5 - 1e-6 && gameState.history.length > 2) {
       gameState.gauge = Math.max(0, gameState.gauge - 5);
       gameState.invulnerableTimer = 1.8;
       gameState.mode = 'rewind';
-      gameState.free = 1;
+      gameState.freeRewind = 1;
       gameState.rewindTargetFrame = Math.max(1, gameState.history.length - 300);
       saveGame();
       showMessage(
@@ -184,7 +184,7 @@ export function hurtPlayer(amt, haz, sx) {
     }
     if (gameState.trial) {
       gameState.hp = 0;
-      gameState.bonusHearts = 0;
+      gameState.shieldHearts = 0;
       gameOver();
       return;
     }
@@ -192,9 +192,9 @@ export function hurtPlayer(amt, haz, sx) {
     return;
   }
   let a = amt;
-  if (gameState.bonusHearts > 0) {
-    const t = Math.min(gameState.bonusHearts, a);
-    gameState.bonusHearts -= t;
+  if (gameState.shieldHearts > 0) {
+    const t = Math.min(gameState.shieldHearts, a);
+    gameState.shieldHearts -= t;
     a -= t;
   }
   gameState.hp = Math.max(0.01, gameState.hp - a);
@@ -203,12 +203,12 @@ export function hurtPlayer(amt, haz, sx) {
   if (haz) {
     const n = gameState.history.length;
     if (!gameState.hasTimeEcho || n <= 40) {
-      loadRoom(gameState.lvl, gameState.entry, gameState.entryRoom, gameState.entryRow);
+      loadRoom(gameState.loadedRoom, gameState.entry, gameState.entryRoom, gameState.entryRow);
       gameState.invulnerableTimer = 1.4;
       return;
     }
     gameState.mode = 'rewind';
-    gameState.free = 1;
+    gameState.freeRewind = 1;
     gameState.rewindTargetFrame = Math.max(1, n - 150);
     showMessage('Aïe ! Le temps repart 2 secondes avant', 2);
   } else {
@@ -220,7 +220,7 @@ export function hurtPlayer(amt, haz, sx) {
   }
 }
 export function sleepInBed() {
-  gameState.checkpointRoom = gameState.lvl;
+  gameState.checkpointRoom = gameState.loadedRoom;
   gameState.hp = gameState.hpMax;
   gameState.gauge = 10;
   gameState.idleTime = 0;
@@ -234,7 +234,7 @@ export function sleepInBed() {
   showMessage('Tu as dormi : cœurs et Temps rechargés (+20 s au chrono).', 3.5);
 }
 function markRoomWon() {
-  gameState.wonRoom = gameState.lvl;
+  gameState.wonRoom = gameState.loadedRoom;
   playSfx('win');
   saveGame();
 }
@@ -253,11 +253,11 @@ snapCv.width = WIDTH;
 snapCv.height = HEIGHT;
 export function goThroughLink(k, row) {
   if (k.fwd) {
-    gameState.solvedRooms[gameState.lvl] = 1;
+    gameState.solvedRooms[gameState.loadedRoom] = 1;
     if (NO_FLIP) markRoomWon();
   }
   snapCv.getContext('2d').drawImage(canvas, 0, 0);
-  const from = gameState.lvl;
+  const from = gameState.loadedRoom;
   loadRoom(k.to, 'X', from, row);
   gameState.slideTimer = 0.4;
   gameState.slideDirX = k.s === 'r' ? 1 : k.s === 'l' ? -1 : 0;

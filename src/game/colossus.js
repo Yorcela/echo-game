@@ -92,7 +92,7 @@ function colossusDie(e, dt) {
       e.alive = 0;
       if (!bossAI.any()) {
         unsealRoom();
-        gameState.clearedBossRooms[gameState.lvl] = 1;
+        gameState.clearedBossRooms[gameState.loadedRoom] = 1;
         startGain();
       }
     }
@@ -218,8 +218,7 @@ export function colossusAI(e, dt) {
     );
     if (!e.fx && e.t <= 0.37) {
       e.fx = 1;
-      const f = e.face || 1,
-        fx = cx + f * (e.w / 2 + 55);
+      const f = e.face || 1;
       if (e.st === 'smash')
         runtime.entities.push({
           k: 's',

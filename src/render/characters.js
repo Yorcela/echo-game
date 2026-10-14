@@ -927,8 +927,7 @@ export function drawWorm(e, al, tint) {
     freq = 1.3,
     sx = 1,
     sy = 1,
-    rot = 0,
-    gap = 0;
+    rot = 0;
   if (e.st === 'idle' && sp > 10) {
     amp = 7;
     rate = 8 * F;

@@ -1,7 +1,7 @@
 import { levels } from '../data/levels.js';
 import { HUB_ROOM, SAVEKEY, gameState } from './state.js';
 import { buildWorld } from '../world/build.js';
-import { loadRoom, pickBlue } from '../world/rooms.js';
+import { loadRoom, pickBlueHeartSpots } from '../world/rooms.js';
 import { showNameInput } from '../ui/hud.js';
 export const scores = {
   best: {},
@@ -33,18 +33,17 @@ export function saveGame() {
         t: gameState.hasTimeEcho,
         r: gameState.runTime,
         hp: gameState.hp,
-        sh: gameState.bonusHearts,
+        sh: gameState.shieldHearts,
         g: gameState.gauge,
         v: gameState.visitedRooms,
         cl: gameState.clearedBossRooms,
         aa: gameState.anchorsByRoom,
         so: gameState.solvedRooms,
         bu: gameState.usedBeds,
-        bl: gameState.blue,
+        bl: gameState.blueHeartSpots,
         sd: gameState.seed,
         hc: gameState.collectedHearts,
-        cur: gameState.cur,
-        ca: gameState.called,
+        cur: gameState.currentRoom,
         ck: gameState.checkpointRoom,
         dh: gameState.deaths,
       }),
@@ -54,7 +53,7 @@ export function saveGame() {
 function newGame() {
   gameState.seed = ((Date.now() % 1e9) ^ Math.floor(Math.random() * 1e9)) | 0;
   buildWorld(gameState.seed);
-  gameState.blue = pickBlue(gameState.seed);
+  gameState.blueHeartSpots = pickBlueHeartSpots(gameState.seed);
 }
 export function loadSavedGame() {
   let ok = false;
@@ -67,21 +66,20 @@ export function loadSavedGame() {
       gameState.runTime = +d.r || 0;
       gameState.hpMax = 3;
       gameState.hp = d.hp > 0 ? Math.min(gameState.hpMax, +d.hp) : gameState.hpMax;
-      gameState.bonusHearts = Math.max(0, Math.min(6, +d.sh || 0));
+      gameState.shieldHearts = Math.max(0, Math.min(6, +d.sh || 0));
       gameState.gauge = Math.max(0, Math.min(10, d.g === undefined ? 10 : +d.g));
       gameState.visitedRooms = d.v || {};
       gameState.clearedBossRooms = d.cl || {};
       gameState.anchorsByRoom = d.aa || {};
       gameState.solvedRooms = d.so || {};
       gameState.usedBeds = d.bu || {};
-      gameState.blue = d.bl || {};
+      gameState.blueHeartSpots = d.bl || {};
       gameState.seed = d.sd | 0;
       gameState.collectedHearts = d.hc || {};
-      gameState.called = d.ca | 0;
       gameState.checkpointRoom = d.ck === undefined ? undefined : d.ck | 0;
       gameState.deaths = d.dh | 0;
       buildWorld(gameState.seed);
-      gameState.cur = Math.min(levels.length - 1, Math.max(0, d.cur | 0));
+      gameState.currentRoom = Math.min(levels.length - 1, Math.max(0, d.cur | 0));
     }
   } catch (e) {
     ok = false;
@@ -100,11 +98,11 @@ export function resetAll() {
   gameState.overPhase = 0;
   showNameInput(false);
   gameState.exploredAtEnd = 0;
-  gameState.lt = 0;
+  gameState.roomTime = 0;
   gameState.runTime = 0;
   gameState.hpMax = 3;
   gameState.hp = 3;
-  gameState.bonusHearts = 0;
+  gameState.shieldHearts = 0;
   gameState.idleTime = 0;
   gameState.gauge = 10;
   gameState.collectedHearts = {};
@@ -113,10 +111,9 @@ export function resetAll() {
   gameState.anchorsByRoom = {};
   gameState.solvedRooms = {};
   gameState.usedBeds = {};
-  gameState.called = 0;
   gameState.checkpointRoom = undefined;
   gameState.deaths = 0;
-  gameState.cur = HUB_ROOM;
+  gameState.currentRoom = HUB_ROOM;
   gameState.echoesOwned = [0, 0, 0, 0, 0, 0, 0];
   gameState.hasTimeEcho = 0;
   gameState.selectedEcho = 0;

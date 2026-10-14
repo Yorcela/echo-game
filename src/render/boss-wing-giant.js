@@ -137,7 +137,6 @@ export function drawColossus(e, al, tint) {
       const a1 = a > 0.9 ? a * 0.44 : a,
         a2 = a > 0.9 ? a * 0.56 : 0,
         key = g(sd < 0 ? 'giant-arm-left' : 'giant-arm-right'),
-        m = sd < 0 ? IW : 0,
         X = (x) => (sd < 0 ? IW - x : x),
         ex = X(442),
         ey = 150;

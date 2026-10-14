@@ -124,7 +124,6 @@ export function playSfx(k) {
 const CALM_BASS_LINE = [131, 165, 196, 165, 175, 220, 262, 220, 196, 247, 294, 247, 131, 165, 196, 247];
 const BOSS_BASS_LINE = [110, 110, 131, 110, 98, 98, 123, 98, 110, 110, 131, 147, 139, 131, 123, 117];
 const BOSS_LEAD_LINE = [440, 0, 523, 0, 622, 0, 587, 523, 0, 494, 0, 415, 0, 440, 0, 0];
-let inBossMus = false;
 function isBossMusicActive() {
   try {
     return gameState.mode === 'play' && typeof isBossAlive === 'function' && isBossAlive();
@@ -135,7 +134,6 @@ function isBossMusicActive() {
 function scheduleMusicStep(i) {
   if (!audioContext) return;
   const bm = isBossMusicActive();
-  inBossMus = bm;
   if (!runtime.mute && gameState.mode !== 'rewind') {
     if (bm) {
       const k = i % 16;

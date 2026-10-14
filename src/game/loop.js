@@ -15,10 +15,11 @@ export function frame(ts) {
   lastFrameTime = ts;
   gameState.time += dt;
   gameState.resetArmedTimer = Math.max(0, gameState.resetArmedTimer - dt);
-  if (gameState.pressT > 0 && (gameState.pressT -= dt) <= 0) gameState.press = null;
+  if (gameState.pressedFeedbackTimer > 0 && (gameState.pressedFeedbackTimer -= dt) <= 0)
+    gameState.pressedButton = null;
   gameState.shake = Math.max(0, gameState.shake - dt);
   if (gameState.mode === 'play' || gameState.mode === 'rewind') {
-    gameState.lt += dt;
+    gameState.roomTime += dt;
     gameState.runTime += dt;
   }
   if (gameState.mode === 'play' && gameState.slideTimer > 0) {
@@ -63,5 +64,5 @@ export function frame(ts) {
   requestAnimationFrame(frame);
 }
 loadSavedGame();
-loadRoom(gameState.cur);
+loadRoom(gameState.currentRoom);
 gameState.mode = 'title';

@@ -129,12 +129,6 @@ export function drawBolt(e) {
       }
       ctx.restore();
     };
-    const arm = (ang) => {
-      ctx.save();
-      ctx.translate(-6, -205 + 0);
-      ctx.rotate(0);
-      ctx.restore();
-    };
     const lean = 0.4;
     // bras éloigné + jambe éloignée
     ctx.save();
@@ -197,11 +191,9 @@ export function drawBolt(e) {
   let up = 0.09,
     drop = 0,
     legA = [0, 0],
-    legL = [0, 0],
     armA = [0, 0],
     bob = Math.sin(t * 3) * 1.2,
-    sq = [1, 1],
-    armFix = 1;
+    sq = [1, 1];
   if (cr) {
     const p = 1 - Math.max(0, e.t) / 1.2; // 0..1
     if (p < 0.55) {
@@ -209,7 +201,6 @@ export function drawBolt(e) {
       up = 0.95 * q;
       drop = 95 * q;
       legA = [0.5 * q, -0.9 * q];
-      legL = [0, 0];
       bob = 0;
     } else {
       const q = (p - 0.55) / 0.45;
@@ -217,9 +208,7 @@ export function drawBolt(e) {
       drop = 95 - 60 * q;
       legA = [0.5 - 0.2 * q, -0.9 + 0.3 * q];
       bob = Math.sin(q * 40) * 1.5;
-      legL = [q * 8, 0];
     }
-    armFix = 1;
   } else if (run) {
     up = 0.36;
     drop = 10;
@@ -231,8 +220,6 @@ export function drawBolt(e) {
     legA = [1.0, -1.0];
     sq = [1, 0.97];
     bob = 0;
-  } else if (sl) {
-    const q = e.t > 0.38 ? (0.8 - e.t) / 0.42 : e.t > 0.2 ? 1 : 0;
   }
   ctx.save();
   ctx.globalAlpha = al;

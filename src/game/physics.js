@@ -8,7 +8,7 @@ import {
   TILE,
   WIDTH,
 } from '../core/config.js';
-import { isBossAlive, gameState, showMessage } from '../state/state.js';
+import { gameState, showMessage } from '../state/state.js';
 import { playSfx } from '../audio/audio.js';
 /* ---------- Physique ---------- */
 export const isDoor = (ch) => ch >= 'A' && ch <= 'Z' && ch !== 'E' && ch !== 'P';
@@ -369,7 +369,7 @@ export function updateDoors() {
 export function sealRoom() {
   if (gameState.sealed) return;
   gameState.sealed = 1;
-  gameState.sealAt = gameState.time;
+  gameState.sealStartTime = gameState.time;
   runtime.sealedTiles = [];
   playSfx('tick');
   showMessage('Des grilles tombent : il faut vaincre le boss !', 2.8);
@@ -393,7 +393,7 @@ export function unsealRoom() {
     for (const [r, c] of runtime.sealedTiles) if (runtime.grid[r][c] === '#') runtime.grid[r][c] = '.';
   gameState.sealed = 0;
   runtime.sealedTiles = [];
-  gameState.gateUpAt = gameState.time;
+  gameState.gateRaisedAt = gameState.time;
   playSfx('gain');
 }
 runtime.sealedTiles = [];
