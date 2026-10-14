@@ -1,3 +1,4 @@
+import { isOnlineEnabled, refreshWorldBoard, submitScore } from '../online/leaderboard.js';
 import { runtime } from '../state/runtime.ts';
 import { canvas } from '../core/canvas.ts';
 import {
@@ -67,6 +68,8 @@ export function advance(fx, fy) {
     if (hit === 'scores') {
       gameState.mode = 'scores';
       gameState.page = 0;
+      gameState.scoresTab = isOnlineEnabled() ? 'world' : 'local';
+      if (isOnlineEnabled()) refreshWorldBoard();
       playSfx('tick');
       return;
     }
@@ -89,6 +92,12 @@ export function advance(fx, fy) {
       playSfx('tick');
     }
   } else if (gameState.mode === 'scores') {
+    if (hit === 'stab_local' || hit === 'stab_world') {
+      gameState.scoresTab = hit === 'stab_world' ? 'world' : 'local';
+      if (gameState.scoresTab === 'world') refreshWorldBoard();
+      playSfx('tick');
+      return;
+    }
     if (hit === 'sback' || fx === undefined) {
       gameState.mode = 'title';
       playSfx('tick');
@@ -185,6 +194,10 @@ export function submitOver() {
   scores.over = scores.over.slice(0, 10);
   gameState.leaderboardRank = scores.over.indexOf(e) + 1;
   saveScores();
+  // classement mondial : envoi en arrière-plan, sans jamais bloquer ni faire échouer la partie
+  submitScore(e).then((res) => {
+    if (res.ok) refreshWorldBoard();
+  });
   gameState.overPhase = 1;
   showNameInput(false);
   playSfx('win');

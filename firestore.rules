@@ -1,0 +1,26 @@
+// Règles Firestore du classement mondial (copie de ce qui est publié dans la console Firebase).
+// Un document par joueur : scores/<uid anonyme>. Création libre si valide ; mise à jour
+// uniquement si le score s'améliore ; jamais de suppression ; lecture publique limitée à 50 lignes.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validScore(uid) {
+      let d = request.resource.data;
+      return request.auth != null && request.auth.uid == uid
+        && d.keys().hasOnly(['n', 'l', 't', 'v', 'rankKey'])
+        && d.n is string && d.n.size() >= 1 && d.n.size() <= 20
+        && d.l is int && d.l >= 0 && d.l <= 100
+        && (d.t is int || d.t is float) && d.t >= 30 && d.t < 100000
+        && d.v is int && (d.v == 0 || d.v == 1)
+        && d.rankKey is number
+        && math.abs(d.rankKey - ((d.v == 1 ? 0 : 1000000000 + (1000 - d.l) * 100000) + d.t)) < 0.01;
+    }
+    match /scores/{uid} {
+      allow get: if true;
+      allow list: if request.query.limit <= 50;
+      allow create: if validScore(uid);
+      allow update: if validScore(uid) && request.resource.data.rankKey < resource.data.rankKey;
+      allow delete: if false;
+    }
+  }
+}

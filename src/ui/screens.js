@@ -4,6 +4,7 @@ import { BOSS_PORTRAITS } from '../data/boss-portraits.js';
 import { ECHO_TYPES } from '../data/echoes.js';
 import { BOSS_ORDER, levels } from '../data/levels.js';
 import { MAP_COLS, HUB_ROOM, infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.ts';
+import { isOnlineEnabled, worldBoard } from '../online/leaderboard.js';
 import { loadSavedGame, scores } from '../state/save.js';
 import { ROOM_POSITIONS, WORLD } from '../world/world.js';
 import { hasBed, loadRoom } from '../world/rooms.js';
@@ -214,22 +215,56 @@ function drawCrown(cx, cy, w) {
 export function drawScores() {
   drawPaperBackground();
   uiHitBoxes.length = 0;
-  drawOutlinedText('CLASSEMENT', WIDTH / 2, 70, 46, '#E2A93B');
+  const online = isOnlineEnabled();
+  const world = online && gameState.scoresTab === 'world';
+  drawOutlinedText('CLASSEMENT', WIDTH / 2, 66, 46, '#E2A93B');
   ctx.fillStyle = INK_COLOR;
   ctx.textBaseline = 'alphabetic';
   ctx.font = '800 15px ' + FONT_BODY;
   ctx.textAlign = 'center';
-  ctx.fillText('Seules les parties terminées entrent au classement.', WIDTH / 2, 104);
+  ctx.fillText(
+    world
+      ? 'Meilleur score de chaque joueur, dans le monde entier.'
+      : 'Seules les parties terminées entrent au classement.',
+    WIDTH / 2,
+    98,
+  );
+  if (online) {
+    const tab = (id, x, label, active) =>
+      drawButton(id, x, 110, 170, 30, label, {
+        size: 16,
+        lip: 6,
+        r: 10,
+        c: active ? '#2F8F8A' : undefined,
+        d: active ? '#1B5753' : undefined,
+      });
+    tab('stab_local', WIDTH / 2 - 180, 'MES SCORES', !world);
+    tab('stab_world', WIDTH / 2 + 10, 'MONDIAL', world);
+  }
+  const rows = world ? worldBoard.entries : scores.over;
   for (let i = 0; i < 10; i++) {
-    const entity = scores.over[i],
-      y = 146 + i * 30;
+    const entry = rows[i],
+      y = 178 + i * 28;
     ctx.font = '900 20px ' + FONT_BODY;
     ctx.textAlign = 'left';
     ctx.fillText(i + 1 + '.', WIDTH / 2 - 330, y);
-    ctx.fillText(entity ? entity.n : '—', WIDTH / 2 - 290, y);
+    ctx.fillText(entry ? entry.n : '—', WIDTH / 2 - 290, y);
     ctx.textAlign = 'right';
-    ctx.fillText(entity ? (entity.v ? 'VICTOIRE' : entity.l + ' salles') : '', WIDTH / 2 + 210, y);
-    ctx.fillText(entity ? formatTime(entity.t) : '', WIDTH / 2 + 330, y);
+    ctx.fillText(entry ? (entry.v ? 'VICTOIRE' : entry.l + ' salles') : '', WIDTH / 2 + 210, y);
+    ctx.fillText(entry ? formatTime(entry.t) : '', WIDTH / 2 + 330, y);
+  }
+  if (world && worldBoard.status !== 'ok') {
+    ctx.textAlign = 'center';
+    ctx.font = '800 17px ' + FONT_BODY;
+    const text =
+      worldBoard.status === 'error'
+        ? 'Classement mondial ' + worldBoard.error + ' · réessaie plus tard'
+        : 'Chargement…';
+    ctx.fillText(text, WIDTH / 2, 178 + 4 * 28);
+  } else if (world && worldBoard.entries.length === 0) {
+    ctx.textAlign = 'center';
+    ctx.font = '800 17px ' + FONT_BODY;
+    ctx.fillText('Aucun score pour l’instant : sois le premier !', WIDTH / 2, 178 + 4 * 28);
   }
   drawButton('sback', WIDTH / 2 - 90, HEIGHT - 82, 180, 34, 'RETOUR', {
     size: 19,

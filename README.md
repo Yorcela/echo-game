@@ -38,6 +38,8 @@ npm run format       # Prettier
 | `src/render/` | Dessin : décor, tuiles, personnages, boss (`boss-*.js`, `bosses.js` en est le point d'entrée), scène, sprites |
 | `src/ui/` | HUD, écrans (titre, scores, carte, pause) |
 | `src/input/` | Clavier, tactile, boutons à l'écran |
+| `src/online/` | Classement mondial (Firestore via REST, authentification anonyme) |
+| `src/config/` | Configuration Firebase |
 | `src/audio/` | Musique et effets, entièrement synthétisés (Web Audio) |
 | `src/assets/sprites/` | PNG des boss (inlinés au build) |
 | `tests/` | Non-régression : monde et physique rejoués de façon déterministe, rendu de toutes les salles |
@@ -49,6 +51,17 @@ npm run format       # Prettier
 - **Variables partagées** : les variables réassignées depuis plusieurs modules (salle courante, joueur, clone, entités…) vivent dans l'objet `runtime` (`src/state/runtime.ts`), car un `let` exporté ne peut pas être réassigné par l'importeur. L'état persistant de la partie est dans `gameState`.
 - **Tests** : `npm test` construit en mode `test`, ce qui active le hook `globalThis.__T` (accès aux internes) ; les tests rejouent des scénarios avec un `Math.random` seedé et comparent des empreintes à la référence produite par le code d'avant le refactor (`tests/golden-scenario.json`).
 - **Rendu** : `draw()` est protégé par un `try/catch` dans la boucle pour ne jamais figer le jeu ; le test `render-smoke` l'appelle directement pour que les erreurs de dessin soient visibles.
+
+## Classement mondial (Firebase)
+
+Le jeu enregistre le meilleur score de chaque joueur dans Firestore (offre gratuite Spark), sans SDK : `src/online/leaderboard.js` parle directement à l'API REST.
+
+- **Identité** : authentification anonyme Firebase (aucun compte à créer) ; un document `scores/<uid>` par joueur, mis à jour uniquement si le score s'améliore.
+- **Écran** : « SCORES » → onglets *Mes scores* (local) / *Mondial*. Hors ligne ou en cas d'erreur, le classement local reste disponible et la partie n'est jamais bloquée.
+- **Sécurité** : les règles [`firestore.rules`](firestore.rules) valident côté serveur le type et les bornes des champs, le nom (1 à 20 caractères), la cohérence de la clé de tri, l'unicité par joueur et l'amélioration obligatoire d'un score existant ; suppression interdite, lecture limitée à 50 lignes. Les règles publiées dans la console Firebase doivent rester identiques à ce fichier.
+- **Limite** : le jeu tourne dans le navigateur, un joueur motivé peut donc envoyer un score plausible mais faux ; les règles écartent les valeurs impossibles et le spam, pas la triche soignée.
+- **Configuration** : `src/config/firebase.js` (clés publiques par conception). Vider `apiKey` désactive le mondial.
+- **Réutiliser un autre projet Firebase** : créer un projet, activer Firestore (mode production) et l'authentification anonyme, publier `firestore.rules`, puis remplacer la configuration.
 
 ## Règles de conception
 
