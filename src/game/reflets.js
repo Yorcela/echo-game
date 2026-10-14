@@ -2,7 +2,7 @@ import { runtime } from '../state/runtime.js';
 import { FLOOR, LETHAL, T, W } from '../core/config.js';
 import { gameState, say } from '../state/state.js';
 import { collide, moveBody, ov, solid } from './physics.js';
-import { bossAI } from './combat.js';
+import { bossAI } from './boss-ai.js';
 import { sfx } from '../audio/audio.js';
 /* ---------- Les Reflets : le Soleil (gauche) et la Lune (droite), exactement en miroir ---------- */
 export const BEAM_H = FLOOR - 32,

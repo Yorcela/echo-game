@@ -1,6 +1,6 @@
 import { levels } from '../data/levels.js';
 import { HUB, SAVEKEY, gameState } from './state.js';
-import { buildWorld } from '../world/world.js';
+import { buildWorld } from '../world/build.js';
 import { load, pickBlue } from '../world/rooms.js';
 import { showNameInput } from '../ui/hud.js';
 export const scores = {

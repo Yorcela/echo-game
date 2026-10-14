@@ -2,7 +2,8 @@ import { runtime } from '../state/runtime.js';
 import { FLOOR, G, H, T } from '../core/config.js';
 import { gameState, say } from '../state/state.js';
 import { moveBody, unsealRoom } from './physics.js';
-import { bossAI, startGain } from './combat.js';
+import { startGain } from './combat.js';
+import { bossAI } from './boss-ai.js';
 import { sfx } from '../audio/audio.js';
 /* ---------- Le Colosse ---------- */
 function collapseTile(c, quiet) {

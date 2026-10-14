@@ -17,7 +17,8 @@ import {
   updPlates,
 } from './physics.js';
 import { cycle, setSize, useEcho } from './echoes.js';
-import { bossAI, bossHit, doHit, fire, hitCheck, stomp, updShots } from './combat.js';
+import { bossHit, doHit, fire, hitCheck, stomp, updShots } from './combat.js';
+import { bossAI } from './boss-ai.js';
 import { ghost, hitSrc, hitSrcOf, updEnts } from './reflets.js';
 import { sfx } from '../audio/audio.js';
 /* ---------- Pas de simulation (60 Hz fixe) ---------- */

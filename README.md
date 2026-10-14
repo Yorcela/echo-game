@@ -31,9 +31,9 @@ npm run format       # Prettier
 | `src/core/` | Constantes (`config.js`) et canvas |
 | `src/data/` | Données pures : boss, échos et textes, plans des salles dessinées à la main, métriques des sprites |
 | `src/state/` | État de la partie (`state.js`), sauvegarde et scores (`save.js`), variables partagées (`runtime.js`) |
-| `src/world/` | Générateur de salles, assemblage du monde de 100 salles, chargement d'une salle |
-| `src/game/` | Simulation à 60 Hz : physique, échos, combat et IA des boss, Colosse, Reflets, rembobinage, boucle |
-| `src/render/` | Dessin : décor, tuiles, personnages, boss, scène, sprites |
+| `src/world/` | Générateur de salles (`generator.js`), tables du monde (`world.js`), liaisons entre salles (`edges.js`), assemblage des 100 salles (`build.js`), chargement d'une salle (`rooms.js`) |
+| `src/game/` | Simulation à 60 Hz : physique, échos, combat (`combat.js`), IA des boss (`boss-ai.js`), Colosse, Reflets, rembobinage, boucle |
+| `src/render/` | Dessin : décor, tuiles, personnages, boss (`boss-*.js`, `bosses.js` en est le point d'entrée), scène, sprites |
 | `src/ui/` | HUD, écrans (titre, scores, carte, pause) |
 | `src/input/` | Clavier, tactile, boutons à l'écran |
 | `src/audio/` | Musique et effets, entièrement synthétisés (Web Audio) |
@@ -58,3 +58,7 @@ npm run format       # Prettier
 ## Déploiement GitHub Pages
 
 Dans les réglages du dépôt : Pages → Source « Deploy from a branch », branche `main`, dossier `/dist` (le fichier `dist/index.html` est versionné : pense à relancer `npm run build` avant de commiter).
+
+## Licence
+
+[MIT](LICENSE) : usage, modification et redistribution libres, y compris commerciaux, à condition de conserver la mention de l'auteur (Yorcela) et le texte de la licence.
