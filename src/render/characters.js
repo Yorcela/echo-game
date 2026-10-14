@@ -2,7 +2,7 @@ import { runtime } from '../state/runtime.ts';
 import { HERO_BASE_H, HERO_BASE_W } from '../core/config.ts';
 import { ctx } from '../core/canvas.ts';
 import { gameState } from '../state/state.ts';
-import { SPRITES } from './sprites.js';
+import { SPRITES, isSpriteReady } from './sprites.js';
 import { INK_COLOR, roundRectPath } from './primitives.js';
 /* le héros : petit fantôme en salopette de jean (cartoon 1930) */
 export function drawHero(b, o = {}) {
@@ -418,7 +418,39 @@ export function drawWalker(entity) {
 }
 const METAL = '#A9B4B6',
   METAL_D = '#6F7C80';
+/** Crabe en sprites : pattes qui trottinent, corps qui rebondit, pinces qui claquent en alternance. */
+function drawCrabSprite(entity, t) {
+  const keys = ['crab-body', 'crab-claw-open', 'crab-claw-closed', 'crab-legs'];
+  if (!keys.every(isSpriteReady)) return false;
+  const ph = t * 9 + entity.x * 0.03,
+    s1 = Math.sin(ph),
+    s2 = Math.sin(ph + Math.PI),
+    bob = Math.abs(s1) * 0.8,
+    snap = Math.sin(t * 2.2 + entity.x * 0.1) > 0.1;
+  const img = (k, cx, by, h, sx, rot, flip) => {
+    const i = SPRITES[k],
+      w = (h * i.naturalWidth) / i.naturalHeight;
+    ctx.save();
+    ctx.translate(cx, by);
+    if (rot) ctx.rotate(rot);
+    ctx.scale(flip ? -sx : sx, 1);
+    ctx.drawImage(i, -w / 2, -h, w, h);
+    ctx.restore();
+  };
+  img('crab-legs', -3 + s2 * 1.5, 0, 15, 1 - 0.06 * s2, 0);
+  img('crab-legs', 3 + s1 * 1.5, 0, 16, 1 - 0.06 * s1, 0);
+  // pinces toujours tournées vers le centre : la version fermée d'un côté est le miroir de l'autre
+  // le bout du bras est à gauche du sprite : on l'accroche au flanc du corps, le côté gauche est le miroir du droit
+  const armX = (k) => 13 + (28 * SPRITES[k].naturalWidth) / SPRITES[k].naturalHeight / 2;
+  const kl = snap ? 'crab-claw-open' : 'crab-claw-closed',
+    kr = snap ? 'crab-claw-closed' : 'crab-claw-open';
+  img(kl, -armX(kl), -4 - bob, 28, 1, 0, true);
+  img(kr, armX(kr), -4 - bob, 28, 1, 0, false);
+  img('crab-body', 0, -11 - bob, 28, 1, Math.sin(ph * 0.5) * 0.03);
+  return true;
+}
 function drawCrab(entity, t) {
+  if (drawCrabSprite(entity, t)) return;
   const ph = t * 26 + entity.x * 0.07;
   ctx.lineWidth = 2.6;
   for (const s of [-1, 1])
@@ -556,7 +588,61 @@ function drawCrab(entity, t) {
   ctx.lineWidth = 1.6;
   ctx.stroke();
 }
+/** Petit colosse (robot) en sprites : jambes-tuyaux et bottes qui alternent, bras qui balancent, flamme sur le crâne quand il est presque cassé. */
+function drawRebelSprite(entity, t) {
+  const keys = [
+    'robot-head',
+    'robot-torso',
+    'robot-leg-spring',
+    'robot-leg-pipe',
+    'robot-arm',
+    'robot-flame',
+    'robot-boot',
+  ];
+  if (!keys.every(isSpriteReady)) return false;
+  const sw = Math.sin(t * 6 + entity.x * 0.05),
+    bob = Math.abs(sw) * -1.3,
+    hot = entity.hp <= 2;
+  const img = (k, cx, by, h, sx, rot, px) => {
+    const i = SPRITES[k],
+      w = (h * i.naturalWidth) / i.naturalHeight;
+    ctx.save();
+    ctx.translate(cx, by);
+    if (rot) ctx.rotate(rot);
+    ctx.scale(sx, 1);
+    ctx.drawImage(i, -w * (px === undefined ? 0.5 : px), -h, w, h);
+    ctx.restore();
+  };
+  ctx.translate(0, bob);
+  ctx.scale(1.2, 1.2);
+  for (const sd of [-1, 1]) {
+    const l = sd * sw * 3,
+      lift = Math.max(0, sd * sw) * 1.8;
+    img('robot-boot', sd * 5.5 + l, -lift, 8, 1, 0, 0.38);
+    img(sd < 0 ? 'robot-leg-spring' : 'robot-leg-pipe', sd * 5 + l * 0.6, -4 - lift, 13, 1, sd * sw * 0.1);
+  }
+  for (const sd of [-1, 1]) {
+    ctx.save();
+    ctx.translate(sd * 8, -28);
+    ctx.rotate(sd * sw * 0.35);
+    ctx.scale(sd, 1);
+    const i = SPRITES['robot-arm'],
+      h = 19,
+      w = (h * i.naturalWidth) / i.naturalHeight;
+    ctx.drawImage(i, -w * 0.2, 0, w, h);
+    ctx.restore();
+  }
+  img('robot-torso', 0, -11, 19, 1, 0);
+  const hb = Math.sin(t * 9 + entity.x) * 0.5;
+  img('robot-head', 0, -27 + hb, 27, 1, Math.sin(t * 3 + entity.x) * 0.02);
+  if (hot) {
+    const fl = 1 + Math.sin(t * 28) * 0.18;
+    img('robot-flame', 9, -41 + hb, 10 * fl, 1, Math.sin(t * 20) * 0.12);
+  }
+  return true;
+}
 function drawRebel(entity, t) {
+  if (drawRebelSprite(entity, t)) return;
   const sw = Math.sin(t * 6 + entity.x * 0.05),
     bob = Math.abs(sw) * -1.4;
   ctx.translate(0, bob);

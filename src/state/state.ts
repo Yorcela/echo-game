@@ -70,8 +70,8 @@ export const gameState: GameState = {
 };
 export const enemyTypes: Record<string, { w: number; h: number; spd: number; hp: number }> = {
   c: {
-    w: 32,
-    h: 24,
+    w: 36,
+    h: 28,
     spd: 70 * 2.5,
     hp: 1,
   },
