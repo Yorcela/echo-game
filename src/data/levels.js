@@ -672,14 +672,30 @@ namedRooms.tir1 = shootingRoom('Au bout du tunnel', 'Tir (touche X) : un project
   door: 20,
   id: '1',
 });
-namedRooms.tir2 = shootingRoom('La meurtrière', '', {
-  m: 12,
-  pw: 3,
-  end: 21,
-  door: 19,
-  id: '1',
-  crab: 25,
-});
+// La meurtrière : le même principe, mais en hauteur. Le tunnel est à mi-hauteur de la tour : on y monte par des corniches,
+// le trou est un puits sans fond, et la porte est tout en haut, sur le toit.
+namedRooms.tir2 = {
+  name: 'La meurtrière',
+  hint: '',
+  need: [6],
+  rows: buildRoomRows((s, h, v) => {
+    const m = 12,
+      pw = 4,
+      end = 24;
+    s(13, 2, 'P');
+    for (const r of [3, 4, 5, 6, 7, 9, 10, 11, 12, 13]) h(r, m, end);
+    h(8, m + pw + 1, end);
+    for (let r = 9; r <= 16; r++) h(r, m, m + pw - 1, '.');
+    s(8, m + pw, '1');
+    h(12, 4, 5);
+    h(10, 7, 8);
+    h(9, 9, m - 1);
+    h(6, 5, 7);
+    h(3, 8, 10);
+    v(21, 1, 2, 'X');
+    s(13, 26, '+');
+  }),
+};
 namedRooms.tir3 = shootingRoom('Tir de précision', '', {
   m: 10,
   pw: 4,
@@ -687,16 +703,21 @@ namedRooms.tir3 = shootingRoom('Tir de précision', '', {
   door: 21,
   id: '2',
 });
-// double saut + Jumeau : un mur de 4 cases, puis une porte avec sa plaque de l'autre côté
+// double saut + Jumeau + dash : un mur de 4 cases, un pont fragile (une planche sur deux, elles cèdent sous les pas),
+// puis une porte dont la plaque est derrière elle (le clone, apparu de l'autre côté, la tient), et enfin un fossé trop large
+// pour un simple saut. Le héros attend le clone sur le sol plein : le pont s'effondre sous qui s'y arrête.
 namedRooms.jd1 = {
   name: 'Haut et derrière',
   hint: '',
-  need: [5, 2],
+  need: [5, 2, 4],
   rows: buildRoomRows((s, h, v) => {
     s(13, 2, 'P');
     v(6, 10, 13);
-    v(14, 1, 13, 'A');
-    s(13, 17, 'a');
+    digPit(h, 8, 13);
+    for (const c of [8, 10, 12]) h(14, c, c, '~');
+    v(16, 1, 13, 'A');
+    s(13, 19, 'a');
+    digPit(h, 22, 27);
   }),
 };
 // le clone apparaît DANS un mur : il est poussé vers le haut jusqu'à la première place libre, ici un caveau scellé où se cache une plaque.
@@ -744,6 +765,34 @@ namedRooms.das1 = {
     digPit(h, 11, 17);
     s(13, 23, '+');
     s(13, 27, 'E');
+  }),
+};
+// matières du sol : la glace fait glisser et accélère, la colle ralentit (le crabe aussi). Les deux combinent le dash.
+// Patinoire : un fossé de 8 cases. Sans élan il est infranchissable ; la piste de glace donne la vitesse (glisse, saut, dash).
+namedRooms.ice1 = {
+  name: 'La patinoire',
+  need: [4],
+  hint: '',
+  rows: buildRoomRows((s, h, v) => {
+    s(13, 2, 'P');
+    h(13, 3, 10, '_');
+    digPit(h, 11, 18);
+    s(13, 23, '+');
+    h(13, 26, 27, '^');
+  }),
+};
+// Marécage : la colle ralentit jusqu'au bord du fossé ; le saut seul ne passe plus, il faut dasher depuis la colle.
+namedRooms.glue1 = {
+  name: 'Le marécage',
+  need: [4],
+  hint: '',
+  rows: buildRoomRows((s, h, v) => {
+    s(13, 2, 'P');
+    h(13, 5, 12, ',');
+    s(13, 8, '+');
+    digPit(h, 13, 16);
+    h(13, 20, 21, '^');
+    s(13, 25, '+');
   }),
 };
 namedRooms.das2 = {
@@ -835,7 +884,7 @@ export const APPROACH_ROOM_POOL = [
   },
   {
     r: namedRooms.jd1,
-    need: [5, 2],
+    need: [5, 2, 4],
     d: 3,
   },
   {
@@ -860,6 +909,16 @@ export const APPROACH_ROOM_POOL = [
     need: [4],
     d: 2,
     multi: 1,
+  },
+  {
+    r: namedRooms.ice1,
+    need: [4],
+    d: 2,
+  },
+  {
+    r: namedRooms.glue1,
+    need: [4],
+    d: 2,
   },
   {
     r: namedRooms.das1,

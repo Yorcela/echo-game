@@ -48,6 +48,8 @@ en bas à gauche pendant la partie et dans l'en-tête de la carte (« tu es en s
 | 22 | Pics en rafale |
 | 23 | Deux sauts |
 | 24 | Le dernier effort |
+| 25 | La patinoire |
+| 26 | Le marécage |
 
 ## Envol (double saut) (30–39)
 

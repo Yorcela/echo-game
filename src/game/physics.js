@@ -171,6 +171,23 @@ function ladderStep(body, inp, dt) {
   }
   return false;
 }
+// matières posées sur le sol (dans la rangée où l'on marche) : colle = lent, glace = glisse
+export const GLUE_TILE = ',';
+export const ICE_TILE = '_';
+const GLUE_SPEED_FACTOR = 0.45;
+const ICE_SPEED_FACTOR = 1.25;
+// la glace s'emballe vite mais freine très mal : on glisse
+const ICE_ACCELERATION = 800;
+const ICE_BRAKING = 330;
+const ICE_AIR_BRAKING = 40; // l'élan pris sur la glace se garde pendant le saut
+/** Matière sous les pieds du corps (GLUE_TILE, ICE_TILE ou null). */
+function groundSurface(body) {
+  const r = Math.floor((body.y + body.h - 1) / TILE),
+    c = Math.floor((body.x + body.w / 2) / TILE);
+  if (r < 0 || r >= 17 || c < 0 || c >= 30) return null;
+  const ch = runtime.grid[r][c];
+  return ch === GLUE_TILE || ch === ICE_TILE ? ch : null;
+}
 function moveBodyCore(body, inp, dt) {
   const SP = body.spd || MOVE_SPEED;
   if (body.dash > 0) {
@@ -188,8 +205,25 @@ function moveBodyCore(body, inp, dt) {
       body.ws = ws;
       body.wc = 0.1;
     } else body.wc = Math.max(0, (body.wc || 0) - dt);
-    const tv = (inp.r - inp.l) * SP,
-      a = (body.g ? 2800 : 1600) * dt;
+    // matière du sol : la colle freine, la glace fait glisser (et accélère) ; l'élan de la glace se garde en l'air
+    const surface = body.g ? groundSurface(body) : null;
+    if (surface === ICE_TILE) body.iceMomentum = 0.9;
+    else if (body.g) body.iceMomentum = 0;
+    else body.iceMomentum = Math.max(0, (body.iceMomentum || 0) - dt);
+    const speedFactor =
+      surface === GLUE_TILE ? GLUE_SPEED_FACTOR : surface === ICE_TILE ? ICE_SPEED_FACTOR : 1;
+    const tv = (inp.r - inp.l) * SP * speedFactor;
+    let a = (body.g ? 2800 : 1600) * dt;
+    const gaining =
+      Math.abs(tv) > Math.abs(body.vx) && (tv === 0 || Math.sign(tv) === Math.sign(body.vx) || body.vx === 0);
+    if (surface === ICE_TILE) a = (gaining ? ICE_ACCELERATION : ICE_BRAKING) * dt;
+    else if (
+      !body.g &&
+      body.iceMomentum > 0 &&
+      Math.abs(body.vx) > Math.abs(tv) &&
+      Math.sign(body.vx) !== -Math.sign(tv)
+    )
+      a = ICE_AIR_BRAKING * dt;
     if (!(body.lock > 0)) {
       body.vx = body.vx < tv ? Math.min(tv, body.vx + a) : Math.max(tv, body.vx - a);
       if (tv) body.face = Math.sign(tv);

@@ -71,7 +71,15 @@ function corridorTraversable(rows) {
     // un bouton atteint ouvre la porte X (définitivement)
     for (let r = 0; r < 17; r++)
       for (let c = 0; c < 30; c++)
-        if (rows[r][c] === '1' && [...seen].some((k) => k % 30 === c && Math.floor(k / 30) >= r))
+        // une ancre scellée dans un pilier (rangée 12) est atteinte par le clone, apparu à 3 cases devant le héros
+        if (
+          rows[r][c] === '1' &&
+          [...seen].some((k) => {
+            const kc = k % 30,
+              kr = Math.floor(k / 30);
+            return kr >= r && (kc === c || (r === 12 && Math.abs(kc - c) <= 5 && kr === 13));
+          })
+        )
           open.add('X');
   }
   const seen = reachableCells(rows, start, open);

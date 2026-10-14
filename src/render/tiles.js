@@ -110,6 +110,35 @@ export function drawTiles(boil) {
           ctx.fillStyle = 'rgba(246,235,203,.12)';
           ctx.fillRect(x + 8, y + 12, 10, 4);
         }
+      } else if (ch === ',') {
+        // colle : nappe épaisse qui goutte
+        ctx.fillStyle = '#8B5CC4';
+        roundRectPath(x, y + TILE - 12, TILE, 12, 5);
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = INK_COLOR;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,.35)';
+        ctx.beginPath();
+        ctx.arc(x + 9 + ((c * 7) % 5), y + TILE - 8, 2.2, 0, 7);
+        ctx.arc(x + 22, y + TILE - 6, 1.8, 0, 7);
+        ctx.fill();
+      } else if (ch === '_') {
+        // glace : dalle claire avec reflets
+        ctx.fillStyle = '#BFE9F2';
+        roundRectPath(x, y + TILE - 8, TILE, 8, 3);
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = INK_COLOR;
+        ctx.stroke();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 5, y + TILE - 5);
+        ctx.lineTo(x + 13, y + TILE - 5);
+        ctx.moveTo(x + 19, y + TILE - 4);
+        ctx.lineTo(x + 26, y + TILE - 4);
+        ctx.stroke();
       } else if (ch === '~') {
         const k = runtime.crumbleTileTimers[r * 30 + c] || 0,
           sh = k > 0 ? Math.sin(gameState.time * 60) * 1.5 : 0;

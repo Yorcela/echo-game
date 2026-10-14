@@ -21,7 +21,6 @@ import {
 import { drawBackground, drawPaperBackground } from '../render/background.js';
 import { drawHero } from '../render/characters.js';
 import { SPRITES, isSpriteReady } from '../render/sprites.js';
-import { emblem } from '../render/bosses.js';
 export function drawTitle() {
   drawPaperBackground();
   uiHitBoxes.length = 0;
@@ -128,64 +127,63 @@ function isBossDefeated(echo) {
   return !!gameState.echoesOwned[echo];
 }
 
+/** Tête d'un boss dans un cadre de côté `size` ; vaincu : grisée et barrée d'une croix. */
+function drawBossHead(portrait, x, y, size, defeated) {
+  ctx.save();
+  ctx.fillStyle = '#F6EBCB';
+  roundRectPath(x, y, size, size, 9);
+  ctx.fill();
+  ctx.save();
+  roundRectPath(x + 2, y + 2, size - 4, size - 4, 7);
+  ctx.clip();
+  ctx.globalAlpha = defeated ? 0.35 : 1;
+  if (portrait.sprite && isSpriteReady(portrait.sprite)) {
+    const [sx, sy, sw, sh] = portrait.crop;
+    const scale = (size - 4) / Math.max(sw, sh);
+    const dw = sw * scale;
+    const dh = sh * scale;
+    ctx.drawImage(SPRITES[portrait.sprite], sx, sy, sw, sh, x + (size - dw) / 2, y + (size - dh) / 2, dw, dh);
+  } else if (!portrait.sprite) {
+    drawCrown(x + size / 2, y + size / 2 + 2, size * 0.6);
+  }
+  ctx.restore();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = INK_COLOR;
+  roundRectPath(x, y, size, size, 9);
+  ctx.stroke();
+  if (defeated) {
+    const a = size * 0.18;
+    ctx.lineCap = 'round';
+    for (const [w, color] of [
+      [size * 0.24, INK_COLOR],
+      [size * 0.13, '#D0402E'],
+    ]) {
+      ctx.lineWidth = w;
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x + a, y + a);
+      ctx.lineTo(x + size - a, y + size - a);
+      ctx.moveTo(x + size - a, y + a);
+      ctx.lineTo(x + a, y + size - a);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/** Portrait d'une salle de boss de la carte (selon l'écho qu'elle donne). */
+function portraitOfBossRoom(level) {
+  const echo = level.gain === 't' ? 'time' : level.gain;
+  return BOSS_PORTRAITS.find((p) => p.echo === echo) || BOSS_PORTRAITS[BOSS_PORTRAITS.length - 1];
+}
+
 /** Rangée de têtes de boss sous les boutons ; celles des boss vaincus sont grisées et barrées. */
 function drawBossPortraits() {
   const count = BOSS_PORTRAITS.length;
   const totalWidth = count * PORTRAIT_SIZE + (count - 1) * PORTRAIT_GAP;
   let x = (WIDTH - totalWidth) / 2;
-  const y = PORTRAIT_Y;
   for (const portrait of BOSS_PORTRAITS) {
-    const defeated = isBossDefeated(portrait.echo);
-    ctx.save();
-    ctx.fillStyle = '#F6EBCB';
-    roundRectPath(x, y, PORTRAIT_SIZE, PORTRAIT_SIZE, 9);
-    ctx.fill();
-    ctx.save();
-    roundRectPath(x + 2, y + 2, PORTRAIT_SIZE - 4, PORTRAIT_SIZE - 4, 7);
-    ctx.clip();
-    ctx.globalAlpha = defeated ? 0.35 : 1;
-    if (portrait.sprite && isSpriteReady(portrait.sprite)) {
-      const [sx, sy, sw, sh] = portrait.crop;
-      const scale = (PORTRAIT_SIZE - 4) / Math.max(sw, sh);
-      const dw = sw * scale;
-      const dh = sh * scale;
-      ctx.drawImage(
-        SPRITES[portrait.sprite],
-        sx,
-        sy,
-        sw,
-        sh,
-        x + (PORTRAIT_SIZE - dw) / 2,
-        y + (PORTRAIT_SIZE - dh) / 2,
-        dw,
-        dh,
-      );
-    } else if (!portrait.sprite) {
-      drawCrown(x + PORTRAIT_SIZE / 2, y + PORTRAIT_SIZE / 2 + 2, 20);
-    }
-    ctx.restore();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = INK_COLOR;
-    roundRectPath(x, y, PORTRAIT_SIZE, PORTRAIT_SIZE, 9);
-    ctx.stroke();
-    if (defeated) {
-      const a = 6;
-      ctx.lineCap = 'round';
-      for (const [w, color] of [
-        [8, INK_COLOR],
-        [4.5, '#D0402E'],
-      ]) {
-        ctx.lineWidth = w;
-        ctx.strokeStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(x + a, y + a);
-        ctx.lineTo(x + PORTRAIT_SIZE - a, y + PORTRAIT_SIZE - a);
-        ctx.moveTo(x + PORTRAIT_SIZE - a, y + a);
-        ctx.lineTo(x + a, y + PORTRAIT_SIZE - a);
-        ctx.stroke();
-      }
-    }
-    ctx.restore();
+    drawBossHead(portrait, x, PORTRAIT_Y, PORTRAIT_SIZE, isBossDefeated(portrait.echo));
     x += PORTRAIT_SIZE + PORTRAIT_GAP;
   }
 }
@@ -487,36 +485,8 @@ export function drawMap() {
     roundRectPath(x, y, cw, ch, 6);
     ctx.stroke();
     if (bo) {
-      const B = levels[i].boss;
-      emblem(
-        {
-          x: x + cw / 2 - 5,
-          y: y - 14,
-          w: 10,
-          h: 44,
-        },
-        B,
-      );
-      {
-        const nm = (B.n || '').toUpperCase();
-        let fs = 8;
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        do {
-          ctx.font = '900 ' + fs + 'px ' + FONT_BODY;
-          fs -= 0.5;
-        } while (ctx.measureText(nm).width > cw - 4 && fs > 4.5);
-        ctx.fillText(nm, x + cw / 2, y + ch - 3);
-      }
-      if (done) {
-        ctx.strokeStyle = '#F2C45A';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(x + cw - 14, y + 7);
-        ctx.lineTo(x + cw - 10, y + 11);
-        ctx.lineTo(x + cw - 4, y + 3);
-        ctx.stroke();
-      }
+      const head = ch - 6;
+      drawBossHead(portraitOfBossRoom(levels[i]), x + (cw - head) / 2, y + 3, head, done);
     } else if (i === HUB_ROOM) {
       ctx.fillStyle = INK_COLOR;
       ctx.font = '900 16px ' + FONT_BODY;
@@ -620,14 +590,6 @@ export function drawMap() {
     ctx.stroke();
     ctx.restore();
   }
-  ctx.fillStyle = '#F6EBCB';
-  ctx.font = '700 12px ' + FONT_BODY;
-  ctx.textAlign = 'center';
-  ctx.fillText(
-    'rouge : boss · vert-de-gris : vaincu · rond turquoise : statue ou lit = voyage rapide · doré : ici · ? : à découvrir',
-    WIDTH / 2,
-    HEIGHT - 60,
-  );
   drawButton('mback', WIDTH / 2 - 100, HEIGHT - 52, 200, 36, 'RETOUR', {
     size: 20,
     lip: 8,

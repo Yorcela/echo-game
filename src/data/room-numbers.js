@@ -43,6 +43,8 @@ export const ROOM_NUMBERS = {
   'Pics en rafale': 22,
   'Deux sauts': 23,
   'Le dernier effort': 24,
+  'La patinoire': 25,
+  'Le marécage': 26,
 
   // 30-39 : Envol (double saut)
   'Plus haut': 30,

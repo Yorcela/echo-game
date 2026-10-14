@@ -43,8 +43,8 @@ import {
 } from './edges.js';
 
 // mécanisme (ennemis, piège ou énigme) d'une salle générée : environ 7 salles sur 10, selon la graine du monde
-const MECHANISMS_FREE_ROOM = ['switch', 'guards', 'swarm', 'spikes', 'switch'];
-const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'spikes'];
+const MECHANISMS_FREE_ROOM = ['switch', 'guards', 'swarm', 'spikes', 'ice', 'glue', 'switch'];
+const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'spikes', 'ice', 'glue'];
 function mechanismFor(key, tier, rest, vertical, worldSeed) {
   if (rest) return undefined;
   let h = 2166136261;

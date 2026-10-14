@@ -77,6 +77,23 @@ function placeClimb(grid, k, rnd) {
   };
 }
 // ----- obstacle de palier dans la plage libre [a,b] ; renvoie la zone occupée
+/**
+ * Variante « jumeau + dash » des paliers E et D : un puits large (dash), puis une porte X flanquée de deux petits
+ * piliers creux de 3 cases de haut. Une ancre permanente (1) est scellée dans chaque pilier : seul le clone, qui
+ * apparaît 3 cases devant le héros et est repoussé vers le haut jusqu'à la première place libre, peut l'atteindre.
+ * Un pilier de chaque côté de la porte : la salle se traverse dans les deux sens.
+ */
+function placeCloneVaults(grid, withCeiling) {
+  placePit(grid, 5, 11);
+  if (withCeiling) for (let c = 3; c <= 12; c++) for (let r = 1; r <= 10; r++) grid[r][c] = '#';
+  placeColumn(grid, 18, 1, 13, 'X');
+  for (const left of [13, 19]) {
+    for (let r = 11; r <= 13; r++) for (let c = left; c <= left + 4; c++) grid[r][c] = '#';
+    for (let c = left + 1; c <= left + 3; c++) grid[12][c] = '1';
+  }
+  return { zone: [3, 24], hs: [] };
+}
+
 function placeTier(grid, t, a, b, rnd) {
   const span = b - a + 1;
   if (t === 'F') {
@@ -142,6 +159,8 @@ function placeTier(grid, t, a, b, rnd) {
     const w = 10 + (rnd() < 0.5 ? 1 : 0),
       m = a + Math.floor((span - w) / 2);
     placePit(grid, m, m + w - 1);
+    // piste de glace avant le bord : glissade, dash, saut, dash
+    for (let c = Math.max(1, m - 7); c < m; c++) grid[13][c] = '_';
     return {
       zone: [m - 6, m + w + 5],
       hs: [],
@@ -235,6 +254,24 @@ function placeMechanism(grid, mech, zones, rnd) {
       placed++;
     }
     if (crab()) placed++;
+  } else if (mech === 'glue' || mech === 'ice') {
+    // nappe de colle (ralentit) ou de glace (glisse) sur le sol, et un crabe qui y subit la même matière
+    const len = mech === 'glue' ? 6 : 7;
+    const c = findFreeStart(grid, zones, len, rnd);
+    if (c >= 0) {
+      for (let k = 0; k < len; k++) grid[13][c + k] = mech === 'glue' ? ',' : '_';
+      zones.push([c - 2, c + len + 1]);
+      placed++;
+      if (mech === 'ice') {
+        // la glace mène à des pointes : il faut savoir s'arrêter (saut) ou les enjamber en glissant
+        const s = c + len + 2;
+        if (floorFree(grid, s) && floorFree(grid, s + 1) && !inZones(zones, s + 1)) {
+          grid[13][s] = grid[13][s + 1] = '^';
+          zones.push([s - 1, s + 2]);
+        }
+      }
+    }
+    if (crab()) placed++;
   } else if (mech === 'swarm') {
     for (let i = 0; i < 3; i++) if (crab()) placed++;
   }
@@ -271,7 +308,9 @@ export function generateRoom(sp) {
       // énigme interrupteur + porte à la place de l'obstacle libre
       used.push(placeSwitchDoor(g, 14 + Math.floor(rnd() * 3)));
     } else {
-      const ob = placeTier(g, sp.tier || 'F', 6, 23, rnd);
+      const tier = sp.tier || 'F';
+      const cloneVaults = (tier === 'E' || tier === 'D') && (sp.seed >> 3) % 2 === 0;
+      const ob = cloneVaults ? placeCloneVaults(g, tier === 'D') : placeTier(g, tier, 6, 23, rnd);
       used.push(ob.zone);
       if (ob.pit) hs.push([ob.pit[1] + 3, 13]);
       else if (!hs.length) hs.push([ob.zone[1] + 1, 13]);
