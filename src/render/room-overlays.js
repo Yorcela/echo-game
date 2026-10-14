@@ -1,7 +1,7 @@
-import { runtime } from '../state/runtime.js';
-import { TILE } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
-import { gameState } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { TILE } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
+import { gameState } from '../state/state.ts';
 import { DC, doorOpen } from '../game/reflets.js';
 import { FONT_BODY, INK_COLOR } from './primitives.js';
 export function drawTunnelBG() {

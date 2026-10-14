@@ -1,8 +1,8 @@
-import { runtime } from '../state/runtime.js';
-import { HEIGHT, PLAYER_H, PLAYER_W, MOVE_SPEED, TILE, WIDTH } from '../core/config.js';
+import { runtime } from '../state/runtime.ts';
+import { HEIGHT, PLAYER_H, PLAYER_W, MOVE_SPEED, TILE, WIDTH } from '../core/config.ts';
 import { levels } from '../data/levels.js';
 import { seededRandom } from './generator.js';
-import { HUB_ROOM, enemyTypes, gameState, ownedEchoes, showMessage } from '../state/state.js';
+import { HUB_ROOM, enemyTypes, gameState, ownedEchoes, showMessage } from '../state/state.ts';
 import { kingArenaLevel, isKingReady } from './world.js';
 import { takeSnapshot } from '../game/rewind.js';
 import { collide, syncHoles, updateDoors } from '../game/physics.js';

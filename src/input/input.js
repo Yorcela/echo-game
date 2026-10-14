@@ -1,5 +1,5 @@
-import { runtime } from '../state/runtime.js';
-import { canvas } from '../core/canvas.js';
+import { runtime } from '../state/runtime.ts';
+import { canvas } from '../core/canvas.ts';
 import {
   infoEnabled,
   actions,
@@ -8,7 +8,7 @@ import {
   ownedEchoes,
   showMessage,
   setInfoEnabled,
-} from '../state/state.js';
+} from '../state/state.ts';
 import { resetAll, saveGame, saveScores, scores } from '../state/save.js';
 import { loadRoom } from '../world/rooms.js';
 import { sleepInBed, extendRewind } from '../game/rewind.js';

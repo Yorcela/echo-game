@@ -1,6 +1,6 @@
-import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, LETHAL_BOSS_STATES, TILE, WIDTH } from '../core/config.js';
-import { gameState, showMessage } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { FLOOR_Y, LETHAL_BOSS_STATES, TILE, WIDTH } from '../core/config.ts';
+import { gameState, showMessage } from '../state/state.ts';
 import { collide, moveBody, overlaps, solid } from './physics.js';
 import { bossAI } from './boss-ai.js';
 import { playSfx } from '../audio/audio.js';

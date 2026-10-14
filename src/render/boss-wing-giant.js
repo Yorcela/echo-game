@@ -1,6 +1,6 @@
-import { runtime } from '../state/runtime.js';
-import { ctx } from '../core/canvas.js';
-import { gameState } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { ctx } from '../core/canvas.ts';
+import { gameState } from '../state/state.ts';
 import { SPRITES } from './sprites.js';
 import { getTintedSprite } from './characters.js';
 export function drawEnvol(entity, alpha, tint) {

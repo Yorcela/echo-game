@@ -1,6 +1,6 @@
-import { runtime } from '../state/runtime.js';
-import { PLAYER_H, GIANT_H, PLAYER_W, GIANT_W, TILE } from '../core/config.js';
-import { gameState, input, ownedEchoes, showMessage } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { PLAYER_H, GIANT_H, PLAYER_W, GIANT_W, TILE } from '../core/config.ts';
+import { gameState, input, ownedEchoes, showMessage } from '../state/state.ts';
 import { collide } from './physics.js';
 import { playSfx } from '../audio/audio.js';
 /* ---------- Échos (pouvoirs) ---------- */

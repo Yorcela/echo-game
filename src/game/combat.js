@@ -1,7 +1,7 @@
-import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, PLATE_HOLD_TIME, TILE, WIDTH } from '../core/config.js';
+import { runtime } from '../state/runtime.ts';
+import { FLOOR_Y, PLATE_HOLD_TIME, TILE, WIDTH } from '../core/config.ts';
 import { ECHO_GAIN_TEXTS } from '../data/echoes.js';
-import { gameState, showMessage } from '../state/state.js';
+import { gameState, showMessage } from '../state/state.ts';
 import { saveGame } from '../state/save.js';
 import { isKingReady } from '../world/world.js';
 import { winRoom } from './rewind.js';

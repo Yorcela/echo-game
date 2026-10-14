@@ -1,8 +1,8 @@
-import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, HEIGHT, TILE, WIDTH } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
+import { runtime } from '../state/runtime.ts';
+import { FLOOR_Y, HEIGHT, TILE, WIDTH } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
 import { levels } from '../data/levels.js';
-import { gameState } from '../state/state.js';
+import { gameState } from '../state/state.ts';
 import { INK_COLOR } from './primitives.js';
 /* ---------- Décor : château hanté ---------- */
 const ZONE_PALETTES = [

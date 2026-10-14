@@ -1,6 +1,6 @@
-import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, GRAVITY, TILE, WIDTH } from '../core/config.js';
-import { gameState, showMessage } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { FLOOR_Y, GRAVITY, TILE, WIDTH } from '../core/config.ts';
+import { gameState, showMessage } from '../state/state.ts';
 import { hurtPlayer } from './rewind.js';
 import { collide, moveBody, overlaps } from './physics.js';
 import { colossusAI } from './colossus.js';

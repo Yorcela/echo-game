@@ -1,7 +1,7 @@
-import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, WIDTH } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
-import { gameState } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { FLOOR_Y, WIDTH } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
+import { gameState } from '../state/state.ts';
 import { BEAM_H } from '../game/reflets.js';
 import { SPRITES, WITCH_SPRITE_METRICS, isSpriteReady } from './sprites.js';
 import { FONT_BODY, INK_COLOR } from './primitives.js';

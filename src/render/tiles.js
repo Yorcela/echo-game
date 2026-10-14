@@ -1,7 +1,7 @@
-import { runtime } from '../state/runtime.js';
-import { PLATE_HOLD_TIME, TILE } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
-import { isBossAlive, gameState } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { PLATE_HOLD_TIME, TILE } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
+import { isBossAlive, gameState } from '../state/state.ts';
 import { isDoor } from '../game/physics.js';
 import { FONT_BODY, INK_COLOR, roundRectPath } from './primitives.js';
 export function drawTiles(boil) {

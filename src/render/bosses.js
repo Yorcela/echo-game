@@ -1,7 +1,7 @@
-import { runtime } from '../state/runtime.js';
-import { HERO_BASE_H, FLOOR_Y, HEIGHT, TILE, WIDTH } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
-import { gameState } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { HERO_BASE_H, FLOOR_Y, HEIGHT, TILE, WIDTH } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
+import { gameState } from '../state/state.ts';
 import { gateOK } from '../game/physics.js';
 import { isSpriteReady } from './sprites.js';
 import { INK_COLOR, drawOutlinedText, roundRectPath } from './primitives.js';

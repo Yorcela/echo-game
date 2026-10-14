@@ -1,4 +1,4 @@
-import { runtime } from '../state/runtime.js';
+import { runtime } from '../state/runtime.ts';
 import {
   GRAVITY,
   JUMP_SPEED,
@@ -7,8 +7,8 @@ import {
   MOVE_SPEED,
   TILE,
   WIDTH,
-} from '../core/config.js';
-import { gameState, showMessage } from '../state/state.js';
+} from '../core/config.ts';
+import { gameState, showMessage } from '../state/state.ts';
 import { playSfx } from '../audio/audio.js';
 /* ---------- Physique ---------- */
 export const isDoor = (ch) => ch >= 'A' && ch <= 'Z' && ch !== 'E' && ch !== 'P';

@@ -1,7 +1,7 @@
-import { runtime } from '../state/runtime.js';
-import { HERO_BASE_H, HERO_BASE_W } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
-import { gameState } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { HERO_BASE_H, HERO_BASE_W } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
+import { gameState } from '../state/state.ts';
 import { SPRITES } from './sprites.js';
 import { INK_COLOR, roundRectPath } from './primitives.js';
 /* le héros : petit fantôme en salopette de jean (cartoon 1930) */

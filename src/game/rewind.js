@@ -1,8 +1,8 @@
-import { runtime } from '../state/runtime.js';
-import { HEIGHT, WIDTH } from '../core/config.js';
-import { canvas } from '../core/canvas.js';
+import { runtime } from '../state/runtime.ts';
+import { HEIGHT, WIDTH } from '../core/config.ts';
+import { canvas } from '../core/canvas.ts';
 import { levels } from '../data/levels.js';
-import { HUB_ROOM, IDLE, gameState, input, showMessage } from '../state/state.js';
+import { HUB_ROOM, IDLE, gameState, input, showMessage } from '../state/state.ts';
 import { clearSave, saveGame } from '../state/save.js';
 import { NO_FLIP } from '../world/world.js';
 import { loadRoom } from '../world/rooms.js';

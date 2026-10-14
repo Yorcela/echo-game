@@ -1,6 +1,6 @@
-import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, HEIGHT, PLAYER_H, PLAYER_W, TILE, WIDTH } from '../core/config.js';
-import { IDLE, actions, gameState, input, showMessage } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { FLOOR_Y, HEIGHT, PLAYER_H, PLAYER_W, TILE, WIDTH } from '../core/config.ts';
+import { IDLE, actions, gameState, input, showMessage } from '../state/state.ts';
 import { saveGame } from '../state/save.js';
 import { gateMessage, goThroughLink, hurtPlayer, takeSnapshot, startRewind } from './rewind.js';
 import {

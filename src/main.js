@@ -1,14 +1,14 @@
 // Point d'entrée : charge les modules, démarre la boucle ; expose un hook de test en mode « test ».
-import { runtime } from './state/runtime.js';
+import { runtime } from './state/runtime.ts';
 import './styles.css';
-import './core/config.js';
-import './core/canvas.js';
+import './core/config.ts';
+import './core/canvas.ts';
 import './data/level-builders.js';
 import './data/bosses.js';
 import './data/echoes.js';
 import { namedRooms, BOSS_ORDER, APPROACH_ROOM_POOL, handLevels, levels } from './data/levels.js';
 import './world/generator.js';
-import { HUB_ROOM, actions, gameState, input } from './state/state.js';
+import { HUB_ROOM, actions, gameState, input } from './state/state.ts';
 import { clearSave, loadSavedGame, resetAll, scores } from './state/save.js';
 import {
   GENERATED_CELLS,

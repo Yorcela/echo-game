@@ -1,9 +1,9 @@
-import { runtime } from '../state/runtime.js';
-import { HEIGHT, TILE, WIDTH } from '../core/config.js';
-import { canvas, ctx } from '../core/canvas.js';
+import { runtime } from '../state/runtime.ts';
+import { HEIGHT, TILE, WIDTH } from '../core/config.ts';
+import { canvas, ctx } from '../core/canvas.ts';
 import { ECHO_TYPES } from '../data/echoes.js';
 import { levels } from '../data/levels.js';
-import { formatTime, gameState } from '../state/state.js';
+import { formatTime, gameState } from '../state/state.ts';
 import { scores } from '../state/save.js';
 import { snapCv } from '../game/rewind.js';
 import { sealed } from '../game/physics.js';

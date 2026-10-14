@@ -1,5 +1,5 @@
-import { runtime } from '../state/runtime.js';
-import { isBossAlive, gameState } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { isBossAlive, gameState } from '../state/state.ts';
 /* ---------- Son : tout est synthétisé, aucun fichier ---------- */
 let audioContext = null,
   master,
@@ -12,7 +12,7 @@ export function ensureAudio() {
       master = audioContext.createGain();
       master.gain.value = 0.55;
       master.connect(audioContext.destination);
-    } catch (entity) {
+    } catch {
       audioContext = null;
       return;
     }
@@ -127,7 +127,7 @@ const BOSS_LEAD_LINE = [440, 0, 523, 0, 622, 0, 587, 523, 0, 494, 0, 415, 0, 440
 function isBossMusicActive() {
   try {
     return gameState.mode === 'play' && typeof isBossAlive === 'function' && isBossAlive();
-  } catch (entity) {
+  } catch {
     return false;
   }
 }

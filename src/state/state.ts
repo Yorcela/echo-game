@@ -1,10 +1,11 @@
-import { runtime } from './runtime.js';
+import type { GameState } from '../types.ts';
+import { runtime } from './runtime.ts';
 /* ---------- État ---------- */
 export const MAP_COLS = 13,
   MAP_ROWS = 10,
   HUB_ROOM = 43,
   SAVEKEY = 'echo-4';
-export const gameState = {
+export const gameState: GameState = {
   slideTimer: 0,
   slideDirX: 1,
   slideDirY: 0,
@@ -67,7 +68,7 @@ export const gameState = {
   bedFadeTimer: 0,
   victory: 0,
 };
-export const enemyTypes = {
+export const enemyTypes: Record<string, { w: number; h: number; spd: number; hp: number }> = {
   c: {
     w: 32,
     h: 24,
@@ -92,17 +93,10 @@ runtime.crumbleTimer = 0;
 runtime.statue = null;
 runtime.bed = null;
 runtime.hearts = [];
-runtime.level = undefined;
-runtime.grid = undefined;
-runtime.plates = undefined;
 runtime.anchors = [];
 runtime.crumbleTileTimers = {};
-runtime.entities = undefined;
-runtime.brokenTilesLog = undefined;
 runtime.openDoors = {};
-runtime.player = undefined;
 runtime.echoClone = null;
-runtime.spawnPoint = undefined;
 export const input = {
     l: 0,
     r: 0,
@@ -131,18 +125,21 @@ export const input = {
 export let infoEnabled = true;
 try {
   infoEnabled = localStorage.getItem('echo-info') !== '0';
-} catch (entity) {}
-export const showMessage = (t, d = 1.8) => {
-  if (!infoEnabled && !showMessage.force) return;
-  gameState.message = t;
-  gameState.messageTimer = d;
-};
-showMessage.force = 0;
-export function setInfoEnabled(v) {
+} catch {}
+/** Affiche un message à l'écran (ignoré si les infos sont désactivées, sauf si `showMessage.force`). */
+export const showMessage = Object.assign(
+  (text: string, duration = 1.8) => {
+    if (!infoEnabled && !showMessage.force) return;
+    gameState.message = text;
+    gameState.messageTimer = duration;
+  },
+  { force: 0 },
+);
+export function setInfoEnabled(v: boolean) {
   infoEnabled = !!v;
   try {
     localStorage.setItem('echo-info', infoEnabled ? '1' : '0');
-  } catch (entity) {}
+  } catch {}
   if (infoEnabled) {
     gameState.hintTimer = 0;
   } else {
@@ -155,8 +152,8 @@ export function setInfoEnabled(v) {
   );
   showMessage.force = 0;
 }
-export const formatTime = (t) => {
-  t = Math.max(0, t);
+export const formatTime = (seconds: number) => {
+  const t = Math.max(0, seconds);
   const m = Math.floor(t / 60),
     s = t - m * 60;
   return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);

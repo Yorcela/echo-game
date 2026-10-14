@@ -1,8 +1,8 @@
-import { HEIGHT, WIDTH } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
+import { HEIGHT, WIDTH } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
 import { ECHO_TYPES } from '../data/echoes.js';
 import { BOSS_ORDER, levels } from '../data/levels.js';
-import { MAP_COLS, HUB_ROOM, infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.js';
+import { MAP_COLS, HUB_ROOM, infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.ts';
 import { loadSavedGame, scores } from '../state/save.js';
 import { ROOM_POSITIONS, WORLD } from '../world/world.js';
 import { hasBed, loadRoom } from '../world/rooms.js';

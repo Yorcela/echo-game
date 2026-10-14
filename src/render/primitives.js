@@ -1,6 +1,6 @@
-import { HEIGHT, WIDTH } from '../core/config.js';
-import { ctx } from '../core/canvas.js';
-import { gameState } from '../state/state.js';
+import { HEIGHT, WIDTH } from '../core/config.ts';
+import { ctx } from '../core/canvas.ts';
+import { gameState } from '../state/state.ts';
 export const IS_TOUCH_DEVICE = typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches;
 export const grainTexture = document.createElement('canvas');
 grainTexture.width = grainTexture.height = 256;

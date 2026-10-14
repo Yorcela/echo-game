@@ -1,6 +1,6 @@
-import { runtime } from '../state/runtime.js';
-import { FLOOR_Y, GRAVITY, HEIGHT, TILE } from '../core/config.js';
-import { gameState, showMessage } from '../state/state.js';
+import { runtime } from '../state/runtime.ts';
+import { FLOOR_Y, GRAVITY, HEIGHT, TILE } from '../core/config.ts';
+import { gameState, showMessage } from '../state/state.ts';
 import { moveBody, unsealRoom } from './physics.js';
 import { startGain } from './combat.js';
 import { bossAI } from './boss-ai.js';

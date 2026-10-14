@@ -1,9 +1,9 @@
-import { runtime } from '../state/runtime.js';
-import { HEIGHT, WIDTH } from '../core/config.js';
-import { canvas, ctx } from '../core/canvas.js';
+import { runtime } from '../state/runtime.ts';
+import { HEIGHT, WIDTH } from '../core/config.ts';
+import { canvas, ctx } from '../core/canvas.ts';
 import { ECHO_TYPES } from '../data/echoes.js';
 import { levels } from '../data/levels.js';
-import { infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.js';
+import { infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.ts';
 import { scores } from '../state/save.js';
 import {
   FONT_BODY,
@@ -412,7 +412,7 @@ export function showNameInput(v) {
     setTimeout(() => {
       try {
         nameInputElement.focus();
-      } catch (entity) {}
+      } catch {}
     }, 50);
   } else nameInputElement.blur();
 }

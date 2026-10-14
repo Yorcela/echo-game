@@ -20,6 +20,7 @@ npm run dev          # serveur de développement avec rechargement à chaud
 npm run build        # génère dist/index.html
 npm test             # tests de non-régression (Vitest)
 npm run lint         # ESLint
+npm run typecheck    # TypeScript (tsc --noEmit)
 npm run format       # Prettier
 ```
 
@@ -28,9 +29,10 @@ npm run format       # Prettier
 | Dossier | Rôle |
 |---|---|
 | `src/main.js` | Point d'entrée : charge les modules, lance la boucle, expose `globalThis.__T` en mode test |
-| `src/core/` | Constantes (`config.js`) et canvas |
+| `src/types.ts` | Types du domaine (`GameState`, `Runtime`, `Body`, `Entity`, `Level`…) |
+| `src/core/` | Constantes (`config.ts`) et canvas |
 | `src/data/` | Données pures : boss, échos et textes, plans des salles dessinées à la main, métriques des sprites |
-| `src/state/` | État de la partie (`state.js`), sauvegarde et scores (`save.js`), variables partagées (`runtime.js`) |
+| `src/state/` | État de la partie (`state.ts`), sauvegarde et scores (`save.js`), variables partagées (`runtime.ts`) |
 | `src/world/` | Générateur de salles (`generator.js`), tables du monde (`world.js`), liaisons entre salles (`edges.js`), assemblage des 100 salles (`build.js`), chargement d'une salle (`rooms.js`) |
 | `src/game/` | Simulation à 60 Hz : physique, échos, combat (`combat.js`), IA des boss (`boss-ai.js`), Colosse, Reflets, rembobinage, boucle |
 | `src/render/` | Dessin : décor, tuiles, personnages, boss (`boss-*.js`, `bosses.js` en est le point d'entrée), scène, sprites |
@@ -42,7 +44,9 @@ npm run format       # Prettier
 
 ### Notes d'architecture
 
-- **Variables partagées** : les variables réassignées depuis plusieurs modules (salle courante, joueur, clone, entités…) vivent dans l'objet `runtime` (`src/state/runtime.js`), car un `let` exporté ne peut pas être réassigné par l'importeur. L'état persistant de la partie est dans `gameState`.
+- **TypeScript progressif** : le socle (`types.ts`, `core/`, `state/state.ts`, `state/runtime.ts`) est en TypeScript strict ; le reste est en JavaScript (`allowJs`) et migre module par module en renommant le fichier en `.ts`. `npm run typecheck` fait partie de l'intégration continue.
+
+- **Variables partagées** : les variables réassignées depuis plusieurs modules (salle courante, joueur, clone, entités…) vivent dans l'objet `runtime` (`src/state/runtime.ts`), car un `let` exporté ne peut pas être réassigné par l'importeur. L'état persistant de la partie est dans `gameState`.
 - **Tests** : `npm test` construit en mode `test`, ce qui active le hook `globalThis.__T` (accès aux internes) ; les tests rejouent des scénarios avec un `Math.random` seedé et comparent des empreintes à la référence produite par le code d'avant le refactor (`tests/golden-scenario.json`).
 - **Rendu** : `draw()` est protégé par un `try/catch` dans la boucle pour ne jamais figer le jeu ; le test `render-smoke` l'appelle directement pour que les erreurs de dessin soient visibles.
 

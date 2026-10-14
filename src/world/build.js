@@ -8,7 +8,7 @@ import {
   levels,
 } from '../data/levels.js';
 import { generateRoom, seededRandom } from './generator.js';
-import { HUB_ROOM } from '../state/state.js';
+import { HUB_ROOM } from '../state/state.ts';
 import {
   colossusAlcove,
   boltAlcove,

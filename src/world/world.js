@@ -1,5 +1,5 @@
 import { kingRoom, levels } from '../data/levels.js';
-import { HUB_ROOM, gameState } from '../state/state.js';
+import { HUB_ROOM, gameState } from '../state/state.ts';
 export const isKingReady = () =>
   !!gameState.hasTimeEcho &&
   [0, 1, 2, 3, 4, 5, 6].every((k) => gameState.echoesOwned[k]) &&

@@ -1,5 +1,5 @@
-import { canvas } from '../core/canvas.js';
-import { actions, gameState, input } from '../state/state.js';
+import { canvas } from '../core/canvas.ts';
+import { actions, gameState, input } from '../state/state.ts';
 import { loadSavedGame } from '../state/save.js';
 import { loadRoom } from '../world/rooms.js';
 import { rewindFrame } from './rewind.js';
