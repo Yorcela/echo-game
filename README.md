@@ -49,7 +49,7 @@ npm run format       # Prettier
 - **TypeScript progressif** : le socle (`types.ts`, `core/`, `state/state.ts`, `state/runtime.ts`) est en TypeScript strict ; le reste est en JavaScript (`allowJs`) et migre module par module en renommant le fichier en `.ts`. `npm run typecheck` fait partie de l'intégration continue.
 
 - **Variables partagées** : les variables réassignées depuis plusieurs modules (salle courante, joueur, clone, entités…) vivent dans l'objet `runtime` (`src/state/runtime.ts`), car un `let` exporté ne peut pas être réassigné par l'importeur. L'état persistant de la partie est dans `gameState`.
-- **Tests** : `npm test` construit en mode `test`, ce qui active le hook `globalThis.__T` (accès aux internes) ; les tests rejouent des scénarios avec un `Math.random` seedé et comparent des empreintes à la référence produite par le code d'avant le refactor (`tests/golden-scenario.json`).
+- **Tests** : `npm test` construit en mode `test`, ce qui active le hook `globalThis.__T` (accès aux internes) ; les tests rejouent des scénarios avec un `Math.random` seedé et comparent des empreintes à la référence produite par le code d'avant le refactor (`tests/golden-scenario.json`, à régénérer volontairement quand le design du monde change).
 - **Rendu** : `draw()` est protégé par un `try/catch` dans la boucle pour ne jamais figer le jeu ; le test `render-smoke` l'appelle directement pour que les erreurs de dessin soient visibles.
 
 ## Classement mondial (Firebase)
@@ -78,12 +78,19 @@ Le jeu envoie des statistiques anonymes à Google Analytics 4 (propriété liée
 
 ## Règles de conception
 
-- Boss dans l'ordre : Temps, Jumeaux, L'Envol (double saut), Colosse, Les Reflets (miroir), La Sorcière, La Mémoire (rémanence), L'Éclair.
+- Boss dans l'ordre : Temps, Jumeaux, **L'Éclair (dash, 3ᵉ pouvoir)**, L'Envol (double saut), Colosse, Les Reflets (miroir), La Sorcière (tir), La Mémoire (rémanence).
 - Mort : retour à la dernière statue / dernier lit, le chrono continue ; le classement n'enregistre que les parties terminées.
 - Les lits ne servent que si on est blessé ou si la jauge de Temps est entamée ; dormir ajoute 20 s au chrono.
 - Un coup mortel déclenche un retour arrière automatique de 5 s si la jauge le permet.
 - Statues et salles de repos = voyage rapide ; le Hall devient l'arène du roi après 8 pouvoirs.
 - Chaque nouvel écho a une durée (10 s par défaut), les clones n'expirent jamais.
+
+### Principes de level design
+
+- **Un monde ouvert** : on peut aller presque partout dès le début. Il ne reste qu'**une seule porte fermée** (l'entrée de la première aile, avant l'écho du Temps) et les échelles de raccourci des boss.
+- **Le blocage est physique** : sans le bon pouvoir, on est arrêté par un obstacle (fossé trop large, mur, plate-forme trop haute, bouton de l'autre côté d'un mur…) et non par une grille verrouillée. Les salles d'approche d'une aile exigent toujours le dernier pouvoir gagné, jamais un pouvoir qu'on n'a pas encore pu obtenir.
+- **Des mécanismes presque partout** : environ 8 salles sur 10 ont des ennemis, des pièges ou une énigme. Les salles générées reçoivent au hasard (selon la graine) des crabes, des gardes, des pointes ou une énigme « interrupteur + porte » (bouton permanent placé en hauteur de chaque côté, accessible sans pouvoir).
+- **Garde-fous** : `tests/world-design.test.js` vérifie l'ordre des pouvoirs, l'absence de verrous parasites, la densité de mécanismes et que les salles « libres » restent traversables sans pouvoir.
 
 ## Déploiement GitHub Pages
 

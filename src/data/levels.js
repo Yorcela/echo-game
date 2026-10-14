@@ -731,6 +731,35 @@ namedRooms.mur = {
     s(8, 21, 'a');
   }),
 };
+
+// ---- salles qui exigent le dash : fossé trop large pour un saut, plafond trop bas pour le franchir autrement
+namedRooms.das1 = {
+  name: 'Le fossé',
+  need: [4],
+  hint: '',
+  rows: buildRoomRows((s, h, v) => {
+    s(13, 2, 'P');
+    s(13, 6, '+');
+    for (let r = 1; r <= 10; r++) h(r, 9, 19);
+    digPit(h, 11, 17);
+    s(13, 23, '+');
+    s(13, 27, 'E');
+  }),
+};
+namedRooms.das2 = {
+  name: 'Le long saut',
+  need: [4],
+  hint: '',
+  rows: buildRoomRows((s, h, v) => {
+    s(13, 2, 'P');
+    h(13, 7, 8, '^');
+    for (let r = 1; r <= 10; r++) h(r, 11, 21);
+    digPit(h, 13, 19);
+    s(13, 24, '+');
+    s(13, 26, '+');
+    s(13, 28, 'E');
+  }),
+};
 namedRooms.rev = [namedRooms.pont1, namedRooms.pont2, namedRooms.pont3, namedRooms.pont4, namedRooms.rem1];
 for (const r of namedRooms.rev) r.rev = 1;
 
@@ -780,8 +809,8 @@ for (const g in BOSS_ARENAS) {
   l.hint = l.boss.hint;
   l.gain = g === 't' ? 't' : +g;
 }
-// ordre de progression (imposé) : Temps, Jumeau, Envol (double saut), Colosse, Miroir, Tir, Rémanence, Éclair
-export const BOSS_ORDER = ['t', 2, 5, 3, 0, 6, 1, 4];
+// ordre de progression (imposé) : Temps, Jumeau, Éclair (dash), Envol (double saut), Colosse, Miroir, Tir, Rémanence
+export const BOSS_ORDER = ['t', 2, 4, 5, 3, 0, 6, 1];
 // salles d'approche : besoin = échos qu'elles obligent à utiliser (0 Miroir, 1 Rémanence, 2 Jumeau, 3 Colosse, 4 Éclair, 5 Envol, 6 Tir) ; d = difficulté
 export const APPROACH_ROOM_POOL = [
   {
@@ -822,9 +851,25 @@ export const APPROACH_ROOM_POOL = [
   },
   {
     gen: 'E',
-    need: [5],
+    need: [4],
+    d: 1,
+    multi: 1,
+  },
+  {
+    gen: 'D',
+    need: [4],
     d: 2,
     multi: 1,
+  },
+  {
+    r: namedRooms.das1,
+    need: [4],
+    d: 1,
+  },
+  {
+    r: namedRooms.das2,
+    need: [4],
+    d: 2,
   },
   {
     gen: 'J',

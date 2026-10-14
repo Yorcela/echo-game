@@ -177,6 +177,69 @@ function placeTier(grid, t, a, b, rnd) {
     hs: [],
   };
 }
+
+// ----- mécanismes : ennemis, pièges, énigmes. Posés avec un générateur aléatoire indépendant pour ne pas modifier
+// les salles qui n'en ont pas. Ils n'exigent jamais de pouvoir : seul le palier de la salle (pit, colonne…) le fait.
+const floorFree = (grid, c) => grid[13][c] === '.' && grid[14][c] === '#' && grid[12][c] === '.';
+const inZones = (zones, c) => zones.some(([a, b]) => c >= a && c <= b);
+
+/** Colonne de départ d'une plage libre de `width` cases (sol plein, rien au-dessus), ou -1. */
+function findFreeStart(grid, zones, width, rnd, lo = 8, hi = 21) {
+  const cands = [];
+  for (let c0 = lo; c0 + width - 1 <= hi; c0++) {
+    let ok = true;
+    for (let c = c0 - 1; c <= c0 + width && ok; c++) if (inZones(zones, c) || !floorFree(grid, c)) ok = false;
+    if (ok) cands.push(c0);
+  }
+  return cands.length ? cands[Math.floor(rnd() * cands.length)] : -1;
+}
+
+/**
+ * Énigme « interrupteur » : une porte X ferme le couloir ; un bouton permanent (ancre 1) est posé en hauteur
+ * de chaque côté, au bout de deux marches de 2 cases (un saut normal suffit). Une fois activé, il reste ouvert.
+ */
+function placeSwitchDoor(grid, m) {
+  placeColumn(grid, m, 1, 13, 'X');
+  for (const s of [-1, 1]) {
+    // marche basse (2 cases au-dessus du sol), marche haute (2 de plus) portant le bouton
+    placePlatform(grid, 12, s < 0 ? m - 9 : m + 8, s < 0 ? m - 8 : m + 9);
+    placePlatform(grid, 10, s < 0 ? m - 6 : m + 4, s < 0 ? m - 4 : m + 6);
+    grid[9][s < 0 ? m - 5 : m + 5] = '1';
+  }
+  return [m - 10, m + 10];
+}
+
+/** Ajoute ennemis et pièges simples dans les plages libres. Renvoie le nombre d'éléments posés. */
+function placeMechanism(grid, mech, zones, rnd) {
+  let placed = 0;
+  const crab = () => {
+    const c = findFreeStart(grid, zones, 1, rnd, 7, 22);
+    if (c < 0) return false;
+    grid[13][c] = '+';
+    zones.push([c - 1, c + 1]);
+    return true;
+  };
+  if (mech === 'spikes') {
+    const c = findFreeStart(grid, zones, 2, rnd);
+    if (c >= 0) {
+      grid[13][c] = grid[13][c + 1] = '^';
+      zones.push([c - 2, c + 3]);
+      placed++;
+    }
+    if (crab()) placed++;
+  } else if (mech === 'guards') {
+    const c = findFreeStart(grid, zones, 1, rnd, 9, 20);
+    if (c >= 0) {
+      grid[13][c] = '!';
+      zones.push([c - 3, c + 3]);
+      placed++;
+    }
+    if (crab()) placed++;
+  } else if (mech === 'swarm') {
+    for (let i = 0; i < 3; i++) if (crab()) placed++;
+  }
+  return placed;
+}
 /* sp = {links:[{s:'l'|'r'|'t'|'b',c0,c1,r0,r1,kind,lad}], tier, rest, seed}
    renvoie {rows, hs:[[c,r]...]} ; les trous t/b restent ouverts dans la grille de base (le moteur les referme si le lien est scellé) */
 export function generateRoom(sp) {
@@ -204,10 +267,15 @@ export function generateRoom(sp) {
     nv = sp.links.length - nh;
   let used = zones.slice();
   if (!sp.rest && nv === 0 && nh >= 1) {
-    const ob = placeTier(g, sp.tier || 'F', 6, 23, rnd);
-    used.push(ob.zone);
-    if (ob.pit) hs.push([ob.pit[1] + 3, 13]);
-    else if (!hs.length) hs.push([ob.zone[1] + 1, 13]);
+    if (sp.mech === 'switch' && (sp.tier || 'F') === 'F') {
+      // énigme interrupteur + porte à la place de l'obstacle libre
+      used.push(placeSwitchDoor(g, 14 + Math.floor(rnd() * 3)));
+    } else {
+      const ob = placeTier(g, sp.tier || 'F', 6, 23, rnd);
+      used.push(ob.zone);
+      if (ob.pit) hs.push([ob.pit[1] + 3, 13]);
+      else if (!hs.length) hs.push([ob.zone[1] + 1, 13]);
+    }
   }
   // décor sans danger : stalactites de plafond, petites bêtes aux extrémités
   const free = (c) => !used.some(([a, b]) => c >= a && c <= b);
@@ -241,6 +309,10 @@ export function generateRoom(sp) {
         break;
       }
     }
+  }
+  // ennemis et pièges supplémentaires (générateur indépendant : les salles sans mécanisme restent identiques)
+  if (!sp.rest && sp.mech && sp.mech !== 'switch') {
+    placeMechanism(g, sp.mech, used.slice(), seededRandom(((sp.seed | 0) ^ 0x5bd1e995) >>> 0));
   }
   // départ (apparition sur statue / rechargement)
   if (!g.some((r) => r.includes('P'))) {

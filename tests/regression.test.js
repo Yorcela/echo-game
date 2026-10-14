@@ -1,5 +1,6 @@
-// Non-régression : rejoue un scénario déterministe (génération du monde + physique) et le compare
-// aux empreintes produites par l'ancien code (legacy/dist) avant le refactor.
+// Non-régression : rejoue un scénario déterministe (génération du monde + physique) et le compare à des empreintes.
+// Référence initiale = ancien code avant refactor ; régénérée volontairement lors du changement de design
+// (dash en 3e pouvoir, monde sans portes verrouillées, nouveaux mécanismes). Pour la régénérer : voir README.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { installStubs, runScenario } from './helpers/dom-stub.js';
 import golden from './golden-scenario.json';
@@ -15,7 +16,7 @@ describe('scénario déterministe', () => {
     result = runScenario(globalThis.__T);
   });
 
-  it('génère les mêmes mondes et trajectoires que l\'ancien code', () => {
+  it('génère les mêmes mondes et trajectoires que la référence', () => {
     expect(result).toEqual(golden);
   });
 });

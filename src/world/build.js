@@ -32,7 +32,6 @@ import {
 } from './world.js';
 import {
   CORRIDOR_SUFFIXES,
-  GATE_REQUIREMENTS,
   CORRIDOR_NAMES,
   HINT_FREE,
   HINT_BY_KIND,
@@ -41,6 +40,20 @@ import {
   horizontalEdge,
   verticalEdge,
 } from './edges.js';
+
+// mécanisme (ennemis, piège ou énigme) d'une salle générée : environ 7 salles sur 10, selon la graine du monde
+const MECHANISMS_FREE_ROOM = ['switch', 'guards', 'swarm', 'spikes', 'switch'];
+const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'spikes'];
+function mechanismFor(key, tier, rest, vertical, worldSeed) {
+  if (rest) return undefined;
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  h = Math.imul(h ^ (worldSeed | 0) ^ (h >>> 15), 2246822507) >>> 0;
+  if (h % 100 >= 72) return undefined;
+  const list = tier === 'F' ? MECHANISMS_FREE_ROOM : MECHANISMS_TIER_ROOM;
+  const mech = list[(h >>> 8) % list.length];
+  return mech === 'switch' && vertical ? 'guards' : mech;
+}
 // choix des 4 salles d'approche d'une aile : elles n'exigent que des échos déjà possédés (O), dont le dernier gagné (newest)
 function chooseApproachRoom(r, O, newest, used, rnd) {
   if (r === 1)
@@ -233,14 +246,14 @@ export function buildWorld(seed) {
       r,
       gain,
       slot,
+      // une seule porte fermée dans tout le monde : l'entrée de la première aile, avant l'écho du Temps.
+      // Les autres ailes sont ouvertes : ce sont leurs salles d'approche qui exigent physiquement le pouvoir.
       gate:
         r === 1
           ? {
               t: 1,
             }
-          : {
-              pw: newest,
-            },
+          : undefined,
       ap: ap.map((p) => (p.r ? p.r.name : '(couloir ' + p.gen + ')')),
     });
   }
@@ -405,11 +418,12 @@ export function buildWorld(seed) {
         d = roomAtCell(x, y + 1);
       if (u === undefined || d === undefined) throw new Error('puits ' + x + ',' + y);
       const c = edgeColumns(y, kind);
+      // pas de trappe verrouillée : c'est la géométrie du puits (plates-formes trop hautes ou trop espacées)
+      // qui exige le double saut ou le dash
       verticalEdge(u, d, {
         c0: c[0],
         c1: c[1],
         kind,
-        gate: GATE_REQUIREMENTS[kind],
       });
     };
     SPINE.forEach((k, y) => vs(6, y, k));
@@ -504,6 +518,13 @@ export function buildWorld(seed) {
       rest: l.rest,
       seed: sd,
       crabs: l.rest ? 0 : l.tier === 'F' || l.tier === 'E' ? 1 + ((42 + o.k) % 2) : 0,
+      mech: mechanismFor(
+        'c' + key,
+        l.tier,
+        l.rest,
+        l.links.some((q) => q.s === 't' || q.s === 'b'),
+        seed,
+      ),
     };
     const g = generateRoom(sp);
     l.rows = g.rows;
@@ -531,6 +552,7 @@ export function buildWorld(seed) {
       rest: false,
       seed: i * 104729 + (seed & 0xffff),
       crabs: l.genFill === 'F' ? 1 : 0,
+      mech: mechanismFor('f' + i, l.genFill, false, false, seed),
     });
     l.rows = g.rows;
     l.hs = g.hs;
