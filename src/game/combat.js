@@ -1,3 +1,4 @@
+import { trackEvent } from '../online/analytics.js';
 import { runtime } from '../state/runtime.ts';
 import { FLOOR_Y, PLATE_HOLD_TIME, TILE, WIDTH } from '../core/config.ts';
 import { ECHO_GAIN_TEXTS } from '../data/echoes.js';
@@ -361,6 +362,12 @@ export function hitCheck(body = runtime.player) {
 }
 export function startGain() {
   const g = runtime.level.gain;
+  if (!gameState.trial)
+    trackEvent('boss_defeated', {
+      boss: String(g),
+      rooms_visited: Object.keys(gameState.visitedRooms).length,
+      run_time_s: Math.round(gameState.runTime),
+    });
   if (g === 't') {
     gameState.hasTimeEcho = 1;
   } else if (g !== undefined) {

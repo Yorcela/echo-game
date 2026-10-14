@@ -8,5 +8,7 @@ export const FIREBASE_CONFIG = {
   // identifiant de l'application Web enregistrée dans Firebase (App Check)
   appId: '1:785144281165:web:067f8ad05b2693e9edc404',
   // clé de site reCAPTCHA Enterprise (domaines : yorcela.github.io, localhost) ; vide = App Check désactivé
+  // identifiant de mesure Google Analytics 4 (flux de données « Echo (web) ») ; vide = analytics désactivés
+  measurementId: 'G-5J78932ZPL',
   recaptchaSiteKey: '6LeQD-8tAAAAAMLdQ9aUM8O5Yzqed0ROLTl_tOfr',
 };

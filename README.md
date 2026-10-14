@@ -38,7 +38,7 @@ npm run format       # Prettier
 | `src/render/` | Dessin : décor, tuiles, personnages, boss (`boss-*.js`, `bosses.js` en est le point d'entrée), scène, sprites |
 | `src/ui/` | HUD, écrans (titre, scores, carte, pause) |
 | `src/input/` | Clavier, tactile, boutons à l'écran |
-| `src/online/` | Classement mondial (Firestore via REST, authentification anonyme, App Check) |
+| `src/online/` | Classement mondial (Firestore via REST, authentification anonyme, App Check) et mesure d'audience (GA4 avec consentement) |
 | `src/config/` | Configuration Firebase |
 | `src/audio/` | Musique et effets, entièrement synthétisés (Web Audio) |
 | `src/assets/sprites/` | PNG des boss (inlinés au build) |
@@ -65,6 +65,16 @@ Le jeu enregistre le meilleur score de chaque joueur dans Firestore (offre gratu
 - **Limite** : le jeu tourne dans le navigateur, un joueur motivé peut donc envoyer un score plausible mais faux (en pilotant le vrai jeu) ; les règles écartent les valeurs impossibles. App Check et le référent empêchent surtout les scripts et les autres sites de parler directement à la base.
 - **Configuration** : `src/config/firebase.js` (clés publiques par conception). Vider `apiKey` désactive le mondial.
 - **Réutiliser un autre projet Firebase** : créer un projet, activer Firestore (mode production) et l'authentification anonyme, publier `firestore.rules`, puis remplacer la configuration.
+
+## Mesure d'audience (Google Analytics 4)
+
+Le jeu envoie des statistiques anonymes à Google Analytics 4 (propriété liée au projet Firebase, identifiant de mesure dans `src/config/firebase.js`), **uniquement après consentement** :
+
+- **Bandeau** Accepter / Refuser au premier lancement ; le lien « Cookies » en bas à gauche permet de revenir sur le choix. Rien n'est chargé tant que le joueur n'a pas accepté.
+- **Pas de publicité** : signaux Google et personnalisation désactivés.
+- **Événements** (aucun nom de joueur) : `game_start`, `new_game`, `boss_defeated`, `game_over`, `victory`, `score_submitted`, `scores_opened`, `game_exit` (dernier écran, salle, temps de jeu : permet de voir où les joueurs quittent). Les visites, pays, appareils et durées viennent des rapports GA4 standard.
+- **Désactivé en local** (`localhost`, `file:`) pour ne pas fausser les chiffres ; pour tester : `localStorage.setItem('echo-analytics-dev','1')`.
+- **Où lire** : [analytics.google.com](https://analytics.google.com) (Temps réel pour vérifier, puis Rapports → Engagement → Événements). Pour utiliser les paramètres personnalisés (`boss`, `rooms`…) dans les rapports, les déclarer dans Admin → Définitions personnalisées.
 
 ## Règles de conception
 

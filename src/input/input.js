@@ -1,3 +1,4 @@
+import { trackEvent } from '../online/analytics.js';
 import { isOnlineEnabled, refreshWorldBoard, submitScore } from '../online/leaderboard.js';
 import { runtime } from '../state/runtime.ts';
 import { canvas } from '../core/canvas.ts';
@@ -57,6 +58,7 @@ export function advance(fx, fy) {
   if (gameState.mode === 'title') {
     if (hit === 'reset') {
       if (gameState.resetArmedTimer > 0) {
+        trackEvent('new_game');
         resetAll();
         playSfx('death');
       } else {
@@ -70,6 +72,7 @@ export function advance(fx, fy) {
       gameState.page = 0;
       gameState.scoresTab = isOnlineEnabled() ? 'world' : 'local';
       if (isOnlineEnabled()) refreshWorldBoard();
+      trackEvent('scores_opened', { tab: gameState.scoresTab });
       playSfx('tick');
       return;
     }
@@ -79,6 +82,10 @@ export function advance(fx, fy) {
       return;
     }
     if (hit === 'play' || fx === undefined) {
+      trackEvent('game_start', {
+        resumed: Boolean(gameState.hasTimeEcho) || Object.keys(gameState.visitedRooms).length > 1,
+        rooms_visited: Object.keys(gameState.visitedRooms).length,
+      });
       loadRoom(gameState.currentRoom);
       gameState.fade = 0.4;
     }
@@ -195,6 +202,7 @@ export function submitOver() {
   gameState.leaderboardRank = scores.over.indexOf(e) + 1;
   saveScores();
   // classement mondial : envoi en arrière-plan, sans jamais bloquer ni faire échouer la partie
+  trackEvent('score_submitted', { rooms: e.l, run_time_s: Math.round(e.t), victory: e.v });
   submitScore(e).then((res) => {
     if (res.ok) refreshWorldBoard();
   });

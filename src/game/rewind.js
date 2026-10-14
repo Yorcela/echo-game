@@ -1,3 +1,4 @@
+import { trackEvent } from '../online/analytics.js';
 import { runtime } from '../state/runtime.ts';
 import { HEIGHT, WIDTH } from '../core/config.ts';
 import { canvas } from '../core/canvas.ts';
@@ -148,6 +149,11 @@ export function gameOver() {
   gameState.exploredAtEnd = Object.keys(gameState.visitedRooms).length;
   gameState.leaderboardRank = 0;
   gameState.victory = 0;
+  trackEvent('game_over', {
+    rooms: gameState.exploredAtEnd,
+    run_time_s: Math.round(gameState.runTime),
+    deaths: gameState.deaths || 0,
+  });
   clearSave();
   showNameInput(true);
 }
@@ -244,6 +250,7 @@ export function winRoom() {
   gameState.mode = 'over';
   gameState.overPhase = 0;
   gameState.exploredAtEnd = Object.keys(gameState.visitedRooms).length;
+  trackEvent('victory', { rooms: gameState.exploredAtEnd, run_time_s: Math.round(gameState.runTime) });
   gameState.leaderboardRank = 0;
   clearSave();
   showNameInput(true);

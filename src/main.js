@@ -1,6 +1,7 @@
 // Point d'entrée : charge les modules, démarre la boucle ; expose un hook de test en mode « test ».
 import { runtime } from './state/runtime.ts';
 import './styles.css';
+import { initAnalytics, setSessionProbe } from './online/analytics.js';
 import './core/config.ts';
 import './core/canvas.ts';
 import './data/level-builders.js';
@@ -130,3 +131,10 @@ loadSavedGame();
 loadRoom(gameState.currentRoom);
 gameState.mode = 'title';
 requestAnimationFrame(frame);
+setSessionProbe(() => ({
+  mode: gameState.mode,
+  room: gameState.loadedRoom,
+  runTime: gameState.runTime,
+  echoes: gameState.echoesOwned.filter(Boolean).length + (gameState.hasTimeEcho ? 1 : 0),
+}));
+initAnalytics();
