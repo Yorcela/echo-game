@@ -45,8 +45,8 @@ import {
 // salles dont tout le sol est englué ou verglacé (cases 8,7 et 9,7 : salles n° 299 et 300)
 const FLOOR_MATERIAL_AT_CELL = { '8,7': 'ice', '9,7': 'glue' };
 // mécanisme (ennemis, piège ou énigme) d'une salle générée : environ 7 salles sur 10, selon la graine du monde
-const MECHANISMS_FREE_ROOM = ['switch', 'guards', 'swarm', 'spikes', 'ice', 'glue', 'switch'];
-const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'spikes', 'ice', 'glue'];
+const MECHANISMS_FREE_ROOM = ['switch', 'guards', 'swarm', 'guards', 'spikes', 'ice', 'glue', 'switch', 'guards'];
+const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'guards', 'spikes', 'ice', 'guards', 'glue'];
 function mechanismFor(key, tier, rest, vertical, worldSeed) {
   if (rest) return undefined;
   let h = 2166136261;

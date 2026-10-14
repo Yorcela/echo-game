@@ -253,6 +253,15 @@ function placeMechanism(grid, mech, zones, rnd) {
       zones.push([c - 3, c + 3]);
       placed++;
     }
+    // un second petit colosse une fois sur deux
+    if (rnd() < 0.5) {
+      const c2 = findFreeStart(grid, zones, 1, rnd, 9, 20);
+      if (c2 >= 0) {
+        grid[13][c2] = '!';
+        zones.push([c2 - 3, c2 + 3]);
+        placed++;
+      }
+    }
     if (crab()) placed++;
   } else if (mech === 'glue' || mech === 'ice') {
     // nappe de colle (ralentit) ou de glace (glisse) sur le sol, et un crabe qui y subit la même matière
