@@ -42,10 +42,10 @@ function shuffleDoors() {
   playSfx('plate');
 }
 runtime.nukeCount = 0;
-function mirrorBossFire(e) {
+function mirrorBossFire(entity) {
   if ((runtime.nukeCount + 1) % 3 === 0)
     showMessage('☢ Fusion n°' + (runtime.nukeCount + 1) + ' : explosion nucléaire ! Reste sous terre !', 3.2);
-  const m = e.hp > 4 ? 1 : e.hp > 2 ? 1.2 : 1.4;
+  const m = entity.hp > 4 ? 1 : entity.hp > 2 ? 1.2 : 1.4;
   for (const sd of [1, -1])
     runtime.entities.push({
       k: 's',
@@ -66,19 +66,19 @@ function mirrorBossFire(e) {
   playSfx('shot');
   gameState.shake = Math.max(gameState.shake, 0.2);
 }
-function reflEnt(e, dt) {
-  if (e.beam) {
-    e.life -= dt;
-    e.x += e.vx * dt;
-    const lead = e.vx > 0 ? e.x + e.w : e.x,
+function reflEnt(entity, dt) {
+  if (entity.beam) {
+    entity.life -= dt;
+    entity.x += entity.vx * dt;
+    const lead = entity.vx > 0 ? entity.x + entity.w : entity.x,
       cc = Math.floor(lead / TILE);
-    if (e.life <= 0 || cc < 0 || cc >= 30) {
-      e.alive = 0;
+    if (entity.life <= 0 || cc < 0 || cc >= 30) {
+      entity.alive = 0;
       return;
     }
-    const mid = e.x + e.w / 2;
-    if ((e.vx > 0 && mid >= WIDTH / 2) || (e.vx < 0 && mid <= WIDTH / 2)) {
-      e.alive = 0;
+    const mid = entity.x + entity.w / 2;
+    if ((entity.vx > 0 && mid >= WIDTH / 2) || (entity.vx < 0 && mid <= WIDTH / 2)) {
+      entity.alive = 0;
       const o = runtime.entities.find((x) => x.k === 's' && x.orb && x.alive);
       if (o) o.n++;
       else
@@ -100,18 +100,18 @@ function reflEnt(e, dt) {
           t0: gameState.time,
         });
     }
-  } else if (e.orb) {
-    e.tm -= dt;
-    if (e.ph === 0) {
-      if (e.tm <= 0) {
-        e.ph = 1;
-        e.tm = 0.5;
+  } else if (entity.orb) {
+    entity.tm -= dt;
+    if (entity.ph === 0) {
+      if (entity.tm <= 0) {
+        entity.ph = 1;
+        entity.tm = 0.5;
       }
     } else {
-      const u = 1 - Math.max(0, e.tm) / 0.5;
-      e.y = FLOOR_Y - 48 + u * (480 - (FLOOR_Y - 48));
-      if (e.tm <= 0) {
-        e.alive = 0;
+      const u = 1 - Math.max(0, entity.tm) / 0.5;
+      entity.y = FLOOR_Y - 48 + u * (480 - (FLOOR_Y - 48));
+      if (entity.tm <= 0) {
+        entity.alive = 0;
         runtime.nukeCount++;
         if (runtime.nukeCount % 3 === 0) {
           runtime.entities.push({
@@ -138,7 +138,7 @@ function reflEnt(e, dt) {
             k: 's',
             rf: 1,
             boom: 1,
-            amt: e.n >= 2 ? 2 : 1,
+            amt: entity.n >= 2 ? 2 : 1,
             x: WIDTH / 2 - 40,
             y: FLOOR_Y + 4,
             w: 80,
@@ -157,35 +157,35 @@ function reflEnt(e, dt) {
       }
     }
   } else {
-    e.life -= dt;
-    if (e.life <= 0) e.alive = 0;
+    entity.life -= dt;
+    if (entity.life <= 0) entity.alive = 0;
   }
 }
-export function mirrorBossAI(e, dt) {
+export function mirrorBossAI(entity, dt) {
   const bs = runtime.entities.filter((x) => x.k === 'b' && x.alive),
     lead = bs.find((x) => !x.dn) || bs[0];
-  if (e !== lead) {
+  if (entity !== lead) {
     // suiveur : copie le meneur en miroir (immobile s'il est à terre)
     if (!lead) return;
-    if (!e.dn) {
-      e.x = WIDTH - lead.x - e.w;
-      e.y = lead.y;
-      e.vx = -lead.vx;
-      e.vy = lead.vy;
-      e.g = lead.g;
-      e.ph = lead.ph;
-      e.wa = lead.wa;
+    if (!entity.dn) {
+      entity.x = WIDTH - lead.x - entity.w;
+      entity.y = lead.y;
+      entity.vx = -lead.vx;
+      entity.vy = lead.vy;
+      entity.g = lead.g;
+      entity.ph = lead.ph;
+      entity.wa = lead.wa;
     } else {
-      e.vx = 0;
-      e.vy = 0;
+      entity.vx = 0;
+      entity.vy = 0;
     }
-    e.hh = lead.hh;
-    e.st = lead.st;
-    e.t = lead.t;
-    e.face = -(lead.face || 1);
+    entity.hh = lead.hh;
+    entity.st = lead.st;
+    entity.t = lead.t;
+    entity.face = -(lead.face || 1);
     return;
   }
-  const m = e.hp > 4 ? 1 : e.hp > 2 ? 1.2 : 1.4;
+  const m = entity.hp > 4 ? 1 : entity.hp > 2 ? 1.2 : 1.4;
   if (runtime.knockbackTimer > 0) {
     runtime.knockbackTimer -= dt;
     if (runtime.knockbackTimer <= 0) {
@@ -194,26 +194,26 @@ export function mirrorBossAI(e, dt) {
     }
   }
   for (let d = 0; d < 3; d++) if (!doorOpen(d) && heroInDoor(d)) setDoor(d, 1);
-  e.wa = e.wa || 0;
-  e.face = e.face || 1;
-  if (e.st === 'idle') {
-    const lo = (e.id ? 17 : 6) * TILE + 2,
-      hi = (e.id ? 24 : 13) * TILE - e.w - 2;
-    e.pz = (e.pz || 0) - dt;
-    if (e.px === undefined || Math.abs(e.px - e.x) < 8) {
-      if (e.pz <= 0 && e.px !== undefined) {
-        e.pz = 0.5 + Math.random() * 0.9;
-        e.px = undefined;
+  entity.wa = entity.wa || 0;
+  entity.face = entity.face || 1;
+  if (entity.st === 'idle') {
+    const lo = (entity.id ? 17 : 6) * TILE + 2,
+      hi = (entity.id ? 24 : 13) * TILE - entity.w - 2;
+    entity.pz = (entity.pz || 0) - dt;
+    if (entity.px === undefined || Math.abs(entity.px - entity.x) < 8) {
+      if (entity.pz <= 0 && entity.px !== undefined) {
+        entity.pz = 0.5 + Math.random() * 0.9;
+        entity.px = undefined;
       }
-      if (e.px === undefined && e.pz <= 0) e.px = lo + Math.random() * (hi - lo);
+      if (entity.px === undefined && entity.pz <= 0) entity.px = lo + Math.random() * (hi - lo);
     }
-    const tx = e.px === undefined ? e.x : e.px,
-      dx = tx - e.x,
+    const tx = entity.px === undefined ? entity.x : entity.px,
+      dx = tx - entity.x,
       d = Math.sign(dx) || 1,
-      want = e.px !== undefined && Math.abs(dx) >= 8;
-    e.spd = 170 * m;
+      want = entity.px !== undefined && Math.abs(dx) >= 8;
+    entity.spd = 170 * m;
     moveBody(
-      e,
+      entity,
       {
         l: want && d < 0 ? 1 : 0,
         r: want && d > 0 ? 1 : 0,
@@ -222,21 +222,21 @@ export function mirrorBossAI(e, dt) {
       },
       dt,
     );
-    e.x = Math.max(lo, Math.min(hi, e.x));
-    if (Math.abs(dx) > 4) e.face = d;
+    entity.x = Math.max(lo, Math.min(hi, entity.x));
+    if (Math.abs(dx) > 4) entity.face = d;
     const busy = runtime.entities.some((x) => x.k === 's' && x.alive && (x.beam || x.orb || x.boom));
     if (!busy) {
-      e.cd = (e.cd === undefined ? 1.4 : e.cd) - dt;
-      if (e.cd <= 0) {
-        e.st = 'tele';
-        e.t = 0.9 / m;
-        e.vx = 0;
+      entity.cd = (entity.cd === undefined ? 1.4 : entity.cd) - dt;
+      if (entity.cd <= 0) {
+        entity.st = 'tele';
+        entity.t = 0.9 / m;
+        entity.vx = 0;
       }
     }
-  } else if (e.st === 'tele') {
-    e.vx = 0;
+  } else if (entity.st === 'tele') {
+    entity.vx = 0;
     moveBody(
-      e,
+      entity,
       {
         l: 0,
         r: 0,
@@ -245,15 +245,15 @@ export function mirrorBossAI(e, dt) {
       },
       dt,
     );
-    if (e.t <= 0) {
-      mirrorBossFire(e);
-      e.st = 'fire';
-      e.t = 0.4;
+    if (entity.t <= 0) {
+      mirrorBossFire(entity);
+      entity.st = 'fire';
+      entity.t = 0.4;
     }
-  } else if (e.st === 'fire') {
-    e.vx = 0;
+  } else if (entity.st === 'fire') {
+    entity.vx = 0;
     moveBody(
-      e,
+      entity,
       {
         l: 0,
         r: 0,
@@ -262,14 +262,14 @@ export function mirrorBossAI(e, dt) {
       },
       dt,
     );
-    if (e.t <= 0) {
-      e.st = 'idle';
-      e.cd = (1.3 + Math.random() * 0.6) / m;
+    if (entity.t <= 0) {
+      entity.st = 'idle';
+      entity.cd = (1.3 + Math.random() * 0.6) / m;
     }
-  } else if (e.st === 'stun') {
-    e.vx = 0;
+  } else if (entity.st === 'stun') {
+    entity.vx = 0;
     moveBody(
-      e,
+      entity,
       {
         l: 0,
         r: 0,
@@ -278,57 +278,69 @@ export function mirrorBossAI(e, dt) {
       },
       dt,
     );
-    if (e.t <= 0) {
-      e.st = 'idle';
-      e.cd = 1.2;
+    if (entity.t <= 0) {
+      entity.st = 'idle';
+      entity.cd = 1.2;
     }
-  } else e.st = 'idle';
-  e.wa += ((Math.abs(e.vx) > 20 ? 1 : 0) - e.wa) * Math.min(1, dt * 8);
-  e.ph = (e.ph || 0) + (Math.abs(e.vx) * dt) / 13;
+  } else entity.st = 'idle';
+  entity.wa += ((Math.abs(entity.vx) > 20 ? 1 : 0) - entity.wa) * Math.min(1, dt * 8);
+  entity.ph = (entity.ph || 0) + (Math.abs(entity.vx) * dt) / 13;
 }
 bossAI.any = () => runtime.entities.some((x) => x.k === 'b' && x.alive);
 export function updateEntities(dt) {
-  for (const e of runtime.entities) {
-    if (!e.alive) continue;
-    if (e.k === 'w') {
-      e.inv = Math.max(0, e.inv - dt);
-      if (e.t === 'g') {
-        e.ph += dt * 3;
-        e.x += e.dir * e.spd * dt;
-        e.y = e.y0 + Math.sin(e.ph) * 4;
-        const cc = Math.floor((e.x + (e.dir > 0 ? e.w + 2 : -2)) / TILE);
-        if (solid(cc, Math.floor((e.y + e.h / 2) / TILE)) || Math.abs(e.x - e.x0) > 110) e.dir = -e.dir;
+  for (const entity of runtime.entities) {
+    if (!entity.alive) continue;
+    if (entity.k === 'w') {
+      entity.inv = Math.max(0, entity.inv - dt);
+      if (entity.t === 'g') {
+        entity.ph += dt * 3;
+        entity.x += entity.dir * entity.spd * dt;
+        entity.y = entity.y0 + Math.sin(entity.ph) * 4;
+        const cc = Math.floor((entity.x + (entity.dir > 0 ? entity.w + 2 : -2)) / TILE);
+        if (solid(cc, Math.floor((entity.y + entity.h / 2) / TILE)) || Math.abs(entity.x - entity.x0) > 110)
+          entity.dir = -entity.dir;
       } else {
-        const cc = Math.floor((e.x + (e.dir > 0 ? e.w + 2 : -2)) / TILE);
-        if (solid(cc, Math.floor((e.y + e.h - 2) / TILE)) || !solid(cc, Math.floor((e.y + e.h + 4) / TILE)))
-          e.dir = -e.dir;
+        const cc = Math.floor((entity.x + (entity.dir > 0 ? entity.w + 2 : -2)) / TILE);
+        if (
+          solid(cc, Math.floor((entity.y + entity.h - 2) / TILE)) ||
+          !solid(cc, Math.floor((entity.y + entity.h + 4) / TILE))
+        )
+          entity.dir = -entity.dir;
         moveBody(
-          e,
+          entity,
           {
-            l: e.dir < 0 ? 1 : 0,
-            r: e.dir > 0 ? 1 : 0,
+            l: entity.dir < 0 ? 1 : 0,
+            r: entity.dir > 0 ? 1 : 0,
             jp: 0,
             jh: 0,
           },
           dt,
         );
       }
-    } else if (e.k === 's' && (e.beam || e.orb || e.boom || e.puff || e.nuke)) reflEnt(e, dt);
-    else if (e.k === 's') {
-      e.life -= dt;
-      e.x += e.vx * dt;
-      if (e.fist) {
-        if (e.life <= 0) e.alive = 0;
-      } else if (e.bul) {
-        e.d += Math.abs(e.vx * dt);
+    } else if (entity.k === 's' && (entity.beam || entity.orb || entity.boom || entity.puff || entity.nuke))
+      reflEnt(entity, dt);
+    else if (entity.k === 's') {
+      entity.life -= dt;
+      entity.x += entity.vx * dt;
+      if (entity.fist) {
+        if (entity.life <= 0) entity.alive = 0;
+      } else if (entity.bul) {
+        entity.d += Math.abs(entity.vx * dt);
         if (
-          (!e.spell && e.d >= 160) ||
-          e.life <= 0 ||
-          solid(Math.floor((e.x + (e.vx > 0 ? e.w : 0)) / TILE), Math.floor((e.y + 5) / TILE))
+          (!entity.spell && entity.d >= 160) ||
+          entity.life <= 0 ||
+          solid(
+            Math.floor((entity.x + (entity.vx > 0 ? entity.w : 0)) / TILE),
+            Math.floor((entity.y + 5) / TILE),
+          )
         )
-          e.alive = 0;
-      } else if (e.life <= 0 || solid(Math.floor((e.x + (e.vx > 0 ? e.w : 0)) / TILE), 13)) e.alive = 0;
-    } else bossAI(e, dt);
+          entity.alive = 0;
+      } else if (
+        entity.life <= 0 ||
+        solid(Math.floor((entity.x + (entity.vx > 0 ? entity.w : 0)) / TILE), 13)
+      )
+        entity.alive = 0;
+    } else bossAI(entity, dt);
   }
 }
 // fantôme de La Mémoire : rejoue ta position d'il y a 2,2 s ; il ne tue que s'il est en mouvement
@@ -353,37 +365,43 @@ export function ghost() {
     tr: [gameState.history[n - 4].p, gameState.history[n - 9].p],
   };
 }
-const damageOf = (e) => {
+const damageOf = (entity) => {
   const gi = runtime.level.boss && runtime.level.boss.kind === 'giant';
-  if (e.fist) return 1;
-  if (e.k === 'w') return e.t === 'c' ? 0.25 : e.t === 'g' ? 0.75 : e.t === 'r' ? 0.5 : 0.25;
+  if (entity.fist) return 1;
+  if (entity.k === 'w')
+    return entity.t === 'c' ? 0.25 : entity.t === 'g' ? 0.75 : entity.t === 'r' ? 0.5 : 0.25;
   return gi ? 0.5 : 1;
 };
-export const hitSrcOf = (b) => {
-  for (const e of runtime.entities)
+export const hitSrcOf = (body) => {
+  for (const entity of runtime.entities)
     if (
-      e.alive &&
-      e.k === 'b' &&
-      e.st === 'slap' &&
-      e.sl &&
-      overlaps(b, {
-        x: e.face > 0 ? e.x + e.w - 4 : e.x - 48,
-        y: e.y + 6,
+      entity.alive &&
+      entity.k === 'b' &&
+      entity.st === 'slap' &&
+      entity.sl &&
+      overlaps(body, {
+        x: entity.face > 0 ? entity.x + entity.w - 4 : entity.x - 48,
+        y: entity.y + 6,
         w: 52,
-        h: e.h - 10,
+        h: entity.h - 10,
       })
     )
       return {
         a: 1,
-        x: e.x + e.w / 2,
+        x: entity.x + entity.w / 2,
       };
   if (runtime.level.boss && runtime.level.boss.kind === 'mirror') {
     let a = 0,
       x = 0;
-    for (const e of runtime.entities)
-      if (e.alive && e.rf && (!e.nuke || (e.life < 1.5 && e.life > 0.5)) && overlaps(b, e, 3)) {
-        a += e.amt || 1;
-        x = e.x + e.w / 2;
+    for (const entity of runtime.entities)
+      if (
+        entity.alive &&
+        entity.rf &&
+        (!entity.nuke || (entity.life < 1.5 && entity.life > 0.5)) &&
+        overlaps(body, entity, 3)
+      ) {
+        a += entity.amt || 1;
+        x = entity.x + entity.w / 2;
       }
     if (a)
       return {
@@ -391,17 +409,17 @@ export const hitSrcOf = (b) => {
         x,
       };
   }
-  for (const e of runtime.entities)
+  for (const entity of runtime.entities)
     if (
-      e.alive &&
-      ((e.k === 'w' && !(e.t === 'g' && b.dash > 0)) ||
-        (e.k === 's' && !e.orb && !e.puff) ||
-        LETHAL_BOSS_STATES[e.st]) &&
-      overlaps(b, e, e.k === 'b' ? 8 : 3)
+      entity.alive &&
+      ((entity.k === 'w' && !(entity.t === 'g' && body.dash > 0)) ||
+        (entity.k === 's' && !entity.orb && !entity.puff) ||
+        LETHAL_BOSS_STATES[entity.st]) &&
+      overlaps(body, entity, entity.k === 'b' ? 8 : 3)
     )
       return {
-        a: damageOf(e),
-        x: e.x + e.w / 2,
+        a: damageOf(entity),
+        x: entity.x + entity.w / 2,
       };
   return null;
 };

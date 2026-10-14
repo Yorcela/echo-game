@@ -12,7 +12,7 @@ export function ensureAudio() {
       master = audioContext.createGain();
       master.gain.value = 0.55;
       master.connect(audioContext.destination);
-    } catch (e) {
+    } catch (entity) {
       audioContext = null;
       return;
     }
@@ -25,18 +25,18 @@ export function ensureAudio() {
 }
 function playTone(f, d, type = 'square', v = 0.12, slide = 0, delay = 0) {
   if (!audioContext || runtime.mute) return;
-  const t = audioContext.currentTime + delay,
+  const time = audioContext.currentTime + delay,
     o = audioContext.createOscillator(),
     g = audioContext.createGain();
   o.type = type;
-  o.frequency.setValueAtTime(f, t);
-  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
-  g.gain.setValueAtTime(v, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + d);
+  o.frequency.setValueAtTime(f, time);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), time + d);
+  g.gain.setValueAtTime(v, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + d);
   o.connect(g);
   g.connect(master);
-  o.start(t);
-  o.stop(t + d + 0.03);
+  o.start(time);
+  o.stop(time + d + 0.03);
 }
 function playNoise(d, v = 0.15, delay = 0) {
   if (!audioContext || runtime.mute) return;
@@ -127,7 +127,7 @@ const BOSS_LEAD_LINE = [440, 0, 523, 0, 622, 0, 587, 523, 0, 494, 0, 415, 0, 440
 function isBossMusicActive() {
   try {
     return gameState.mode === 'play' && typeof isBossAlive === 'function' && isBossAlive();
-  } catch (e) {
+  } catch (entity) {
     return false;
   }
 }

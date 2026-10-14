@@ -10,9 +10,9 @@ import { drawColossus, drawEnvol } from './boss-wing-giant.js';
 import { drawBeam, drawBoom, drawNuke, drawPuff, drawReflet } from './boss-mirror.js';
 import { BOLT_OK, drawOrb, drawTelegraph, drawWitch } from './boss-witch.js';
 import { drawBolt } from './boss-bolt.js';
-function drawBoss0(e) {
+function drawBoss0(entity) {
   if (runtime.level.boss.kind === 'bolt' && BOLT_OK()) {
-    drawBolt(e);
+    drawBolt(entity);
     return;
   }
   if (
@@ -32,9 +32,9 @@ function drawBoss0(e) {
       'witch-hair-3',
     ].every(isSpriteReady)
   ) {
-    const blink = e.inv > 0 && Math.floor(gameState.time * 20) % 2;
-    drawWitch(e, blink ? 0.4 : 1);
-    if (e.st === 'tele') drawOutlinedText('!', e.x + e.w / 2, e.y - 48, 34, '#D0402E');
+    const blink = entity.inv > 0 && Math.floor(gameState.time * 20) % 2;
+    drawWitch(entity, blink ? 0.4 : 1);
+    if (entity.st === 'tele') drawOutlinedText('!', entity.x + entity.w / 2, entity.y - 48, 34, '#D0402E');
     return;
   }
   if (
@@ -43,8 +43,8 @@ function drawBoss0(e) {
       isSpriteReady,
     )
   ) {
-    if (e.st === 'tele' && !e.id) drawTelegraph(e);
-    drawReflet(e, e.inv > 0 && e.inv < 5 && Math.floor(gameState.time * 20) % 2 ? 0.45 : 1);
+    if (entity.st === 'tele' && !entity.id) drawTelegraph(entity);
+    drawReflet(entity, entity.inv > 0 && entity.inv < 5 && Math.floor(gameState.time * 20) % 2 ? 0.45 : 1);
     return;
   }
   if (
@@ -53,22 +53,23 @@ function drawBoss0(e) {
       isSpriteReady,
     )
   ) {
-    const blink = e.inv > 0 && e.inv < 5 && Math.floor(gameState.time * 20) % 2,
-      cx = e.x + e.w / 2;
+    const blink = entity.inv > 0 && entity.inv < 5 && Math.floor(gameState.time * 20) % 2,
+      cx = entity.x + entity.w / 2;
     let tint = null;
-    if (e.st === 'arm' && e.t < 0.6) tint = ['#D0402E', 0.14 + 0.12 * Math.sin(gameState.time * 40)];
+    if (entity.st === 'arm' && entity.t < 0.6)
+      tint = ['#D0402E', 0.14 + 0.12 * Math.sin(gameState.time * 40)];
     ctx.save();
-    if (e.st === 'die' && e.y + e.h > FLOOR_Y - 6) {
+    if (entity.st === 'die' && entity.y + entity.h > FLOOR_Y - 6) {
       ctx.beginPath();
       ctx.rect(0, 0, WIDTH, FLOOR_Y);
       for (let c = 1; c <= 28; c++)
         if (runtime.grid[14][c] === '.') ctx.rect(c * TILE, FLOOR_Y, TILE, HEIGHT);
       ctx.clip();
     }
-    drawColossus(e, blink ? 0.45 : 1, tint);
+    drawColossus(entity, blink ? 0.45 : 1, tint);
     ctx.restore();
-    if (e.st === 'arm' || e.st === 'rarm')
-      drawOutlinedText('!', cx, e.y - 30, 38, e.st === 'arm' ? '#D0402E' : '#E2A93B');
+    if (entity.st === 'arm' || entity.st === 'rarm')
+      drawOutlinedText('!', cx, entity.y - 30, 38, entity.st === 'arm' ? '#D0402E' : '#E2A93B');
     return;
   }
   if (
@@ -77,15 +78,16 @@ function drawBoss0(e) {
     isSpriteReady('wing-left') &&
     isSpriteReady('wing-right')
   ) {
-    const blink = e.inv > 0 && Math.floor(gameState.time * 20) % 2,
-      cx = e.x + e.w / 2;
-    drawEnvol(e, blink ? 0.35 : 1, e.st === 'stun' ? ['#9C9380', 0.3] : null);
-    if (e.st === 'tele' || e.st === 'ftele') drawOutlinedText('!', cx, e.y - 34, 34, '#D0402E');
-    if (e.st === 'stun') {
+    const blink = entity.inv > 0 && Math.floor(gameState.time * 20) % 2,
+      cx = entity.x + entity.w / 2;
+    drawEnvol(entity, blink ? 0.35 : 1, entity.st === 'stun' ? ['#9C9380', 0.3] : null);
+    if (entity.st === 'tele' || entity.st === 'ftele')
+      drawOutlinedText('!', cx, entity.y - 34, 34, '#D0402E');
+    if (entity.st === 'stun') {
       for (let q = 0; q < 3; q++) {
         const a = gameState.time * 4 + q * 2.1;
         ctx.fillStyle = '#E2A93B';
-        starPath(cx + Math.cos(a) * 30, e.y - 24 + Math.sin(a) * 6, 7, 3, a);
+        starPath(cx + Math.cos(a) * 30, entity.y - 24 + Math.sin(a) * 6, 7, 3, a);
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.strokeStyle = INK_COLOR;
@@ -100,19 +102,23 @@ function drawBoss0(e) {
     isSpriteReady('twin-a') &&
     isSpriteReady('twin-b')
   ) {
-    const blink = e.inv > 0 && Math.floor(gameState.time * 20) % 2,
-      sh = e.st === 'tele' || e.st === 'stomp' ? Math.sin(gameState.time * 60) * 3 : 0,
-      cx = e.x + e.w / 2;
+    const blink = entity.inv > 0 && Math.floor(gameState.time * 20) % 2,
+      sh = entity.st === 'tele' || entity.st === 'stomp' ? Math.sin(gameState.time * 60) * 3 : 0,
+      cx = entity.x + entity.w / 2;
     drawWorm(
       {
-        ...e,
-        x: e.x + sh,
+        ...entity,
+        x: entity.x + sh,
       },
       blink ? 0.35 : 1,
-      e.st === 'stun' ? ['#9C9380', 0.3] : e.fast && e.st === 'tele' ? ['#D0402E', 0.25] : null,
+      entity.st === 'stun'
+        ? ['#9C9380', 0.3]
+        : entity.fast && entity.st === 'tele'
+          ? ['#D0402E', 0.25]
+          : null,
     );
-    if (e.st === 'charge' && Math.abs(e.vx) > 20) {
-      const d = e.dirc || e.face;
+    if (entity.st === 'charge' && Math.abs(entity.vx) > 20) {
+      const d = entity.dirc || entity.face;
       ctx.save();
       for (let q = 0; q < 4; q++) {
         const t = (gameState.time * 5 + q / 4) % 1;
@@ -121,18 +127,18 @@ function drawBoss0(e) {
         ctx.strokeStyle = INK_COLOR;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(cx - d * (e.w / 2 + t * 40), e.y + e.h - 3 - t * 14, 4 + t * 8, 0, 7);
+        ctx.arc(cx - d * (entity.w / 2 + t * 40), entity.y + entity.h - 3 - t * 14, 4 + t * 8, 0, 7);
         ctx.fill();
         ctx.stroke();
       }
       ctx.restore();
     }
-    if (e.st === 'tele') drawOutlinedText('!', cx, e.y - 30, 34, '#D0402E');
-    if (e.st === 'stun') {
+    if (entity.st === 'tele') drawOutlinedText('!', cx, entity.y - 30, 34, '#D0402E');
+    if (entity.st === 'stun') {
       for (let q = 0; q < 3; q++) {
         const a = gameState.time * 4 + q * 2.1;
         ctx.fillStyle = '#E2A93B';
-        starPath(cx + Math.cos(a) * (e.w * 0.4 + 10), e.y - 14 + Math.sin(a) * 6, 7, 3, a);
+        starPath(cx + Math.cos(a) * (entity.w * 0.4 + 10), entity.y - 14 + Math.sin(a) * 6, 7, 3, a);
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.strokeStyle = INK_COLOR;
@@ -142,20 +148,20 @@ function drawBoss0(e) {
     return;
   }
   if (isSpriteReady(runtime.level.boss.kind)) {
-    const blink = e.inv > 0 && Math.floor(gameState.time * 20) % 2,
-      sh = e.st === 'tele' || e.st === 'stomp' ? Math.sin(gameState.time * 60) * 3 : 0;
+    const blink = entity.inv > 0 && Math.floor(gameState.time * 20) % 2,
+      sh = entity.st === 'tele' || entity.st === 'stomp' ? Math.sin(gameState.time * 60) * 3 : 0;
     const e2 = {
-      ...e,
-      x: e.x + sh,
+      ...entity,
+      x: entity.x + sh,
     };
     drawSpriteBoss(
       e2,
-      e.st === 'rew' ? 0.35 + 0.4 * Math.abs(Math.sin(gameState.time * 14)) : blink ? 0.35 : 1,
-      e.st === 'rew' ? ['#6FB0F0', 0.6] : e.st === 'stun' ? ['#9C9380', 0.35] : null,
+      entity.st === 'rew' ? 0.35 + 0.4 * Math.abs(Math.sin(gameState.time * 14)) : blink ? 0.35 : 1,
+      entity.st === 'rew' ? ['#6FB0F0', 0.6] : entity.st === 'stun' ? ['#9C9380', 0.35] : null,
     );
-    const cx = e.x + e.w / 2;
-    if (e.st === 'charge' && Math.abs(e.vx) > 20) {
-      const d = e.dirc || e.face;
+    const cx = entity.x + entity.w / 2;
+    if (entity.st === 'charge' && Math.abs(entity.vx) > 20) {
+      const d = entity.dirc || entity.face;
       ctx.save();
       for (let q = 0; q < 4; q++) {
         const t = (gameState.time * 5 + q / 4) % 1;
@@ -164,18 +170,18 @@ function drawBoss0(e) {
         ctx.strokeStyle = INK_COLOR;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(cx - d * (16 + t * 40), e.y + e.h - 3 - t * 14, 4 + t * 8, 0, 7);
+        ctx.arc(cx - d * (16 + t * 40), entity.y + entity.h - 3 - t * 14, 4 + t * 8, 0, 7);
         ctx.fill();
         ctx.stroke();
       }
       ctx.restore();
     }
-    if (e.st === 'tele') drawOutlinedText('!', cx, e.y - 34, 34, '#D0402E');
-    if (e.st === 'stun') {
+    if (entity.st === 'tele') drawOutlinedText('!', cx, entity.y - 34, 34, '#D0402E');
+    if (entity.st === 'stun') {
       for (let q = 0; q < 3; q++) {
         const a = gameState.time * 4 + q * 2.1;
         ctx.fillStyle = '#E2A93B';
-        starPath(cx + Math.cos(a) * 34, e.y - 30 + Math.sin(a) * 6, 7, 3, a);
+        starPath(cx + Math.cos(a) * 34, entity.y - 30 + Math.sin(a) * 6, 7, 3, a);
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.strokeStyle = INK_COLOR;
@@ -185,19 +191,19 @@ function drawBoss0(e) {
     return;
   }
   const B = runtime.level.boss,
-    cx = e.x + e.w / 2,
-    k = e.h / HERO_BASE_H,
-    by = e.y + e.h;
-  const blink = e.inv > 0 && Math.floor(gameState.time * 20) % 2;
-  const sh = e.st === 'tele' || e.st === 'stomp' ? Math.sin(gameState.time * 60) * 3 : 0;
+    cx = entity.x + entity.w / 2,
+    k = entity.h / HERO_BASE_H,
+    by = entity.y + entity.h;
+  const blink = entity.inv > 0 && Math.floor(gameState.time * 20) % 2;
+  const sh = entity.st === 'tele' || entity.st === 'stomp' ? Math.sin(gameState.time * 60) * 3 : 0;
   const b2 = {
-    ...e,
-    x: e.x + sh,
+    ...entity,
+    x: entity.x + sh,
   };
   drawChar(
     b2,
-    e.st === 'stun' ? '#9C9380' : e.st === 'rew' ? '#6FB0F0' : B.c,
-    e.st === 'rew' ? 0.35 + 0.4 * Math.abs(Math.sin(gameState.time * 14)) : blink ? 0.35 : 1,
+    entity.st === 'stun' ? '#9C9380' : entity.st === 'rew' ? '#6FB0F0' : B.c,
+    entity.st === 'rew' ? 0.35 + 0.4 * Math.abs(Math.sin(gameState.time * 14)) : blink ? 0.35 : 1,
     false,
   );
   ctx.save();
@@ -227,12 +233,12 @@ function drawBoss0(e) {
   ctx.fill();
   ctx.stroke();
   ctx.restore();
-  if (e.st === 'tele') drawOutlinedText('!', cx, e.y - 14, 34, '#D0402E');
-  if (e.st === 'stun') {
+  if (entity.st === 'tele') drawOutlinedText('!', cx, entity.y - 14, 34, '#D0402E');
+  if (entity.st === 'stun') {
     for (let i = 0; i < 3; i++) {
       const a = gameState.time * 4 + i * 2.1;
       ctx.fillStyle = '#E2A93B';
-      starPath(cx + Math.cos(a) * 26, e.y - 8 + Math.sin(a) * 6, 7, 3, a);
+      starPath(cx + Math.cos(a) * 26, entity.y - 8 + Math.sin(a) * 6, 7, 3, a);
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = INK_COLOR;
@@ -264,10 +270,10 @@ function wingsAt(cx, cy, sz, flap, col) {
   }
   ctx.restore();
 }
-export function emblem(e, B) {
-  const cx = e.x + e.w / 2,
-    cy = e.y + e.h * 0.58,
-    s = Math.max(8, e.h * 0.2);
+export function emblem(entity, B) {
+  const cx = entity.x + entity.w / 2,
+    cy = entity.y + entity.h * 0.58,
+    s = Math.max(8, entity.h * 0.2);
   ctx.save();
   ctx.translate(cx, cy);
   ctx.lineJoin = 'round';
@@ -382,12 +388,12 @@ export function emblem(e, B) {
   }
   ctx.restore();
 }
-function drawSpell(e) {
-  const x = e.x + e.w / 2,
-    y = e.y + e.h / 2,
-    d = Math.sign(e.vx) || 1,
-    ph = gameState.time * 12 + e.x * 0.04,
-    tn = e.tn % 3;
+function drawSpell(entity) {
+  const x = entity.x + entity.w / 2,
+    y = entity.y + entity.h / 2,
+    d = Math.sign(entity.vx) || 1,
+    ph = gameState.time * 12 + entity.x * 0.04,
+    tn = entity.tn % 3;
   const pal =
     tn === 1
       ? ['120,255,150', '#8CF08A', '#2F8F4A']
@@ -398,10 +404,10 @@ function drawSpell(e) {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.globalCompositeOperation = 'lighter';
-  const g = ctx.createRadialGradient(x, y, 2, x, y, 30);
-  g.addColorStop(0, 'rgba(' + pal[0] + ',.85)');
-  g.addColorStop(1, 'rgba(' + pal[0] + ',0)');
-  ctx.fillStyle = g;
+  const gradient = ctx.createRadialGradient(x, y, 2, x, y, 30);
+  gradient.addColorStop(0, 'rgba(' + pal[0] + ',.85)');
+  gradient.addColorStop(1, 'rgba(' + pal[0] + ',0)');
+  ctx.fillStyle = gradient;
   ctx.beginPath();
   ctx.arc(x, y, 30, 0, 7);
   ctx.fill();
@@ -444,15 +450,15 @@ function drawSpell(e) {
   }
   ctx.restore();
 }
-function drawBullet(e) {
-  if (e.spell) return drawSpell(e);
-  const x = e.x + e.w / 2,
-    y = e.y + e.h / 2;
+function drawBullet(entity) {
+  if (entity.spell) return drawSpell(entity);
+  const x = entity.x + entity.w / 2,
+    y = entity.y + entity.h / 2;
   ctx.save();
-  const g = ctx.createRadialGradient(x, y, 1, x, y, 18);
-  g.addColorStop(0, 'rgba(255,180,90,.9)');
-  g.addColorStop(1, 'rgba(255,120,40,0)');
-  ctx.fillStyle = g;
+  const gradient = ctx.createRadialGradient(x, y, 1, x, y, 18);
+  gradient.addColorStop(0, 'rgba(255,180,90,.9)');
+  gradient.addColorStop(1, 'rgba(255,120,40,0)');
+  ctx.fillStyle = gradient;
   ctx.fillRect(x - 18, y - 18, 36, 36);
   ctx.fillStyle = '#FFE08A';
   ctx.strokeStyle = INK_COLOR;
@@ -464,14 +470,14 @@ function drawBullet(e) {
   ctx.strokeStyle = 'rgba(255,170,70,.6)';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(x - Math.sign(e.vx) * 8, y);
-  ctx.lineTo(x - Math.sign(e.vx) * 26, y);
+  ctx.moveTo(x - Math.sign(entity.vx) * 8, y);
+  ctx.lineTo(x - Math.sign(entity.vx) * 26, y);
   ctx.stroke();
   ctx.restore();
 }
-function drawFist(e) {
-  const u = 1 - Math.max(0, e.life) / 0.28,
-    x = e.x + e.w / 2,
+function drawFist(entity) {
+  const u = 1 - Math.max(0, entity.life) / 0.28,
+    x = entity.x + entity.w / 2,
     y = FLOOR_Y;
   ctx.save();
   ctx.globalAlpha = 1 - u * 0.8;
@@ -492,12 +498,12 @@ function drawFist(e) {
   }
   ctx.restore();
 }
-function drawShock(e) {
-  const x = e.x + e.w / 2,
+function drawShock(entity) {
+  const x = entity.x + entity.w / 2,
     y = FLOOR_Y,
-    sd = Math.sign(e.vx) || 1,
+    sd = Math.sign(entity.vx) || 1,
     t = gameState.time,
-    ph = t - (e.t0 || 0);
+    ph = t - (entity.t0 || 0);
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(sd * 1.35, 1.35);
@@ -572,12 +578,12 @@ function drawShock(e) {
   ctx.stroke();
   ctx.restore();
 }
-function drawWave(e) {
-  const x = e.x + e.w / 2,
-    y = e.y + e.h;
+function drawWave(entity) {
+  const x = entity.x + entity.w / 2,
+    y = entity.y + entity.h;
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(Math.sign(e.vx) || 1, 1);
+  ctx.scale(Math.sign(entity.vx) || 1, 1);
   ctx.lineJoin = 'round';
   ctx.fillStyle = '#E2A93B';
   ctx.strokeStyle = INK_COLOR;
@@ -657,26 +663,26 @@ export function drawTrap(k) {
   }
   ctx.restore();
 }
-export function drawBoss(e) {
-  if (e.k === 's') {
-    if (e.bul) drawBullet(e);
-    else if (e.fist) drawFist(e);
-    else if (e.shock) drawShock(e);
-    else if (e.beam) drawBeam(e);
-    else if (e.orb) drawOrb(e);
-    else if (e.boom) drawBoom(e);
-    else if (e.nuke) drawNuke(e);
-    else if (e.puff) drawPuff(e);
-    else drawWave(e);
+export function drawBoss(entity) {
+  if (entity.k === 's') {
+    if (entity.bul) drawBullet(entity);
+    else if (entity.fist) drawFist(entity);
+    else if (entity.shock) drawShock(entity);
+    else if (entity.beam) drawBeam(entity);
+    else if (entity.orb) drawOrb(entity);
+    else if (entity.boom) drawBoom(entity);
+    else if (entity.nuke) drawNuke(entity);
+    else if (entity.puff) drawPuff(entity);
+    else drawWave(entity);
     return;
   }
   const B = runtime.level.boss;
-  if ((B.em === 'wing' || (B.king && e.fly)) && e.alive && !isSpriteReady('wing-body'))
+  if ((B.em === 'wing' || (B.king && entity.fly)) && entity.alive && !isSpriteReady('wing-body'))
     wingsAt(
-      e.x + e.w / 2,
-      e.y + e.h * 0.45,
-      e.h * 0.42,
-      gameState.time * (e.st === 'dive' ? 5 : 14),
+      entity.x + entity.w / 2,
+      entity.y + entity.h * 0.45,
+      entity.h * 0.42,
+      gameState.time * (entity.st === 'dive' ? 5 : 14),
       '#F6EBCB',
     );
   const sp =
@@ -687,21 +693,21 @@ export function drawBoss(e) {
     (B.kind === 'wing' && isSpriteReady('wing-body')) ||
     (B.kind === 'shooter' && isSpriteReady('witch-body')) ||
     (B.kind === 'bolt' && isSpriteReady('bolt-torso'));
-  if (e.st === 'dash' && B.kind !== 'bolt') {
+  if (entity.st === 'dash' && B.kind !== 'bolt') {
     for (let i = 1; i <= 3; i++) {
       if (sp)
         drawSpriteBoss(
           {
-            ...e,
-            x: e.x - e.dirc * i * 26,
+            ...entity,
+            x: entity.x - entity.dirc * i * 26,
           },
           (0.3 / i) * 1.4,
         );
       else
         drawChar(
           {
-            ...e,
-            x: e.x - e.dirc * i * 26,
+            ...entity,
+            x: entity.x - entity.dirc * i * 26,
           },
           B.c,
           (0.3 / i) * 1.4,
@@ -709,6 +715,6 @@ export function drawBoss(e) {
         );
     }
   }
-  drawBoss0(e);
-  if (!sp) emblem(e, B);
+  drawBoss0(entity);
+  if (!sp) emblem(entity, B);
 }

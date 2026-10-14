@@ -189,13 +189,13 @@ export function step(dt) {
         w: 30,
         h: g.h - 8,
       };
-      for (const e of runtime.entities)
-        if (e.alive && e.k === 'b' && e.inv <= 0 && overlaps(box, e)) {
-          if (bossHit(e, g.face, g.big ? 2 : 1)) return;
-          e.st = 'stun';
-          e.t = 1.2;
-          e.vx = 0;
-          e.spd = 0;
+      for (const entity of runtime.entities)
+        if (entity.alive && entity.k === 'b' && entity.inv <= 0 && overlaps(box, entity)) {
+          if (bossHit(entity, g.face, g.big ? 2 : 1)) return;
+          entity.st = 'stun';
+          entity.t = 1.2;
+          entity.vx = 0;
+          entity.spd = 0;
         }
     }
   }

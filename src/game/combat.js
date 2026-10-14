@@ -12,73 +12,73 @@ import { bossAI } from './boss-ai.js';
 /* ---------- Coup de tête, ennemis, boss ---------- */
 let fireCooldown = 0;
 runtime.shots = [];
-export function fire(b = runtime.player) {
-  if (!gameState.echoesOwned[6] || b.dash > 0 || gameState.mode !== 'play') return false;
-  if (b === runtime.player) {
+export function fire(body = runtime.player) {
+  if (!gameState.echoesOwned[6] || body.dash > 0 || gameState.mode !== 'play') return false;
+  if (body === runtime.player) {
     if (fireCooldown > 0) return false;
     fireCooldown = 0.45;
   } else {
-    if ((b.tcd || 0) > 0) return false;
-    b.tcd = 0.45;
+    if ((body.tcd || 0) > 0) return false;
+    body.tcd = 0.45;
   }
   runtime.shots.push({
-    x: b.x + b.w / 2 + b.face * (b.w / 2),
-    y: b.y + b.h * 0.4,
-    vx: b.face * 560,
+    x: body.x + body.w / 2 + body.face * (body.w / 2),
+    y: body.y + body.h * 0.4,
+    vx: body.face * 560,
     d: 0,
     alive: 1,
   });
   playSfx('shot');
   return true;
 }
-function startBossRewind(e) {
-  e.st = 'rew';
-  e.t = 1.6;
-  e.inv = Math.max(e.inv, 1.6);
-  e.vx = 0;
+function startBossRewind(entity) {
+  entity.st = 'rew';
+  entity.t = 1.6;
+  entity.inv = Math.max(entity.inv, 1.6);
+  entity.vx = 0;
   playSfx('rewind');
 }
-function splitTwin(e) {
-  const cx = e.x + e.w / 2,
+function splitTwin(entity) {
+  const cx = entity.x + entity.w / 2,
     W2 = 64;
-  e.join = 0;
-  e.fast = 1;
-  e.w = W2;
-  e.hp = 2;
-  e.spr = 'twin-b';
-  e.st = 'idle';
-  e.t = 0.7;
-  e.inv = 0.7;
-  e.sh = 0;
-  e.n = 0;
+  entity.join = 0;
+  entity.fast = 1;
+  entity.w = W2;
+  entity.hp = 2;
+  entity.spr = 'twin-b';
+  entity.st = 'idle';
+  entity.t = 0.7;
+  entity.inv = 0.7;
+  entity.sh = 0;
+  entity.n = 0;
   const lx = Math.max(40, Math.min(WIDTH - 40 - W2, cx - 80 - W2 / 2)),
     rx = Math.max(40, Math.min(WIDTH - 40 - W2, cx + 80 - W2 / 2));
   const e2 = {
-    ...e,
+    ...entity,
     id: 1,
     spr: 'twin-a',
     n: 1,
     t: 1.2,
     hb: undefined,
   };
-  e.x = lx;
+  entity.x = lx;
   e2.x = rx;
-  e.vx = -280;
+  entity.vx = -280;
   e2.vx = 280;
-  e.vy = e2.vy = -320;
-  e.g = e2.g = false;
+  entity.vy = e2.vy = -320;
+  entity.g = e2.g = false;
   runtime.entities.push(e2);
   gameState.shake = 0.45;
   playSfx('land');
   showMessage('Le serpent se divise en deux !', 2.4);
 }
-export function bossHit(e, dx, dmg = 1) {
+export function bossHit(entity, dx, dmg = 1) {
   if (runtime.level.boss.kind === 'mirror') {
     const bs = runtime.entities.filter((x) => x.k === 'b' && x.alive);
-    e.inv = 0.35;
+    entity.inv = 0.35;
     playSfx('hit');
     gameState.shake = Math.max(gameState.shake, 0.15);
-    e.dm = Math.min(3, (e.dm || 0) + dmg);
+    entity.dm = Math.min(3, (entity.dm || 0) + dmg);
     const tot = bs.reduce((s, x) => s + (x.dm || 0), 0),
       hp = runtime.level.boss.hp - tot;
     for (const x of bs) {
@@ -88,16 +88,16 @@ export function bossHit(e, dx, dmg = 1) {
       x.vx = 0;
       x.inv = 0.35;
     }
-    if (e.dm >= 3 && !e.dn) {
-      e.dn = 1;
-      const o = bs.find((y) => y !== e);
+    if (entity.dm >= 3 && !entity.dn) {
+      entity.dn = 1;
+      const o = bs.find((y) => y !== entity);
       if (o && !o.dn) {
-        o.cd = e.cd;
+        o.cd = entity.cd;
         o.px = undefined;
         o.pz = 0.3;
       }
       showMessage(
-        (e.id ? 'La Lune' : 'Le Soleil') +
+        (entity.id ? 'La Lune' : 'Le Soleil') +
           " est à terre, mais ses rayons continuent ! Frappe l'autre 3 fois.",
         3.2,
       );
@@ -120,25 +120,26 @@ export function bossHit(e, dx, dmg = 1) {
     return false;
   }
   if (runtime.level.boss.kind === 'giant') {
-    e.hp -= dmg;
-    e.inv = 0.35;
+    entity.hp -= dmg;
+    entity.inv = 0.35;
     playSfx('hit');
     gameState.shake = Math.max(gameState.shake, 0.15);
-    if (e.hp <= 0) startColossusDeath(e);
+    if (entity.hp <= 0) startColossusDeath(entity);
     return false;
   }
-  e.sh = (e.sh || 0) + 1;
-  if (e.sh >= 2) e.t = Math.min(e.t, 0.55);
-  e.hp -= dmg;
-  e.inv = 0.6;
-  e.vx = dx * 240;
-  e.vy = -200;
+  entity.sh = (entity.sh || 0) + 1;
+  if (entity.sh >= 2) entity.t = Math.min(entity.t, 0.55);
+  entity.hp -= dmg;
+  entity.inv = 0.6;
+  entity.vx = dx * 240;
+  entity.vy = -200;
   playSfx('hit');
   gameState.shake = 0.25;
-  if ((runtime.level.boss.kind === 'time' || runtime.level.boss.king) && e.hp > 0) startBossRewind(e);
-  if (runtime.level.boss.kind === 'twin' && e.join && e.hp <= 3 && e.hp > 0) splitTwin(e);
-  if (e.hp <= 0) {
-    e.alive = 0;
+  if ((runtime.level.boss.kind === 'time' || runtime.level.boss.king) && entity.hp > 0)
+    startBossRewind(entity);
+  if (runtime.level.boss.kind === 'twin' && entity.join && entity.hp <= 3 && entity.hp > 0) splitTwin(entity);
+  if (entity.hp <= 0) {
+    entity.alive = 0;
     if (!bossAI.any()) {
       unsealRoom();
       gameState.clearedBossRooms[gameState.loadedRoom] = 1;
@@ -152,13 +153,23 @@ export function bossHit(e, dx, dmg = 1) {
   }
   return false;
 }
-const isHittable = (e, dx) => {
+const isHittable = (entity, dx) => {
   const K = runtime.level.boss && runtime.level.boss.kind;
   if (K === 'ghost') return false;
   if (K === 'bolt')
-    return e.inv <= 0 && e.st !== 'dash' && e.st !== 'blink' && dx !== undefined && dx * (e.face || 1) > 0;
-  if (K === 'mirror') return e.inv <= 0 && e.st !== 'stun' && !e.dn;
-  return e.inv <= 0 && (e.sh || 0) < 2 && (e.st === 'stun' || (K === 'giant' && e.st !== 'die'));
+    return (
+      entity.inv <= 0 &&
+      entity.st !== 'dash' &&
+      entity.st !== 'blink' &&
+      dx !== undefined &&
+      dx * (entity.face || 1) > 0
+    );
+  if (K === 'mirror') return entity.inv <= 0 && entity.st !== 'stun' && !entity.dn;
+  return (
+    entity.inv <= 0 &&
+    (entity.sh || 0) < 2 &&
+    (entity.st === 'stun' || (K === 'giant' && entity.st !== 'die'))
+  );
 };
 export function updateShots(dt) {
   fireCooldown = Math.max(0, fireCooldown - dt);
@@ -195,32 +206,32 @@ export function updateShots(dt) {
           playSfx('plate');
         }
       }
-      for (const e of runtime.entities) {
-        if (!e.alive || e.k === 's') continue;
+      for (const entity of runtime.entities) {
+        if (!entity.alive || entity.k === 's') continue;
         const bx = {
           x: s.x - 5,
           y: s.y - 5,
           w: 10,
           h: 10,
         };
-        if (!overlaps(bx, e)) continue;
-        if (e.k === 'w') {
-          if (e.t === 'c') {
-            e.alive = 0;
+        if (!overlaps(bx, entity)) continue;
+        if (entity.k === 'w') {
+          if (entity.t === 'c') {
+            entity.alive = 0;
             playSfx('hit');
-          } else if (e.t === 'r') {
-            if (e.inv <= 0) {
-              e.hp -= 1;
-              e.inv = 0.2;
-              playSfx(e.hp <= 0 ? 'hit' : 'clang');
-              if (e.hp <= 0) e.alive = 0;
+          } else if (entity.t === 'r') {
+            if (entity.inv <= 0) {
+              entity.hp -= 1;
+              entity.inv = 0.2;
+              playSfx(entity.hp <= 0 ? 'hit' : 'clang');
+              if (entity.hp <= 0) entity.alive = 0;
             }
           } else playSfx('clang');
           s.alive = 0;
           break;
         } else {
-          if (isHittable(e, Math.sign(s.vx))) {
-            if (bossHit(e, Math.sign(s.vx))) return;
+          if (isHittable(entity, Math.sign(s.vx))) {
+            if (bossHit(entity, Math.sign(s.vx))) return;
           } else playSfx('clang');
           s.alive = 0;
           break;
@@ -233,19 +244,23 @@ export function updateShots(dt) {
 export function stomp() {
   if (runtime.player.vy <= 40 || runtime.player.dash > 0) return;
   if (runtime.level.boss && runtime.level.boss.kind === 'shooter')
-    for (const e of runtime.entities) {
-      if (!e.alive || e.k !== 'b' || e.st === 'stun' || e.st === 'rage' || e.inv > 0) continue;
+    for (const entity of runtime.entities) {
+      if (!entity.alive || entity.k !== 'b' || entity.st === 'stun' || entity.st === 'rage' || entity.inv > 0)
+        continue;
       const zone = {
-        x: e.x - 6,
-        y: e.y - 46,
-        w: e.w + 12,
-        h: e.h * 0.6 + 46,
+        x: entity.x - 6,
+        y: entity.y - 46,
+        w: entity.w + 12,
+        h: entity.h * 0.6 + 46,
       };
-      if (overlaps(runtime.player, zone) && runtime.player.y + runtime.player.h < e.y + e.h * 0.45) {
-        e.st = 'stun';
-        e.t = runtime.level.boss.stun || 1.9;
-        e.vx = 0;
-        e.inv = 0.3;
+      if (
+        overlaps(runtime.player, zone) &&
+        runtime.player.y + runtime.player.h < entity.y + entity.h * 0.45
+      ) {
+        entity.st = 'stun';
+        entity.t = runtime.level.boss.stun || 1.9;
+        entity.vx = 0;
+        entity.inv = 0.3;
         runtime.player.vy = -430;
         runtime.player.g = false;
         runtime.player.jb = 0;
@@ -254,10 +269,13 @@ export function stomp() {
         showMessage('Étourdie ! Frappe-la !', 1.6);
       }
     }
-  for (const e of runtime.entities) {
-    if (!e.alive || e.k !== 'w' || e.t !== 'c') continue;
-    if (overlaps(runtime.player, e, 2) && runtime.player.y + runtime.player.h < e.y + e.h * 0.7) {
-      e.alive = 0;
+  for (const entity of runtime.entities) {
+    if (!entity.alive || entity.k !== 'w' || entity.t !== 'c') continue;
+    if (
+      overlaps(runtime.player, entity, 2) &&
+      runtime.player.y + runtime.player.h < entity.y + entity.h * 0.7
+    ) {
+      entity.alive = 0;
       runtime.player.vy = -430;
       runtime.player.g = false;
       runtime.player.jb = 0;
@@ -266,19 +284,19 @@ export function stomp() {
     }
   }
 }
-export function doHit(b = runtime.player) {
-  if ((b.hcd || 0) > 0 || (b.hit || 0) > 0 || b.dash > 0) return false;
-  b.hit = 0.2;
-  b.hcd = 0.45;
-  b.vx += b.face * 200;
+export function doHit(body = runtime.player) {
+  if ((body.hcd || 0) > 0 || (body.hit || 0) > 0 || body.dash > 0) return false;
+  body.hit = 0.2;
+  body.hcd = 0.45;
+  body.vx += body.face * 200;
   playSfx('hit');
   return true;
 }
-export function hitCheck(b = runtime.player) {
-  const fx = b.face > 0 ? b.x + b.w - 2 : b.x - 28,
-    fy = b.y + 3,
+export function hitCheck(body = runtime.player) {
+  const fx = body.face > 0 ? body.x + body.w - 2 : body.x - 28,
+    fy = body.y + 3,
     fw = 30,
-    fh = b.h - 8,
+    fh = body.h - 8,
     box = {
       x: fx,
       y: fy,
@@ -292,47 +310,51 @@ export function hitCheck(b = runtime.player) {
   for (let r = y0; r <= y1; r++)
     for (let c = x0; c <= x1; c++) {
       const ch = runtime.grid[r] && runtime.grid[r][c];
-      if (ch === '%' || (ch === '&' && b.big)) {
+      if (ch === '%' || (ch === '&' && body.big)) {
         runtime.brokenTilesLog.push([c, r, ch]);
         runtime.grid[r][c] = '.';
         playSfx('break');
         gameState.shake = 0.15;
-      } else if (ch === '&' && !b.big && b === runtime.player && gameState.messageTimer <= 0)
+      } else if (ch === '&' && !body.big && body === runtime.player && gameState.messageTimer <= 0)
         showMessage('Trop solide… il faudrait être plus gros');
     }
-  for (const e of runtime.entities) {
-    if (!e.alive || e.k === 's' || !overlaps(box, e)) continue;
-    if (e.k === 'w') {
-      if (e.t === 'g') {
-        if (e.inv <= 0) {
-          e.inv = 0.6;
+  for (const entity of runtime.entities) {
+    if (!entity.alive || entity.k === 's' || !overlaps(box, entity)) continue;
+    if (entity.k === 'w') {
+      if (entity.t === 'g') {
+        if (entity.inv <= 0) {
+          entity.inv = 0.6;
           playSfx('clang');
           showMessage("Intouchable ! Saute par-dessus, ou fonce à travers avec l'Éclair", 2.6);
         }
-      } else if (e.t === 'r') {
-        if (e.inv <= 0) {
-          e.hp -= b.big ? 2.5 : 1;
-          e.inv = 0.32;
-          playSfx(e.hp <= 0 ? 'hit' : 'clang');
+      } else if (entity.t === 'r') {
+        if (entity.inv <= 0) {
+          entity.hp -= body.big ? 2.5 : 1;
+          entity.inv = 0.32;
+          playSfx(entity.hp <= 0 ? 'hit' : 'clang');
           gameState.shake = 0.18;
-          if (e.hp <= 0) e.alive = 0;
+          if (entity.hp <= 0) entity.alive = 0;
           else {
-            const ox = e.x;
-            e.x += b.face * 10;
-            if (collide(e)) e.x = ox;
+            const ox = entity.x;
+            entity.x += body.face * 10;
+            if (collide(entity)) entity.x = ox;
           }
         }
       } else {
-        e.alive = 0;
+        entity.alive = 0;
         playSfx('hit');
         gameState.shake = 0.1;
       }
-    } else if (isHittable(e, b.face)) {
-      if (bossHit(e, b.face, b.big ? 2 : 1)) return;
-    } else if ((e.st !== 'stun' || runtime.level.boss.kind === 'bolt') && e.inv <= 0 && e.st !== 'blink') {
-      e.inv = 0.35;
-      b.vx = -b.face * 330;
-      b.hit = 0;
+    } else if (isHittable(entity, body.face)) {
+      if (bossHit(entity, body.face, body.big ? 2 : 1)) return;
+    } else if (
+      (entity.st !== 'stun' || runtime.level.boss.kind === 'bolt') &&
+      entity.inv <= 0 &&
+      entity.st !== 'blink'
+    ) {
+      entity.inv = 0.35;
+      body.vx = -body.face * 330;
+      body.hit = 0;
       playSfx('clang');
     }
   }

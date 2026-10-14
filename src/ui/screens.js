@@ -122,15 +122,15 @@ export function drawScores() {
   ctx.textAlign = 'center';
   ctx.fillText('Seules les parties terminées entrent au classement.', WIDTH / 2, 104);
   for (let i = 0; i < 10; i++) {
-    const e = scores.over[i],
+    const entity = scores.over[i],
       y = 146 + i * 30;
     ctx.font = '900 20px ' + FONT_BODY;
     ctx.textAlign = 'left';
     ctx.fillText(i + 1 + '.', WIDTH / 2 - 330, y);
-    ctx.fillText(e ? e.n : '—', WIDTH / 2 - 290, y);
+    ctx.fillText(entity ? entity.n : '—', WIDTH / 2 - 290, y);
     ctx.textAlign = 'right';
-    ctx.fillText(e ? (e.v ? 'VICTOIRE' : e.l + ' salles') : '', WIDTH / 2 + 210, y);
-    ctx.fillText(e ? formatTime(e.t) : '', WIDTH / 2 + 330, y);
+    ctx.fillText(entity ? (entity.v ? 'VICTOIRE' : entity.l + ' salles') : '', WIDTH / 2 + 210, y);
+    ctx.fillText(entity ? formatTime(entity.t) : '', WIDTH / 2 + 330, y);
   }
   drawButton('sback', WIDTH / 2 - 90, HEIGHT - 82, 180, 34, 'RETOUR', {
     size: 19,

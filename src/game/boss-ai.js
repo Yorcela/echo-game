@@ -7,61 +7,61 @@ import { colossusAI } from './colossus.js';
 import { mirrorBossAI } from './reflets.js';
 import { playSfx } from '../audio/audio.js';
 // un bond sous une plateforme le sonnerait aussitôt : on simule la trajectoire
-function isHopBlocked(e, pcx, cx) {
+function isHopBlocked(entity, pcx, cx) {
   let vx = Math.max(-300, Math.min(300, (pcx - cx) / 0.84));
-  if (e.fast) vx *= 1.6;
-  let x = e.x,
-    y = e.y,
+  if (entity.fast) vx *= 1.6;
+  let x = entity.x,
+    y = entity.y,
     vy = -800;
   for (let i = 0; i < 120; i++) {
     const dt = 1 / 60;
     vy += GRAVITY * dt;
     x += vx * dt;
     y += vy * dt;
-    if (y + e.h >= FLOOR_Y) return false;
+    if (y + entity.h >= FLOOR_Y) return false;
     if (
       collide({
-        x: Math.max(34, Math.min(WIDTH - 34 - e.w, x)),
+        x: Math.max(34, Math.min(WIDTH - 34 - entity.w, x)),
         y,
-        w: e.w,
-        h: e.h,
+        w: entity.w,
+        h: entity.h,
       })
     )
-      return !e.fast || vy < 0;
+      return !entity.fast || vy < 0;
   }
   return false;
 }
 const GHOST_ORBIT_RADIUS = 5 * TILE;
-function ghostBossAI(e, dt) {
+function ghostBossAI(entity, dt) {
   const B = runtime.level.boss,
     cx0 = WIDTH / 2,
-    lo = cx0 - GHOST_ORBIT_RADIUS - e.w / 2,
-    hi = cx0 + GHOST_ORBIT_RADIUS - e.w / 2,
-    cx = e.x + e.w / 2,
+    lo = cx0 - GHOST_ORBIT_RADIUS - entity.w / 2,
+    hi = cx0 + GHOST_ORBIT_RADIUS - entity.w / 2,
+    cx = entity.x + entity.w / 2,
     pcx = runtime.player.x + runtime.player.w / 2,
     dir = pcx >= cx ? 1 : -1;
-  if (!e.gi) {
-    e.gi = 1;
-    e.x = cx0 - e.w / 2;
-    e.st = 'idle';
-    e.t = 1.2;
-    e.tx = cx0;
-    e.vx = 0;
+  if (!entity.gi) {
+    entity.gi = 1;
+    entity.x = cx0 - entity.w / 2;
+    entity.st = 'idle';
+    entity.t = 1.2;
+    entity.tx = cx0;
+    entity.vx = 0;
   }
-  if (e.x < lo) {
-    e.x = lo;
-    e.vx = Math.max(0, e.vx);
+  if (entity.x < lo) {
+    entity.x = lo;
+    entity.vx = Math.max(0, entity.vx);
   }
-  if (e.x > hi) {
-    e.x = hi;
-    e.vx = Math.min(0, e.vx);
+  if (entity.x > hi) {
+    entity.x = hi;
+    entity.vx = Math.min(0, entity.vx);
   }
-  if (e.st === 'idle') {
-    e.face = dir;
-    e.spd = 70;
-    const dd = e.tx - cx;
+  if (entity.st === 'idle') {
+    entity.face = dir;
+    entity.spd = 70;
+    const dd = entity.tx - cx;
     moveBody(
-      e,
+      entity,
       {
         l: dd < -8 ? 1 : 0,
         r: dd > 8 ? 1 : 0,
@@ -70,17 +70,17 @@ function ghostBossAI(e, dt) {
       },
       dt,
     );
-    if (Math.abs(dd) <= 8 && e.t > 0.6) e.tx = cx0 + (Math.random() * 2 - 1) * GHOST_ORBIT_RADIUS;
-    if (e.t <= 0) {
-      e.st = 'tele';
-      e.t = B.tele || 0.5;
-      e.vx = 0;
-      e.spd = 0;
+    if (Math.abs(dd) <= 8 && entity.t > 0.6) entity.tx = cx0 + (Math.random() * 2 - 1) * GHOST_ORBIT_RADIUS;
+    if (entity.t <= 0) {
+      entity.st = 'tele';
+      entity.t = B.tele || 0.5;
+      entity.vx = 0;
+      entity.spd = 0;
     }
-  } else if (e.st === 'tele') {
-    e.face = dir;
+  } else if (entity.st === 'tele') {
+    entity.face = dir;
     moveBody(
-      e,
+      entity,
       {
         l: 0,
         r: 0,
@@ -89,36 +89,36 @@ function ghostBossAI(e, dt) {
       },
       dt,
     );
-    if (e.t <= 0) {
-      e.st = 'charge';
-      e.dirc = dir;
-      e.t = 1.1;
-      e.spd = B.spd;
+    if (entity.t <= 0) {
+      entity.st = 'charge';
+      entity.dirc = dir;
+      entity.t = 1.1;
+      entity.spd = B.spd;
     }
-  } else if (e.st === 'charge') {
-    e.face = e.dirc;
+  } else if (entity.st === 'charge') {
+    entity.face = entity.dirc;
     moveBody(
-      e,
+      entity,
       {
-        l: e.dirc < 0 ? 1 : 0,
-        r: e.dirc > 0 ? 1 : 0,
+        l: entity.dirc < 0 ? 1 : 0,
+        r: entity.dirc > 0 ? 1 : 0,
         jp: 0,
         jh: 0,
       },
       dt,
     );
-    if (e.t <= 0 || (e.dirc < 0 && e.x <= lo + 1) || (e.dirc > 0 && e.x >= hi - 1)) {
-      e.st = 'rest';
-      e.t = 1.3;
-      e.vx = 0;
-      e.spd = 0;
+    if (entity.t <= 0 || (entity.dirc < 0 && entity.x <= lo + 1) || (entity.dirc > 0 && entity.x >= hi - 1)) {
+      entity.st = 'rest';
+      entity.t = 1.3;
+      entity.vx = 0;
+      entity.spd = 0;
       gameState.shake = 0.12;
     }
-  } else if (e.st === 'rest') {
-    e.face = dir;
-    e.vx *= 0.8;
+  } else if (entity.st === 'rest') {
+    entity.face = dir;
+    entity.vx *= 0.8;
     moveBody(
-      e,
+      entity,
       {
         l: 0,
         r: 0,
@@ -127,15 +127,15 @@ function ghostBossAI(e, dt) {
       },
       dt,
     );
-    if (e.t <= 0) {
-      e.st = 'idle';
-      e.t = 1.4;
-      e.tx = cx0 + (Math.random() * 2 - 1) * GHOST_ORBIT_RADIUS;
+    if (entity.t <= 0) {
+      entity.st = 'idle';
+      entity.t = 1.4;
+      entity.tx = cx0 + (Math.random() * 2 - 1) * GHOST_ORBIT_RADIUS;
     }
-  } else if (e.st === 'stun') {
-    e.vx *= 0.85;
+  } else if (entity.st === 'stun') {
+    entity.vx *= 0.85;
     moveBody(
-      e,
+      entity,
       {
         l: 0,
         r: 0,
@@ -144,23 +144,23 @@ function ghostBossAI(e, dt) {
       },
       dt,
     );
-    if (e.t <= 0) {
-      e.st = 'idle';
-      e.t = 1.0;
+    if (entity.t <= 0) {
+      entity.st = 'idle';
+      entity.t = 1.0;
     }
   }
-  if (e.x < lo) {
-    e.x = lo;
-    e.vx = 0;
+  if (entity.x < lo) {
+    entity.x = lo;
+    entity.vx = 0;
   }
-  if (e.x > hi) {
-    e.x = hi;
-    e.vx = 0;
+  if (entity.x > hi) {
+    entity.x = hi;
+    entity.vx = 0;
   }
 }
-function boltAI(e, dt) {
+function boltAI(entity, dt) {
   const B = runtime.level.boss,
-    cx = e.x + e.w / 2,
+    cx = entity.x + entity.w / 2,
     dP = Math.abs(runtime.player.x + runtime.player.w / 2 - cx),
     tg =
       runtime.echoClone && Math.abs(runtime.echoClone.x + runtime.echoClone.w / 2 - cx) < dP
@@ -175,137 +175,137 @@ function boltAI(e, dt) {
       jp: 0,
       jh: 0,
     };
-  if (!e.bi) {
-    e.bi = 1;
-    e.st = 'idle';
-    e.t = 1.0;
-    e.n = 0;
-    e.bc = 0;
-    e.ft = 0;
+  if (!entity.bi) {
+    entity.bi = 1;
+    entity.st = 'idle';
+    entity.t = 1.0;
+    entity.n = 0;
+    entity.bc = 0;
+    entity.ft = 0;
   }
-  if (e.st !== 'stun') e.sh = 0;
-  e.ft = Math.max(0, (e.ft || 0) - dt);
-  if (e.st === 'idle') {
-    e.face = dir;
-    e.spd = 0;
-    moveBody(e, none0, dt);
-    if (d < 90 && e.t > 0.18) e.t = 0.18;
-    if (e.t <= 0) {
-      e.n++;
-      if (e.n % 4 === 0) {
-        e.st = 'crouch';
-        e.t = 1.2;
-        e.dirc = dir;
+  if (entity.st !== 'stun') entity.sh = 0;
+  entity.ft = Math.max(0, (entity.ft || 0) - dt);
+  if (entity.st === 'idle') {
+    entity.face = dir;
+    entity.spd = 0;
+    moveBody(entity, none0, dt);
+    if (d < 90 && entity.t > 0.18) entity.t = 0.18;
+    if (entity.t <= 0) {
+      entity.n++;
+      if (entity.n % 4 === 0) {
+        entity.st = 'crouch';
+        entity.t = 1.2;
+        entity.dirc = dir;
       } else if (d < 110) {
-        e.st = 'slap';
-        e.t = 0.5;
-        e.sl = 0;
+        entity.st = 'slap';
+        entity.t = 0.5;
+        entity.sl = 0;
       } else if (d > 120) {
-        e.st = 'blink';
-        e.bc = 0;
-        e.bs = 0;
-        e.t = 0.14;
+        entity.st = 'blink';
+        entity.bc = 0;
+        entity.bs = 0;
+        entity.t = 0.14;
       } else {
-        e.st = 'slap';
-        e.t = 0.5;
-        e.sl = 0;
+        entity.st = 'slap';
+        entity.t = 0.5;
+        entity.sl = 0;
       }
     }
-  } else if (e.st === 'crouch') {
-    e.spd = 0;
-    moveBody(e, none0, dt);
-    if (e.t > 0.3) {
-      e.dirc = dir;
-      e.face = dir;
-    } else e.face = e.dirc;
-    if (e.t <= 0) {
-      e.st = 'dash';
-      e.t = 1.5;
-      e.face = e.dirc;
+  } else if (entity.st === 'crouch') {
+    entity.spd = 0;
+    moveBody(entity, none0, dt);
+    if (entity.t > 0.3) {
+      entity.dirc = dir;
+      entity.face = dir;
+    } else entity.face = entity.dirc;
+    if (entity.t <= 0) {
+      entity.st = 'dash';
+      entity.t = 1.5;
+      entity.face = entity.dirc;
     }
-  } else if (e.st === 'dash') {
-    e.face = e.dirc;
-    e.lock = 0.1;
-    e.vx = e.dirc * 900;
-    moveBody(e, none0, dt);
-    const atWall = e.x <= TILE + 10 || e.x >= WIDTH - TILE - e.w - 10;
-    if (e.t <= 0 || Math.abs(e.vx) < 30) {
-      e.vx = 0;
-      e.lock = 0;
-      if (atWall || e.t > 0) {
-        e.st = 'stun';
-        e.t = B.stun || 1.8;
+  } else if (entity.st === 'dash') {
+    entity.face = entity.dirc;
+    entity.lock = 0.1;
+    entity.vx = entity.dirc * 900;
+    moveBody(entity, none0, dt);
+    const atWall = entity.x <= TILE + 10 || entity.x >= WIDTH - TILE - entity.w - 10;
+    if (entity.t <= 0 || Math.abs(entity.vx) < 30) {
+      entity.vx = 0;
+      entity.lock = 0;
+      if (atWall || entity.t > 0) {
+        entity.st = 'stun';
+        entity.t = B.stun || 1.8;
         gameState.shake = 0.35;
         playSfx('clang');
       } else {
-        e.st = 'rest';
-        e.t = 0.5;
+        entity.st = 'rest';
+        entity.t = 0.5;
       }
     }
-  } else if (e.st === 'rest') {
-    e.vx *= 0.8;
-    moveBody(e, none0, dt);
-    if (e.t <= 0) {
-      e.st = 'idle';
-      e.t = 0.4;
+  } else if (entity.st === 'rest') {
+    entity.vx *= 0.8;
+    moveBody(entity, none0, dt);
+    if (entity.t <= 0) {
+      entity.st = 'idle';
+      entity.t = 0.4;
     }
-  } else if (e.st === 'blink') {
-    e.face = dir;
-    e.vx = 0;
-    moveBody(e, none0, dt);
-    if (e.t <= 0) {
-      if (e.bs === 0) {
+  } else if (entity.st === 'blink') {
+    entity.face = dir;
+    entity.vx = 0;
+    moveBody(entity, none0, dt);
+    if (entity.t <= 0) {
+      if (entity.bs === 0) {
         const step = Math.min(170, Math.max(0, d - 70)),
-          ox = e.x;
-        e.fa0 = cx;
-        e.x = Math.max(TILE + 4, Math.min(WIDTH - TILE - e.w - 4, e.x + dir * step));
-        if (collide(e)) e.x = ox;
-        e.fa1 = e.x + e.w / 2;
-        e.ft = 0.35;
-        e.bs = 1;
-        e.t = 0.14;
+          ox = entity.x;
+        entity.fa0 = cx;
+        entity.x = Math.max(TILE + 4, Math.min(WIDTH - TILE - entity.w - 4, entity.x + dir * step));
+        if (collide(entity)) entity.x = ox;
+        entity.fa1 = entity.x + entity.w / 2;
+        entity.ft = 0.35;
+        entity.bs = 1;
+        entity.t = 0.14;
         playSfx('shot');
       } else {
-        e.bc++;
-        if (e.bc >= 2) {
-          e.st = 'idle';
-          e.t = 0.3;
+        entity.bc++;
+        if (entity.bc >= 2) {
+          entity.st = 'idle';
+          entity.t = 0.3;
         } else {
-          e.bs = 0;
-          e.t = 0.2;
+          entity.bs = 0;
+          entity.t = 0.2;
         }
       }
     }
-  } else if (e.st === 'slap') {
-    e.spd = 0;
-    moveBody(e, none0, dt);
-    if (e.t > 0.24) e.face = dir;
-    e.sl = e.t <= 0.2 && e.t > 0.08 ? 1 : 0;
-    if (e.t <= 0) {
-      e.sl = 0;
-      e.st = 'idle';
-      e.t = 0.5;
+  } else if (entity.st === 'slap') {
+    entity.spd = 0;
+    moveBody(entity, none0, dt);
+    if (entity.t > 0.24) entity.face = dir;
+    entity.sl = entity.t <= 0.2 && entity.t > 0.08 ? 1 : 0;
+    if (entity.t <= 0) {
+      entity.sl = 0;
+      entity.st = 'idle';
+      entity.t = 0.5;
     }
-  } else if (e.st === 'stun') {
-    e.vx *= 0.85;
-    moveBody(e, none0, dt);
-    if (e.t <= 0) {
-      e.st = 'idle';
-      e.t = 0.8;
+  } else if (entity.st === 'stun') {
+    entity.vx *= 0.85;
+    moveBody(entity, none0, dt);
+    if (entity.t <= 0) {
+      entity.st = 'idle';
+      entity.t = 0.8;
     }
   }
   // le clone (Miroir, Jumeau, Rémanence) pris dans une gifle ou un dash est détruit : le joueur encaisse aussi
   if (
     runtime.echoClone &&
-    ((e.st === 'slap' &&
-      e.sl &&
+    ((entity.st === 'slap' &&
+      entity.sl &&
       overlaps(runtime.echoClone, {
-        x: e.face > 0 ? e.x + e.w - 4 : e.x - 48,
-        y: e.y + 6,
+        x: entity.face > 0 ? entity.x + entity.w - 4 : entity.x - 48,
+        y: entity.y + 6,
         w: 52,
-        h: e.h - 10,
+        h: entity.h - 10,
       })) ||
-      (e.st === 'dash' && overlaps(runtime.echoClone, e, 6)))
+      (entity.st === 'dash' && overlaps(runtime.echoClone, entity, 6)))
   ) {
     const cx0 = runtime.echoClone.x + runtime.echoClone.w / 2;
     runtime.echoClone = null;
@@ -315,7 +315,7 @@ function boltAI(e, dt) {
     if (gameState.invulnerableTimer <= 0) hurtPlayer(1, false, cx0);
   }
 }
-export function bossAI(e, dt) {
+export function bossAI(entity, dt) {
   runtime.kingAiActive = runtime.level.boss && runtime.level.boss.king ? 1 : 0;
   runtime.bossCollisionMode =
     runtime.level.boss && runtime.level.boss.kind === 'giant'
@@ -324,39 +324,39 @@ export function bossAI(e, dt) {
         ? 2
         : 0;
   try {
-    bossAIInner(e, dt);
+    bossAIInner(entity, dt);
   } finally {
     runtime.kingAiActive = 0;
     runtime.bossCollisionMode = 0;
   }
 }
-function bossAIInner(e, dt) {
+function bossAIInner(entity, dt) {
   const B = runtime.level.boss,
     K = B.kind;
-  e.t -= dt;
-  if (K === 'shooter' && e.st !== 'stun' && e.st !== 'rage') {
-    e.wf = e.hp >= 4 ? 1 : e.hp === 3 ? 1.25 : e.hp === 2 ? 1.55 : 1.9;
-    e.t -= dt * (e.wf - 1);
+  entity.t -= dt;
+  if (K === 'shooter' && entity.st !== 'stun' && entity.st !== 'rage') {
+    entity.wf = entity.hp >= 4 ? 1 : entity.hp === 3 ? 1.25 : entity.hp === 2 ? 1.55 : 1.9;
+    entity.t -= dt * (entity.wf - 1);
   }
-  e.inv = Math.max(0, e.inv - dt);
+  entity.inv = Math.max(0, entity.inv - dt);
   if (K === 'giant') {
-    colossusAI(e, dt);
+    colossusAI(entity, dt);
     return;
   }
   if (K === 'ghost') {
-    ghostBossAI(e, dt);
+    ghostBossAI(entity, dt);
     return;
   }
   if (K === 'bolt') {
-    boltAI(e, dt);
+    boltAI(entity, dt);
     return;
   }
   if (K === 'mirror') {
-    mirrorBossAI(e, dt);
+    mirrorBossAI(entity, dt);
     return;
   }
-  if (e.st !== 'stun') e.sh = 0;
-  const cx = e.x + e.w / 2,
+  if (entity.st !== 'stun') entity.sh = 0;
+  const cx = entity.x + entity.w / 2,
     pcx = runtime.player.x + runtime.player.w / 2,
     dir = Math.sign(pcx - cx) || 1,
     none = {
@@ -365,94 +365,94 @@ function bossAIInner(e, dt) {
       jp: 0,
       jh: 0,
     },
-    FS = e.fast ? 1.8 : 1;
+    FS = entity.fast ? 1.8 : 1;
   if (K === 'time' || B.king) {
-    if (e.st === 'rew') {
+    if (entity.st === 'rew') {
       let p = null;
-      for (let i = 0; i < 3 && e.hb && e.hb.length > 2; i++) p = e.hb.pop();
+      for (let i = 0; i < 3 && entity.hb && entity.hb.length > 2; i++) p = entity.hb.pop();
       if (p) {
-        e.x = p[0];
-        e.y = p[1];
+        entity.x = p[0];
+        entity.y = p[1];
       }
-      if (!e.hb || e.hb.length <= 2 || e.t <= 0) {
-        e.st = 'idle';
-        e.t = B.idle;
-        e.hb = [];
-        e.vx = 0;
-        e.vy = 0;
-        e.g = false;
+      if (!entity.hb || entity.hb.length <= 2 || entity.t <= 0) {
+        entity.st = 'idle';
+        entity.t = B.idle;
+        entity.hb = [];
+        entity.vx = 0;
+        entity.vy = 0;
+        entity.g = false;
       }
       return;
     }
-    (e.hb || (e.hb = [])).push([e.x, e.y]);
-    if (e.hb.length > 150) e.hb.shift();
+    (entity.hb || (entity.hb = [])).push([entity.x, entity.y]);
+    if (entity.hb.length > 150) entity.hb.shift();
   }
   // ---- phases en vol (L'Envol)
-  if (e.fly) {
-    e.face = dir;
-    e.ph += dt;
-    if (e.st === 'hover') {
-      e.x += Math.max(-1, Math.min(1, (pcx - cx) / 40)) * 115 * dt;
-      e.y = 96 + Math.sin(e.ph * 3) * 9;
-      if (e.t <= 0) {
-        e.st = 'ftele';
-        e.t = B.tele;
+  if (entity.fly) {
+    entity.face = dir;
+    entity.ph += dt;
+    if (entity.st === 'hover') {
+      entity.x += Math.max(-1, Math.min(1, (pcx - cx) / 40)) * 115 * dt;
+      entity.y = 96 + Math.sin(entity.ph * 3) * 9;
+      if (entity.t <= 0) {
+        entity.st = 'ftele';
+        entity.t = B.tele;
       }
-    } else if (e.st === 'ftele') {
-      e.x += Math.max(-1, Math.min(1, (pcx - cx) / 40)) * 60 * dt + Math.sin(e.ph * 70) * 1.6;
-      if (e.t <= 0) {
-        e.st = 'dive';
-        const tx = pcx - e.w / 2,
-          ty = FLOOR_Y - e.h,
-          dx = tx - e.x,
-          dy = ty - e.y,
+    } else if (entity.st === 'ftele') {
+      entity.x += Math.max(-1, Math.min(1, (pcx - cx) / 40)) * 60 * dt + Math.sin(entity.ph * 70) * 1.6;
+      if (entity.t <= 0) {
+        entity.st = 'dive';
+        const tx = pcx - entity.w / 2,
+          ty = FLOOR_Y - entity.h,
+          dx = tx - entity.x,
+          dy = ty - entity.y,
           d = Math.hypot(dx, dy) || 1;
-        e.vx = (dx / d) * 590;
-        e.vy = (dy / d) * 590;
-        e.combo = e.n++ % 2 === 1;
+        entity.vx = (dx / d) * 590;
+        entity.vy = (dy / d) * 590;
+        entity.combo = entity.n++ % 2 === 1;
       }
-    } else if (e.st === 'dive') {
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
-      e.x = Math.max(34, Math.min(WIDTH - 34 - e.w, e.x));
-      if (e.y + e.h >= FLOOR_Y) {
-        e.y = FLOOR_Y - e.h;
-        e.fly = 0;
-        e.vx = 0;
-        e.vy = 0;
-        e.g = true;
+    } else if (entity.st === 'dive') {
+      entity.x += entity.vx * dt;
+      entity.y += entity.vy * dt;
+      entity.x = Math.max(34, Math.min(WIDTH - 34 - entity.w, entity.x));
+      if (entity.y + entity.h >= FLOOR_Y) {
+        entity.y = FLOOR_Y - entity.h;
+        entity.fly = 0;
+        entity.vx = 0;
+        entity.vy = 0;
+        entity.g = true;
         gameState.shake = 0.35;
         playSfx('land');
-        if (e.combo) {
-          e.st = 'tele';
-          e.kind = 'charge';
-          e.t = 0.55;
+        if (entity.combo) {
+          entity.st = 'tele';
+          entity.kind = 'charge';
+          entity.t = 0.55;
         } else {
-          e.st = 'stun';
-          e.t = (B.stun || 2) + 0.4;
+          entity.st = 'stun';
+          entity.t = (B.stun || 2) + 0.4;
         }
       }
-    } else if (e.st === 'rise') {
-      e.y -= 280 * dt;
-      e.x += Math.max(-1, Math.min(1, (pcx - cx) / 40)) * 80 * dt;
-      if (e.y <= 96) {
-        e.y = 96;
-        e.st = 'hover';
-        e.t = 1.3;
-        e.ph = 0;
+    } else if (entity.st === 'rise') {
+      entity.y -= 280 * dt;
+      entity.x += Math.max(-1, Math.min(1, (pcx - cx) / 40)) * 80 * dt;
+      if (entity.y <= 96) {
+        entity.y = 96;
+        entity.st = 'hover';
+        entity.t = 1.3;
+        entity.ph = 0;
       }
     }
     return;
   }
   // ---- phases au sol
-  if (e.st === 'idle') {
-    e.face = dir;
+  if (entity.st === 'idle') {
+    entity.face = dir;
     if (K === 'mirror' || K === 'king') {
-      const tx = Math.max(70, Math.min(WIDTH - 70 - e.w / 2, WIDTH - pcx + (e.id ? 75 : -75))),
+      const tx = Math.max(70, Math.min(WIDTH - 70 - entity.w / 2, WIDTH - pcx + (entity.id ? 75 : -75))),
         dd = tx - cx;
-      e.spd = 190;
+      entity.spd = 190;
       moveBody(
-        e,
+        entity,
         {
           l: dd < -12 ? 1 : 0,
           r: dd > 12 ? 1 : 0,
@@ -464,9 +464,9 @@ function bossAIInner(e, dt) {
     } else if (K === 'shooter') {
       const dx = pcx - cx,
         ad = Math.abs(dx);
-      e.spd = B.spd;
+      entity.spd = B.spd;
       moveBody(
-        e,
+        entity,
         {
           l: ad < 190 && dx > 0 ? 1 : ad > 300 && dx < 0 ? 1 : 0,
           r: ad < 190 && dx < 0 ? 1 : ad > 300 && dx > 0 ? 1 : 0,
@@ -477,11 +477,17 @@ function bossAIInner(e, dt) {
       );
     } else if (K === 'twin') {
       const dx = pcx - cx,
-        dyy = e.y + e.h - (runtime.player.y + runtime.player.h),
-        gap = e.fast ? (dyy > 40 ? e.w / 2 + 150 : dyy < -40 ? 20 : e.w / 2 + 80) : e.w / 2 + 80;
-      e.spd = 75 * FS;
+        dyy = entity.y + entity.h - (runtime.player.y + runtime.player.h),
+        gap = entity.fast
+          ? dyy > 40
+            ? entity.w / 2 + 150
+            : dyy < -40
+              ? 20
+              : entity.w / 2 + 80
+          : entity.w / 2 + 80;
+      entity.spd = 75 * FS;
       moveBody(
-        e,
+        entity,
         {
           l: dx < -gap ? 1 : 0,
           r: dx > gap ? 1 : 0,
@@ -492,9 +498,9 @@ function bossAIInner(e, dt) {
       );
     } else if (K === 'time') {
       const dx = pcx - cx;
-      e.spd = 62;
+      entity.spd = 62;
       moveBody(
-        e,
+        entity,
         {
           l: dx < -150 ? 1 : 0,
           r: dx > 150 ? 1 : 0,
@@ -504,30 +510,30 @@ function bossAIInner(e, dt) {
         dt,
       );
     } else {
-      e.spd = 0;
-      moveBody(e, none, dt);
+      entity.spd = 0;
+      moveBody(entity, none, dt);
     }
-    if (e.t <= 0) {
-      e.st = 'tele';
-      e.t = (B.tele || 0.6) / (e.fast ? 1.4 : 1);
-      e.spd = 0;
-      e.kind =
+    if (entity.t <= 0) {
+      entity.st = 'tele';
+      entity.t = (B.tele || 0.6) / (entity.fast ? 1.4 : 1);
+      entity.spd = 0;
+      entity.kind =
         K === 'king'
-          ? ['charge', 'shoot', 'hop', 'stomp', 'dash', 'fly'][e.n++ % 6]
+          ? ['charge', 'shoot', 'hop', 'stomp', 'dash', 'fly'][entity.n++ % 6]
           : K === 'mirror'
             ? 'hop'
             : K === 'twin'
-              ? e.fast
-                ? e.y + e.h - (runtime.player.y + runtime.player.h) > 40 && Math.abs(pcx - cx) < 430
+              ? entity.fast
+                ? entity.y + entity.h - (runtime.player.y + runtime.player.h) > 40 && Math.abs(pcx - cx) < 430
                   ? 'hop'
-                  : e.n++ % 3 === 2
+                  : entity.n++ % 3 === 2
                     ? 'hop'
                     : 'charge'
-                : e.n++ % 2
+                : entity.n++ % 2
                   ? 'hop'
                   : 'charge'
               : K === 'giant'
-                ? e.n++ % 2
+                ? entity.n++ % 2
                   ? 'stomp'
                   : 'charge'
                 : K === 'bolt'
@@ -536,114 +542,114 @@ function bossAIInner(e, dt) {
                     ? 'shoot'
                     : 'charge';
     }
-  } else if (e.st === 'tele') {
-    e.face = dir;
-    moveBody(e, none, dt);
-    if (e.t <= 0) {
-      if (K === 'twin' && e.kind === 'hop' && isHopBlocked(e, pcx, cx)) e.kind = 'charge';
-      if (e.kind === 'charge') {
-        e.st = 'charge';
-        e.t = 6;
-        e.dirc = dir;
-        e.spd = B.spd * FS;
-      } else if (e.kind === 'dash') {
-        e.st = 'dash';
-        e.t = 0.22;
-        e.dirc = dir;
-        e.dn = 3;
-      } else if (e.kind === 'stomp') {
-        e.st = 'stomp';
-        e.t = 0.45;
-      } else if (e.kind === 'fly') {
-        e.fly = 1;
-        e.st = 'rise';
-        e.g = false;
-        e.vx = 0;
-        e.vy = 0;
-      } else if (e.kind === 'shoot') {
-        e.st = 'volley';
-        e.t = 1.0;
-        e.dirc = dir;
-        e.vn = 0;
+  } else if (entity.st === 'tele') {
+    entity.face = dir;
+    moveBody(entity, none, dt);
+    if (entity.t <= 0) {
+      if (K === 'twin' && entity.kind === 'hop' && isHopBlocked(entity, pcx, cx)) entity.kind = 'charge';
+      if (entity.kind === 'charge') {
+        entity.st = 'charge';
+        entity.t = 6;
+        entity.dirc = dir;
+        entity.spd = B.spd * FS;
+      } else if (entity.kind === 'dash') {
+        entity.st = 'dash';
+        entity.t = 0.22;
+        entity.dirc = dir;
+        entity.dn = 3;
+      } else if (entity.kind === 'stomp') {
+        entity.st = 'stomp';
+        entity.t = 0.45;
+      } else if (entity.kind === 'fly') {
+        entity.fly = 1;
+        entity.st = 'rise';
+        entity.g = false;
+        entity.vx = 0;
+        entity.vy = 0;
+      } else if (entity.kind === 'shoot') {
+        entity.st = 'volley';
+        entity.t = 1.0;
+        entity.dirc = dir;
+        entity.vn = 0;
       } else {
-        e.st = e.kind === 'slam' ? 'slam' : 'hop';
-        e.t = 3;
-        e.vy = e.kind === 'slam' ? -950 : -800;
-        e.g = false;
-        e.vx = Math.max(-300, Math.min(300, (pcx - cx) / (e.kind === 'slam' ? 1 : 0.84)));
-        e.vx = e.kind === 'slam' ? Math.max(-260, Math.min(260, (pcx - cx) / 1.0)) : e.vx;
-        if (e.fast && e.kind !== 'slam') e.vx *= 1.6;
-        e.lock = 1.6;
-        e.dirc = dir;
+        entity.st = entity.kind === 'slam' ? 'slam' : 'hop';
+        entity.t = 3;
+        entity.vy = entity.kind === 'slam' ? -950 : -800;
+        entity.g = false;
+        entity.vx = Math.max(-300, Math.min(300, (pcx - cx) / (entity.kind === 'slam' ? 1 : 0.84)));
+        entity.vx = entity.kind === 'slam' ? Math.max(-260, Math.min(260, (pcx - cx) / 1.0)) : entity.vx;
+        if (entity.fast && entity.kind !== 'slam') entity.vx *= 1.6;
+        entity.lock = 1.6;
+        entity.dirc = dir;
       }
     }
-  } else if (e.st === 'dpause') {
-    e.face = dir;
-    moveBody(e, none, dt);
-    if (e.t <= 0) {
-      e.st = 'dash';
-      e.t = 0.22;
-      e.dirc = dir;
+  } else if (entity.st === 'dpause') {
+    entity.face = dir;
+    moveBody(entity, none, dt);
+    if (entity.t <= 0) {
+      entity.st = 'dash';
+      entity.t = 0.22;
+      entity.dirc = dir;
     }
-  } else if (e.st === 'charge') {
+  } else if (entity.st === 'charge') {
     // il fonce : seul un mur le sonne ; s'il dépasse le joueur de 5 cases, il fait demi-tour et repart vers lui
-    e.face = e.dirc;
+    entity.face = entity.dirc;
     moveBody(
-      e,
+      entity,
       {
-        l: e.dirc < 0 ? 1 : 0,
-        r: e.dirc > 0 ? 1 : 0,
+        l: entity.dirc < 0 ? 1 : 0,
+        r: entity.dirc > 0 ? 1 : 0,
         jp: 0,
         jh: 0,
       },
       dt,
     );
-    if (e.t > 0 && e.t < 5.6 && Math.abs(e.vx) < 30 && gameState.perch > 2) {
-      e.st = 'tele';
-      e.kind = 'charge';
-      e.t = 0.25;
-      e.vx = 0;
-      e.spd = 0;
-    } else if (e.t <= 0 || (e.t < 5.6 && Math.abs(e.vx) < 30)) {
-      e.st = 'stun';
-      e.t = B.stun || 2.3;
-      e.vx = 0;
-      e.spd = 0;
+    if (entity.t > 0 && entity.t < 5.6 && Math.abs(entity.vx) < 30 && gameState.perch > 2) {
+      entity.st = 'tele';
+      entity.kind = 'charge';
+      entity.t = 0.25;
+      entity.vx = 0;
+      entity.spd = 0;
+    } else if (entity.t <= 0 || (entity.t < 5.6 && Math.abs(entity.vx) < 30)) {
+      entity.st = 'stun';
+      entity.t = B.stun || 2.3;
+      entity.vx = 0;
+      entity.spd = 0;
       gameState.shake = 0.3;
       playSfx('clang');
-    } else if ((cx - pcx) * e.dirc > 5 * TILE) {
-      e.st = 'tele';
-      e.kind = 'charge';
-      e.t = 0.2;
-      e.vx *= 0.3;
-      e.spd = 0;
+    } else if ((cx - pcx) * entity.dirc > 5 * TILE) {
+      entity.st = 'tele';
+      entity.kind = 'charge';
+      entity.t = 0.2;
+      entity.vx *= 0.3;
+      entity.spd = 0;
     }
-  } else if (e.st === 'dash') {
-    e.face = e.dirc;
-    e.lock = 0.1;
-    e.vx = e.dirc * 870;
-    moveBody(e, none, dt);
-    if (e.t <= 0 || Math.abs(e.vx) < 30) {
-      e.vx = 0;
-      e.lock = 0;
-      e.dn--;
+  } else if (entity.st === 'dash') {
+    entity.face = entity.dirc;
+    entity.lock = 0.1;
+    entity.vx = entity.dirc * 870;
+    moveBody(entity, none, dt);
+    if (entity.t <= 0 || Math.abs(entity.vx) < 30) {
+      entity.vx = 0;
+      entity.lock = 0;
+      entity.dn--;
       gameState.shake = 0.12;
-      if (e.dn <= 0) {
-        e.st = 'stun';
-        e.t = B.stun || 1.9;
+      if (entity.dn <= 0) {
+        entity.st = 'stun';
+        entity.t = B.stun || 1.9;
       } else {
-        e.st = 'dpause';
-        e.t = 0.6;
+        entity.st = 'dpause';
+        entity.t = 0.6;
       }
     }
-  } else if (e.st === 'stomp') {
-    e.face = dir;
-    moveBody(e, none, dt);
-    if (e.t <= 0) {
+  } else if (entity.st === 'stomp') {
+    entity.face = dir;
+    moveBody(entity, none, dt);
+    if (entity.t <= 0) {
       for (const sd of [-1, 1])
         runtime.entities.push({
           k: 's',
-          x: cx - 13 + (sd * e.w) / 2,
+          x: cx - 13 + (sd * entity.w) / 2,
           y: FLOOR_Y - 24,
           vx: sd * 330,
           vy: 0,
@@ -653,60 +659,60 @@ function bossAIInner(e, dt) {
           life: 2.4,
           face: sd,
         });
-      e.st = 'stun';
-      e.t = B.stun || 2;
-      e.vx = 0;
-      e.spd = 0;
+      entity.st = 'stun';
+      entity.t = B.stun || 2;
+      entity.vx = 0;
+      entity.spd = 0;
       gameState.shake = 0.4;
       playSfx('land');
     }
-  } else if (e.st === 'volley') {
-    e.face = e.dirc;
-    moveBody(e, none, dt);
+  } else if (entity.st === 'volley') {
+    entity.face = entity.dirc;
+    moveBody(entity, none, dt);
     const ys = [FLOOR_Y - 12, FLOOR_Y - 52, FLOOR_Y - 12],
       at = [0.8, 0.5, 0.2];
-    while (e.vn < 3 && e.t <= at[e.vn]) {
+    while (entity.vn < 3 && entity.t <= at[entity.vn]) {
       runtime.entities.push({
         k: 's',
         bul: 1,
         spell: K === 'shooter' ? 1 : 0,
-        tn: e.vn,
-        x: cx + e.dirc * (e.w / 2 + 4) - 5,
-        y: ys[e.vn] - 5,
-        vx: e.dirc * 340 * (K === 'shooter' ? 1 + ((e.wf || 1) - 1) * 0.45 : 1),
+        tn: entity.vn,
+        x: cx + entity.dirc * (entity.w / 2 + 4) - 5,
+        y: ys[entity.vn] - 5,
+        vx: entity.dirc * 340 * (K === 'shooter' ? 1 + ((entity.wf || 1) - 1) * 0.45 : 1),
         vy: 0,
         w: 10,
         h: 10,
         d: 0,
         alive: 1,
         life: K === 'shooter' ? 7 : 3,
-        face: e.dirc,
+        face: entity.dirc,
       });
-      e.vn++;
+      entity.vn++;
       playSfx('shot');
     }
-    if (e.t <= 0) {
-      e.sv = (e.sv || 0) + 1;
+    if (entity.t <= 0) {
+      entity.sv = (entity.sv || 0) + 1;
       if (K === 'shooter') {
-        e.sv = 0;
-        e.st = 'idle';
-        e.t = 0.7;
-      } else if (e.sv >= 2) {
-        e.sv = 0;
-        e.st = 'stun';
-        e.t = B.stun || 2;
-        e.spd = 0;
+        entity.sv = 0;
+        entity.st = 'idle';
+        entity.t = 0.7;
+      } else if (entity.sv >= 2) {
+        entity.sv = 0;
+        entity.st = 'stun';
+        entity.t = B.stun || 2;
+        entity.spd = 0;
         gameState.shake = 0.3;
         playSfx('clang');
       } else {
-        e.st = 'idle';
-        e.t = 0.5;
+        entity.st = 'idle';
+        entity.t = 0.5;
       }
     }
-  } else if (e.st === 'hop' || e.st === 'slam') {
-    e.face = e.dirc;
+  } else if (entity.st === 'hop' || entity.st === 'slam') {
+    entity.face = entity.dirc;
     moveBody(
-      e,
+      entity,
       {
         l: 0,
         r: 0,
@@ -715,12 +721,12 @@ function bossAIInner(e, dt) {
       },
       dt,
     );
-    if (e.g || e.t <= 0) {
-      if (e.st === 'slam') {
+    if (entity.g || entity.t <= 0) {
+      if (entity.st === 'slam') {
         for (const sd of [-1, 1])
           runtime.entities.push({
             k: 's',
-            x: cx - 13 + (sd * e.w) / 2,
+            x: cx - 13 + (sd * entity.w) / 2,
             y: FLOOR_Y - 24,
             vx: sd * 330,
             vy: 0,
@@ -731,22 +737,22 @@ function bossAIInner(e, dt) {
             face: sd,
           });
       }
-      e.st = 'stun';
-      e.t = (B.stun || 2) * (e.fast ? 0.5 : 1);
-      e.vx = 0;
-      e.spd = 0;
+      entity.st = 'stun';
+      entity.t = (B.stun || 2) * (entity.fast ? 0.5 : 1);
+      entity.vx = 0;
+      entity.spd = 0;
       gameState.shake = 0.35;
       playSfx('land');
     }
-  } else if (e.st === 'rage') {
-    e.face = dir;
-    e.dirc = dir;
-    moveBody(e, none, dt);
-    e.vx = 0;
-    e.rc = (e.rc || 0) - dt;
-    while (e.rc <= 0) {
-      e.rc += 0.15;
-      e.rh = (e.rh || 0) + 1;
+  } else if (entity.st === 'rage') {
+    entity.face = dir;
+    entity.dirc = dir;
+    moveBody(entity, none, dt);
+    entity.vx = 0;
+    entity.rc = (entity.rc || 0) - dt;
+    while (entity.rc <= 0) {
+      entity.rc += 0.15;
+      entity.rh = (entity.rh || 0) + 1;
       const hi = Math.random() < 0.5,
         y0 = hi ? FLOOR_Y - 52 : FLOOR_Y - 12;
       runtime.entities.push({
@@ -754,7 +760,7 @@ function bossAIInner(e, dt) {
         bul: 1,
         spell: 1,
         tn: hi ? 1 : 0,
-        x: cx + dir * (e.w / 2 + 4) - 5,
+        x: cx + dir * (entity.w / 2 + 4) - 5,
         y: y0 - 5,
         vx: dir * 380,
         vy: 0,
@@ -767,27 +773,27 @@ function bossAIInner(e, dt) {
       });
       playSfx('shot');
     }
-    if (e.t <= 0) {
-      e.st = 'idle';
-      e.t = 0.8;
+    if (entity.t <= 0) {
+      entity.st = 'idle';
+      entity.t = 0.8;
     }
-  } else if (e.st === 'stun') {
-    e.spd = 0;
-    moveBody(e, none, dt);
-    e.vx *= 0.9;
-    if (e.t <= 0) {
+  } else if (entity.st === 'stun') {
+    entity.spd = 0;
+    moveBody(entity, none, dt);
+    entity.vx *= 0.9;
+    if (entity.t <= 0) {
       if (K === 'shooter') {
-        e.st = 'rage';
-        e.t = 3;
-        e.rc = 0;
+        entity.st = 'rage';
+        entity.t = 3;
+        entity.rc = 0;
         gameState.shake = 0.2;
       } else if (K === 'wing') {
-        e.st = 'rise';
-        e.fly = 1;
-        e.kind = 'charge';
+        entity.st = 'rise';
+        entity.fly = 1;
+        entity.kind = 'charge';
       } else {
-        e.st = 'idle';
-        e.t = (B.idle || 0.7) / FS;
+        entity.st = 'idle';
+        entity.t = (B.idle || 0.7) / FS;
       }
     }
   }

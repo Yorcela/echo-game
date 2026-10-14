@@ -11,7 +11,7 @@ export const scores = {
 export function saveScores() {
   try {
     localStorage.setItem('echo-scores', JSON.stringify(scores));
-  } catch (e) {}
+  } catch (entity) {}
 }
 function loadScores() {
   try {
@@ -21,7 +21,7 @@ function loadScores() {
       scores.runs = d.runs || [];
       scores.over = d.over || [];
     }
-  } catch (e) {}
+  } catch (entity) {}
 }
 export function saveGame() {
   if (gameState.trial) return;
@@ -48,7 +48,7 @@ export function saveGame() {
         dh: gameState.deaths,
       }),
     );
-  } catch (e) {}
+  } catch (entity) {}
 }
 function newGame() {
   gameState.seed = ((Date.now() % 1e9) ^ Math.floor(Math.random() * 1e9)) | 0;
@@ -81,7 +81,7 @@ export function loadSavedGame() {
       buildWorld(gameState.seed);
       gameState.currentRoom = Math.min(levels.length - 1, Math.max(0, d.cur | 0));
     }
-  } catch (e) {
+  } catch (entity) {
     ok = false;
   }
   if (!ok) newGame();
@@ -90,7 +90,7 @@ export function loadSavedGame() {
 export function clearSave() {
   try {
     localStorage.removeItem(SAVEKEY);
-  } catch (e) {}
+  } catch (entity) {}
 }
 export function resetAll() {
   clearSave();

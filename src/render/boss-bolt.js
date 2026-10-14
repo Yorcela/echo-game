@@ -10,42 +10,42 @@ import {
 } from './sprites.js';
 import { INK_COLOR, drawOutlinedText } from './primitives.js';
 import { starPath } from './characters.js';
-export function drawBolt(e) {
+export function drawBolt(entity) {
   const I = BOLT_SPRITE_METRICS,
     k = runtime.level.boss.sprH / I.H,
     t = gameState.time,
-    cx = e.x + e.w / 2,
-    by = e.y + e.h + 3,
-    f = e.face || 1,
-    st = e.st;
-  const dtf = Math.min(0.05, Math.max(0, t - (e._lt === undefined ? t : e._lt)));
-  e._lt = t;
-  const blink = e.inv > 0 && Math.floor(t * 20) % 2;
+    cx = entity.x + entity.w / 2,
+    by = entity.y + entity.h + 3,
+    f = entity.face || 1,
+    st = entity.st;
+  const dtf = Math.min(0.05, Math.max(0, t - (entity._lt === undefined ? t : entity._lt)));
+  entity._lt = t;
+  const blink = entity.inv > 0 && Math.floor(t * 20) % 2;
   let al = blink ? 0.4 : 1;
   const run = st === 'dash',
     cr = st === 'crouch',
     stun = st === 'stun',
     sl = st === 'slap';
-  e._ph = (e._ph || 0) + (run ? dtf * 26 : 0);
+  entity._ph = (entity._ph || 0) + (run ? dtf * 26 : 0);
   // flashs de clignotement
-  if (e.ft > 0) {
-    const u = e.ft / 0.35;
-    for (const xx of [e.fa0, e.fa1]) {
+  if (entity.ft > 0) {
+    const u = entity.ft / 0.35;
+    for (const xx of [entity.fa0, entity.fa1]) {
       if (xx === undefined) continue;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.min(1, u * 1.4);
-      const g = ctx.createRadialGradient(xx, by - 30, 2, xx, by - 30, 46);
-      g.addColorStop(0, 'rgba(255,250,170,1)');
-      g.addColorStop(1, 'rgba(255,220,60,0)');
-      ctx.fillStyle = g;
+      const gradient = ctx.createRadialGradient(xx, by - 30, 2, xx, by - 30, 46);
+      gradient.addColorStop(0, 'rgba(255,250,170,1)');
+      gradient.addColorStop(1, 'rgba(255,220,60,0)');
+      ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(xx, by - 30, 46, 0, 7);
       ctx.fill();
       ctx.restore();
     }
-    const x0 = e.fa0,
-      x1 = e.fa1;
+    const x0 = entity.fa0,
+      x1 = entity.fa1;
     if (x0 !== undefined && x1 !== undefined) {
       ctx.save();
       ctx.globalAlpha = Math.min(1, u * 1.5);
@@ -62,7 +62,7 @@ export function drawBolt(e) {
     }
   }
   if (st === 'blink') {
-    al *= e.bs === 0 ? Math.max(0, e.t / 0.14) : 1 - Math.max(0, e.t / 0.14);
+    al *= entity.bs === 0 ? Math.max(0, entity.t / 0.14) : 1 - Math.max(0, entity.t / 0.14);
   }
   if (al <= 0.01) return;
   if (
@@ -79,7 +79,7 @@ export function drawBolt(e) {
   ) {
     const R = BOLT_RUN_METRICS,
       kr = runtime.level.boss.sprH / 712,
-      ph = e._ph,
+      ph = entity._ph,
       s1 = Math.sin(ph);
     ctx.save();
     ctx.globalAlpha = al;
@@ -168,7 +168,7 @@ export function drawBolt(e) {
   }
   if (cr && isSpriteReady('bolt-crouch')) {
     const J = BOLT_CROUCH_METRICS,
-      p = 1 - Math.max(0, e.t) / 1.2,
+      p = 1 - Math.max(0, entity.t) / 1.2,
       q = Math.max(0, (p - 0.5) / 0.5),
       w = J.w * k,
       h = J.h * k;
@@ -184,7 +184,7 @@ export function drawBolt(e) {
     ctx.translate(-pv[0], -pv[1]);
     ctx.drawImage(SPRITES['bolt-crouch'], -w / 2, -h, w, h);
     ctx.restore();
-    if (e.t < 0.4) drawOutlinedText('!', cx, e.y - 30, 34, '#D0402E');
+    if (entity.t < 0.4) drawOutlinedText('!', cx, entity.y - 30, 34, '#D0402E');
     return;
   }
   // paramètres de pose
@@ -195,7 +195,7 @@ export function drawBolt(e) {
     bob = Math.sin(t * 3) * 1.2,
     sq = [1, 1];
   if (cr) {
-    const p = 1 - Math.max(0, e.t) / 1.2; // 0..1
+    const p = 1 - Math.max(0, entity.t) / 1.2; // 0..1
     if (p < 0.55) {
       const q = Math.min(1, p / 0.2);
       up = 0.95 * q;
@@ -212,8 +212,8 @@ export function drawBolt(e) {
   } else if (run) {
     up = 0.36;
     drop = 10;
-    bob = -Math.abs(Math.sin(e._ph)) * 3;
-    armA = [Math.sin(e._ph) * 1.0, -Math.sin(e._ph) * 1.0];
+    bob = -Math.abs(Math.sin(entity._ph)) * 3;
+    armA = [Math.sin(entity._ph) * 1.0, -Math.sin(entity._ph) * 1.0];
   } else if (stun) {
     up = 0.12 * Math.sin(t * 5);
     drop = 80;
@@ -227,7 +227,7 @@ export function drawBolt(e) {
   ctx.scale(k * f, k);
   ctx.translate(-I.W / 2, -I.H);
   if (st === 'blink') {
-    const s2 = e.bs === 0 ? Math.max(0, e.t / 0.14) : 1 - Math.max(0, e.t / 0.14);
+    const s2 = entity.bs === 0 ? Math.max(0, entity.t / 0.14) : 1 - Math.max(0, entity.t / 0.14);
     ctx.translate(I.W / 2, I.H);
     ctx.scale(0.55 + 0.45 * s2, 1 + 0.35 * (1 - s2));
     ctx.translate(-I.W / 2, -I.H);
@@ -258,7 +258,7 @@ export function drawBolt(e) {
     lS = 1,
     rS = 1;
   if (run) {
-    const s1 = Math.sin(e._ph),
+    const s1 = Math.sin(entity._ph),
       s2 = -s1;
     lA = s1 * 0.75;
     rA = s2 * 0.75;
@@ -267,8 +267,8 @@ export function drawBolt(e) {
   }
   if (cr) {
     lS = rS = 1 - drop / 285;
-    if (1 - Math.max(0, e.t) / 1.2 > 0.75) {
-      const q = (1 - Math.max(0, e.t) / 1.2 - 0.75) / 0.25;
+    if (1 - Math.max(0, entity.t) / 1.2 > 0.75) {
+      const q = (1 - Math.max(0, entity.t) / 1.2 - 0.75) / 0.25;
       lLift = Math.max(0, Math.sin(q * 18)) * 40;
       rLift = Math.max(0, -Math.sin(q * 18)) * 40;
     }
@@ -308,14 +308,14 @@ export function drawBolt(e) {
   let stretch = 1;
   if (sl) {
     let a;
-    if (e.t > 0.24) {
-      const q = Math.max(0, Math.min(1, (0.5 - e.t) / 0.26));
+    if (entity.t > 0.24) {
+      const q = Math.max(0, Math.min(1, (0.5 - entity.t) / 0.26));
       a = q * 2.5;
-    } else if (e.t > 0.08) {
-      const q = Math.max(0, Math.min(1, (0.24 - e.t) / 0.12));
+    } else if (entity.t > 0.08) {
+      const q = Math.max(0, Math.min(1, (0.24 - entity.t) / 0.12));
       a = 2.5 - q * 4.1;
       stretch = 1 + 0.12 * q;
-    } else a = -1.6 + ((0.08 - Math.max(0, e.t)) / 0.08) * 1.6;
+    } else a = -1.6 + ((0.08 - Math.max(0, entity.t)) / 0.08) * 1.6;
     aR = a;
   }
   arm('bolt-arm-left', I.shL, aL);
@@ -337,7 +337,7 @@ export function drawBolt(e) {
   ctx.restore();
   ctx.restore();
   // traînées de course
-  if (run && Math.abs(e.vx) > 100) {
+  if (run && Math.abs(entity.vx) > 100) {
     ctx.save();
     for (let q = 1; q <= 4; q++) {
       ctx.globalAlpha = (0.2 / q) * al;
@@ -353,37 +353,37 @@ export function drawBolt(e) {
       ctx.strokeStyle = '#FFF2A0';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(cx - e.dirc * 20, yy);
-      ctx.lineTo(cx - e.dirc * (20 + len), yy);
+      ctx.moveTo(cx - entity.dirc * 20, yy);
+      ctx.lineTo(cx - entity.dirc * (20 + len), yy);
       ctx.stroke();
     }
     ctx.restore();
   }
   // gifle : onde de choc
-  if (sl && e.sl) {
-    const u = Math.max(0, Math.min(1, (0.2 - e.t) / 0.12));
+  if (sl && entity.sl) {
+    const u = Math.max(0, Math.min(1, (0.2 - entity.t) / 0.12));
     ctx.save();
     ctx.globalAlpha = 0.9 * (1 - u * 0.6);
     ctx.strokeStyle = '#FFF8E1';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
-    const fx = cx + f * (e.w / 2 + 28);
+    const fx = cx + f * (entity.w / 2 + 28);
     ctx.beginPath();
     ctx.arc(fx, by - 52, 22 + u * 10, f > 0 ? -1.1 : Math.PI - 0.7, f > 0 ? 0.7 : Math.PI + 1.1, f < 0);
     ctx.stroke();
     ctx.restore();
   }
-  if (cr && e.t < 0.4) {
-    drawOutlinedText('!', cx, e.y - 30, 34, '#D0402E');
+  if (cr && entity.t < 0.4) {
+    drawOutlinedText('!', cx, entity.y - 30, 34, '#D0402E');
   }
-  if (sl && e.t > 0.28) {
-    drawOutlinedText('!', cx, e.y - 30, 30, '#D0402E');
+  if (sl && entity.t > 0.28) {
+    drawOutlinedText('!', cx, entity.y - 30, 30, '#D0402E');
   }
   if (stun) {
     for (let q = 0; q < 3; q++) {
       const a = t * 4 + q * 2.1;
       ctx.fillStyle = '#E2A93B';
-      starPath(cx + Math.cos(a) * 26, e.y - 8 + Math.sin(a) * 6, 7, 3, a);
+      starPath(cx + Math.cos(a) * 26, entity.y - 8 + Math.sin(a) * 6, 7, 3, a);
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = INK_COLOR;

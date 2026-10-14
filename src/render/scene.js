@@ -99,10 +99,10 @@ export function draw() {
       }
     }
   }
-  for (const e of runtime.entities)
-    if (e.alive) {
-      if (e.k === 'w') drawWalker(e);
-      else drawBoss(e);
+  for (const entity of runtime.entities)
+    if (entity.alive) {
+      if (entity.k === 'w') drawWalker(entity);
+      else drawBoss(entity);
     }
   {
     const g = ghost();
@@ -428,14 +428,18 @@ export function draw() {
   if (gameState.mode === 'over') drawOver();
   if (gameState.slideTimer > 0) {
     const t = gameState.slideTimer / 0.4,
-      e = t * t * (3 - 2 * t);
+      entity = t * t * (3 - 2 * t);
     scratchContext.clearRect(0, 0, WIDTH, HEIGHT);
     scratchContext.drawImage(canvas, 0, 0);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = INK_COLOR;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.drawImage(snapCv, -gameState.slideDirX * WIDTH * (1 - e), -gameState.slideDirY * HEIGHT * (1 - e));
-    ctx.drawImage(scratchCanvas, gameState.slideDirX * WIDTH * e, gameState.slideDirY * HEIGHT * e);
+    ctx.drawImage(
+      snapCv,
+      -gameState.slideDirX * WIDTH * (1 - entity),
+      -gameState.slideDirY * HEIGHT * (1 - entity),
+    );
+    ctx.drawImage(scratchCanvas, gameState.slideDirX * WIDTH * entity, gameState.slideDirY * HEIGHT * entity);
   }
   if (gameState.mode === 'win') {
     ctx.fillStyle = 'rgba(27,22,18,.45)';

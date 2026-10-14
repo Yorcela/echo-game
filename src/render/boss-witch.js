@@ -79,10 +79,10 @@ export function energyCharge(x, y, u, t, tone, R = 60, N = 22) {
             ? '150,175,255'
             : '255,225,150',
     c2 = tone === 'both' ? '150,175,255' : c1;
-  const g = ctx.createRadialGradient(x, y, 2, x, y, R * (0.5 + 0.8 * u));
-  g.addColorStop(0, 'rgba(' + c1 + ',' + (0.55 * u + 0.1) + ')');
-  g.addColorStop(1, 'rgba(' + c1 + ',0)');
-  ctx.fillStyle = g;
+  const gradient = ctx.createRadialGradient(x, y, 2, x, y, R * (0.5 + 0.8 * u));
+  gradient.addColorStop(0, 'rgba(' + c1 + ',' + (0.55 * u + 0.1) + ')');
+  gradient.addColorStop(1, 'rgba(' + c1 + ',0)');
+  ctx.fillStyle = gradient;
   ctx.beginPath();
   ctx.arc(x, y, R * (0.5 + 0.8 * u), 0, 7);
   ctx.fill();
@@ -121,14 +121,14 @@ export function energyCharge(x, y, u, t, tone, R = 60, N = 22) {
   }
   ctx.restore();
 }
-export function drawOrb(e) {
-  const x = e.x + e.w / 2,
-    y = e.y + e.h / 2,
-    t = gameState.time - e.t0,
-    drop = e.ph === 1;
+export function drawOrb(entity) {
+  const x = entity.x + entity.w / 2,
+    y = entity.y + entity.h / 2,
+    t = gameState.time - entity.t0,
+    drop = entity.ph === 1;
   ctx.save();
-  const u = drop ? 1 : 1 - Math.max(0, e.tm) / 2,
-    R = 22 + Math.min(6, e.n * 3) + Math.sin(t * 14) * 1.5 + u * 4;
+  const u = drop ? 1 : 1 - Math.max(0, entity.tm) / 2,
+    R = 22 + Math.min(6, entity.n * 3) + Math.sin(t * 14) * 1.5 + u * 4;
   if (drop) {
     for (let i = 1; i <= 5; i++) {
       ctx.globalAlpha = 0.4 / i;
@@ -137,10 +137,10 @@ export function drawOrb(e) {
     ctx.globalAlpha = 1;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createLinearGradient(0, y - 120, 0, y);
-    g.addColorStop(0, 'rgba(255,255,255,0)');
-    g.addColorStop(1, 'rgba(255,230,160,.5)');
-    ctx.fillStyle = g;
+    const gradient = ctx.createLinearGradient(0, y - 120, 0, y);
+    gradient.addColorStop(0, 'rgba(255,255,255,0)');
+    gradient.addColorStop(1, 'rgba(255,230,160,.5)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(x - R * 0.8, y - 120, R * 1.6, 120);
     ctx.restore();
   } else {
@@ -156,15 +156,15 @@ export function drawOrb(e) {
       ctx.stroke();
     }
     ctx.globalAlpha = 0.25 + 0.3 * u;
-    const g = ctx.createLinearGradient(0, y - 190, 0, y);
-    g.addColorStop(0, 'rgba(255,255,255,0)');
-    g.addColorStop(1, 'rgba(255,225,150,1)');
-    ctx.fillStyle = g;
+    const gradient = ctx.createLinearGradient(0, y - 190, 0, y);
+    gradient.addColorStop(0, 'rgba(255,255,255,0)');
+    gradient.addColorStop(1, 'rgba(255,225,150,1)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(x - R * 0.55, y - 190, R * 1.1, 190);
     ctx.restore();
     energyCharge(x, y, u, t, 'both', 70 + 30 * u, 28);
   }
-  if (e.nk) {
+  if (entity.nk) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const f = 0.5 + 0.5 * Math.sin(t * 12);
@@ -175,7 +175,7 @@ export function drawOrb(e) {
     ctx.restore();
   }
   yinYang(x, y, R, t * (drop ? 10 : 2.2));
-  if (e.nk && !drop) {
+  if (entity.nk && !drop) {
     ctx.fillStyle = '#D0402E';
     ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 3;
@@ -188,24 +188,24 @@ export function drawOrb(e) {
     ctx.fillStyle = 'rgba(27,22,18,.85)';
     ctx.font = '800 12px ' + FONT_BODY;
     ctx.textAlign = 'center';
-    ctx.fillText(Math.max(0, e.tm).toFixed(1) + ' s', x, y - R - 14);
+    ctx.fillText(Math.max(0, entity.tm).toFixed(1) + ' s', x, y - R - 14);
   }
   ctx.restore();
 }
-export function drawTelegraph(e) {
-  const mm = e.hp > 4 ? 1 : e.hp > 2 ? 1.2 : 1.4,
-    u = Math.max(0, Math.min(1, (0.9 / mm - Math.max(0, e.t)) / 0.6)),
+export function drawTelegraph(entity) {
+  const mm = entity.hp > 4 ? 1 : entity.hp > 2 ? 1.2 : 1.4,
+    u = Math.max(0, Math.min(1, (0.9 / mm - Math.max(0, entity.t)) / 0.6)),
     t = gameState.time;
   ctx.save();
   for (const sd of [-1, 1]) {
     const x = sd < 0 ? 34 : WIDTH - 34,
       col = sd < 0 ? '255,210,90' : '170,190,255';
     ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createLinearGradient(0, FLOOR_Y - BEAM_H, 0, FLOOR_Y);
-    g.addColorStop(0, 'rgba(' + col + ',0)');
-    g.addColorStop(1, 'rgba(' + col + ',.8)');
+    const gradient = ctx.createLinearGradient(0, FLOOR_Y - BEAM_H, 0, FLOOR_Y);
+    gradient.addColorStop(0, 'rgba(' + col + ',0)');
+    gradient.addColorStop(1, 'rgba(' + col + ',.8)');
     ctx.globalAlpha = (0.3 + 0.6 * u) * (0.75 + 0.25 * Math.sin(t * 35));
-    ctx.fillStyle = g;
+    ctx.fillStyle = gradient;
     ctx.fillRect(x - 14 * u - 4, FLOOR_Y - BEAM_H, 28 * u + 8, BEAM_H);
     ctx.fillStyle = 'rgba(' + col + ',.9)';
     for (let i = 0; i < 16; i++) {
@@ -226,39 +226,39 @@ export function drawTelegraph(e) {
   }
   ctx.restore();
 }
-export function drawWitch(e, al) {
+export function drawWitch(entity, alpha) {
   const TH = 470,
     hh = runtime.level.boss.sprH,
     k = hh / TH,
-    cx = e.x + e.w / 2,
-    by = e.y + e.h + 3,
+    cx = entity.x + entity.w / 2,
+    by = entity.y + entity.h + 3,
     t = gameState.time,
-    f = e.face || 1,
+    f = entity.face || 1,
     WI = WITCH_SPRITE_METRICS;
-  const dtf = Math.min(0.05, Math.max(0, t - (e._lt === undefined ? t : e._lt)));
-  e._lt = t;
-  const vx = e.vx || 0;
-  e._sw = (e._sw || 0) + ((vx * f) / 180 - (e._sw || 0)) * Math.min(1, dtf * 7);
-  const tele = e.st === 'tele',
-    vol = e.st === 'volley',
-    stun = e.st === 'stun',
-    walk = Math.abs(vx) > 8 && e.st === 'idle',
+  const dtf = Math.min(0.05, Math.max(0, t - (entity._lt === undefined ? t : entity._lt)));
+  entity._lt = t;
+  const vx = entity.vx || 0;
+  entity._sw = (entity._sw || 0) + ((vx * f) / 180 - (entity._sw || 0)) * Math.min(1, dtf * 7);
+  const tele = entity.st === 'tele',
+    vol = entity.st === 'volley',
+    stun = entity.st === 'stun',
+    walk = Math.abs(vx) > 8 && entity.st === 'idle',
     sp = Math.min(1, Math.abs(vx) / 180);
-  e._ph = (e._ph || 0) + (walk ? dtf * (6 + sp * 5) : 0);
+  entity._ph = (entity._ph || 0) + (walk ? dtf * (6 + sp * 5) : 0);
   let flick = 0,
     cock = 0;
   if (vol) {
     const at = [0.8, 0.5, 0.2];
     let last = -1;
-    for (const a of at) if (e.t <= a) last = a;
+    for (const a of at) if (entity.t <= a) last = a;
     if (last < 0) cock = 1;
     else {
-      const p = last - e.t;
+      const p = last - entity.t;
       flick = p < 0.08 ? p / 0.08 : Math.exp(-(p - 0.08) * 7);
     }
   }
-  if (tele) cock = Math.max(0, Math.min(1, (0.59 - Math.max(0, e.t)) / 0.45));
-  const rage = e.st === 'rage';
+  if (tele) cock = Math.max(0, Math.min(1, (0.59 - Math.max(0, entity.t)) / 0.45));
+  const rage = entity.st === 'rage';
   if (rage) {
     flick = 0.75 + 0.25 * Math.sin(t * 40);
     cock = 0;
@@ -272,7 +272,7 @@ export function drawWitch(e, al) {
   sy = 1 + 0.05 * cock - 0.04 * flick;
   sx = 1 - 0.03 * cock + 0.04 * flick;
   dy += -4 * cock - 3 * flick;
-  let skirt = -e._sw * 0.9 + Math.sin(t * 2.6) * 0.18 + lean * -0.6 - flick * 0.5 + cock * 0.35;
+  let skirt = -entity._sw * 0.9 + Math.sin(t * 2.6) * 0.18 + lean * -0.6 - flick * 0.5 + cock * 0.35;
   if (stun) {
     rot = f * 0.3;
     sy = 0.86;
@@ -283,7 +283,7 @@ export function drawWitch(e, al) {
   const M0 = ctx.getTransform();
   let tip = null;
   ctx.save();
-  ctx.globalAlpha = al;
+  ctx.globalAlpha = alpha;
   ctx.translate(cx, by + dy);
   ctx.rotate(rot + lean);
   ctx.scale((f > 0 ? -1 : 1) * sx * k, sy * k);
@@ -303,15 +303,15 @@ export function drawWitch(e, al) {
   });
   // jambes
   const lg = [
-    ['witch-leg-left', 64, Math.max(0, Math.sin(e._ph))],
-    ['witch-leg-right', 100, Math.max(0, -Math.sin(e._ph))],
+    ['witch-leg-left', 64, Math.max(0, Math.sin(entity._ph))],
+    ['witch-leg-right', 100, Math.max(0, -Math.sin(entity._ph))],
   ];
   for (const [n, x, l] of lg) {
     ctx.save();
     const hgt = WI[n].h,
       py = 465 - hgt - (stun ? 0 : l * 16);
     ctx.translate(x + WI[n].w / 2, py);
-    ctx.rotate(l * 0.22 * (e._sw < 0 ? -1 : 1) + (stun ? (n === 'witch-leg-left' ? -0.2 : 0.25) : 0));
+    ctx.rotate(l * 0.22 * (entity._sw < 0 ? -1 : 1) + (stun ? (n === 'witch-leg-left' ? -0.2 : 0.25) : 0));
     img(n, -WI[n].w / 2, 0);
     ctx.restore();
   }
@@ -390,10 +390,10 @@ export function drawWitch(e, al) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = Math.min(1, flick);
-      const g = ctx.createRadialGradient(tipX, tipY, 1, tipX, tipY, 40);
-      g.addColorStop(0, 'rgba(240,190,255,1)');
-      g.addColorStop(1, 'rgba(190,110,255,0)');
-      ctx.fillStyle = g;
+      const gradient = ctx.createRadialGradient(tipX, tipY, 1, tipX, tipY, 40);
+      gradient.addColorStop(0, 'rgba(240,190,255,1)');
+      gradient.addColorStop(1, 'rgba(190,110,255,0)');
+      ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(tipX, tipY, 40, 0, 7);
       ctx.fill();
@@ -416,7 +416,7 @@ export function drawWitch(e, al) {
     for (let q = 0; q < 3; q++) {
       const a = t * 4 + q * 2.1;
       ctx.fillStyle = '#E2A93B';
-      starPath(cx + Math.cos(a) * 24, e.y - 14 + Math.sin(a) * 6, 7, 3, a);
+      starPath(cx + Math.cos(a) * 24, entity.y - 14 + Math.sin(a) * 6, 7, 3, a);
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = INK_COLOR;
@@ -488,11 +488,11 @@ export function drawAfter(g) {
   ctx.drawImage(i, -ww / 2, -hh, ww, hh);
   ctx.restore();
   // impact sur le vieux touché par le fantôme
-  for (const e of runtime.entities)
-    if (e.alive && e.k === 'b' && e.inv > 0.4) {
-      const k = (e.inv - 0.4) / 0.2,
-        x = e.x + e.w / 2,
-        y = e.y + e.h * 0.45;
+  for (const entity of runtime.entities)
+    if (entity.alive && entity.k === 'b' && entity.inv > 0.4) {
+      const k = (entity.inv - 0.4) / 0.2,
+        x = entity.x + entity.w / 2,
+        y = entity.y + entity.h * 0.45;
       ctx.save();
       ctx.globalAlpha = Math.min(1, k * 1.5);
       ctx.fillStyle = '#FFF8E1';

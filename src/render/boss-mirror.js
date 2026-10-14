@@ -7,43 +7,43 @@ import { INK_COLOR } from './primitives.js';
 import { starPath } from './characters.js';
 import { energyCharge } from './boss-witch.js';
 // Soleil / Lune : tronc + 2 jambes articulées
-export function drawReflet(e, al) {
-  const key = e.id ? 'moon' : 'sun',
+export function drawReflet(entity, alpha) {
+  const key = entity.id ? 'moon' : 'sun',
     iT = SPRITES[key + '-torso'],
     IW = iT.naturalWidth,
     IH = iT.naturalHeight,
     B = runtime.level.boss,
     k = B.sprH / IH,
-    cx = e.x + e.w / 2,
-    by = e.y + e.h + 2;
-  const d = e.face || 1,
-    sn = Math.sin(e.ph || 0),
-    wa = e.wa || 0,
+    cx = entity.x + entity.w / 2,
+    by = entity.y + entity.h + 2;
+  const d = entity.face || 1,
+    sn = Math.sin(entity.ph || 0),
+    wa = entity.wa || 0,
     t = gameState.time,
-    hy = e.id ? 177.5 : 179.5,
-    hxL = e.id ? 47.5 : 49.5,
-    hxR = e.id ? 70 : 72;
+    hy = entity.id ? 177.5 : 179.5,
+    hxL = entity.id ? 47.5 : 49.5,
+    hxR = entity.id ? 70 : 72;
   let lean = 0,
     sc = 1,
     dy = -Math.abs(sn) * 2.2 * wa;
-  if (e.dn) {
+  if (entity.dn) {
     lean = d * 0.5;
     sc = 0.8;
     dy = 14 + Math.sin(t * 5) * 0.8;
-  } else if (e.st === 'tele') {
-    const u = Math.max(0, Math.min(1, (0.9 - Math.max(0, e.t)) / 0.3));
+  } else if (entity.st === 'tele') {
+    const u = Math.max(0, Math.min(1, (0.9 - Math.max(0, entity.t)) / 0.3));
     lean = -d * 0.1 * u;
     sc = 1 + 0.04 * u;
     dy += Math.sin(t * 40) * 0.8;
-  } else if (e.st === 'fire') {
-    lean = d * 0.14 * (e.t / 0.35);
-  } else if (e.st === 'stun') {
+  } else if (entity.st === 'fire') {
+    lean = d * 0.14 * (entity.t / 0.35);
+  } else if (entity.st === 'stun') {
     lean = d * 0.32;
     sc = 0.93;
     dy = 4 + Math.sin(t * 6) * 0.8;
   }
   ctx.save();
-  ctx.globalAlpha = al;
+  ctx.globalAlpha = alpha;
   ctx.translate(cx, by);
   ctx.scale(k, k);
   ctx.translate(-IW / 2, -IH);
@@ -65,24 +65,24 @@ export function drawReflet(e, al) {
   ctx.drawImage(iT, 0, 0);
   ctx.restore();
   // énergie qui se concentre autour du boss pendant la charge
-  if (e.st === 'tele') {
-    const u = Math.max(0, Math.min(1, (0.9 - Math.max(0, e.t)) / 0.7));
-    energyCharge(cx, by - 52, u, t, e.id ? 'moon' : 'sun', 34 + 34 * u, 18);
+  if (entity.st === 'tele') {
+    const u = Math.max(0, Math.min(1, (0.9 - Math.max(0, entity.t)) / 0.7));
+    energyCharge(cx, by - 52, u, t, entity.id ? 'moon' : 'sun', 34 + 34 * u, 18);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.25 + 0.3 * u;
-    const g = ctx.createLinearGradient(0, by - 150, 0, by);
-    g.addColorStop(0, 'rgba(255,255,255,0)');
-    g.addColorStop(1, e.id ? 'rgba(150,175,255,.8)' : 'rgba(255,200,80,.8)');
-    ctx.fillStyle = g;
+    const gradient = ctx.createLinearGradient(0, by - 150, 0, by);
+    gradient.addColorStop(0, 'rgba(255,255,255,0)');
+    gradient.addColorStop(1, entity.id ? 'rgba(150,175,255,.8)' : 'rgba(255,200,80,.8)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(cx - 18, by - 150, 36, 150);
     ctx.restore();
   }
-  if (e.st === 'stun' || e.dn) {
+  if (entity.st === 'stun' || entity.dn) {
     for (let q = 0; q < 3; q++) {
       const a2 = t * 4 + q * 2.1;
-      ctx.fillStyle = e.id ? '#CFE0FF' : '#E2A93B';
-      starPath(cx + Math.cos(a2) * 22, by - e.h - 10 + Math.sin(a2) * 5, 7, 3, a2);
+      ctx.fillStyle = entity.id ? '#CFE0FF' : '#E2A93B';
+      starPath(cx + Math.cos(a2) * 22, by - entity.h - 10 + Math.sin(a2) * 5, 7, 3, a2);
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = INK_COLOR;
@@ -90,22 +90,22 @@ export function drawReflet(e, al) {
     }
   }
 }
-export function drawBeam(e) {
-  const sun = e.tone === 'sun',
-    x = e.x + e.w / 2,
-    t = gameState.time - e.t0,
-    y0 = e.y,
-    y1 = e.y + e.h;
+export function drawBeam(entity) {
+  const sun = entity.tone === 'sun',
+    x = entity.x + entity.w / 2,
+    t = gameState.time - entity.t0,
+    y0 = entity.y,
+    y1 = entity.y + entity.h;
   ctx.save();
   ctx.lineJoin = 'round';
   const fill = sun ? '#F6C94E' : '#CFE0FF',
     core = sun ? '#FFF6D0' : '#FFFFFF',
     glow = sun ? 'rgba(255,200,80,' : 'rgba(170,190,255,';
-  const g = ctx.createLinearGradient(x - 34, 0, x + 34, 0);
-  g.addColorStop(0, glow + '0)');
-  g.addColorStop(0.5, glow + '.35)');
-  g.addColorStop(1, glow + '0)');
-  ctx.fillStyle = g;
+  const gradient = ctx.createLinearGradient(x - 34, 0, x + 34, 0);
+  gradient.addColorStop(0, glow + '0)');
+  gradient.addColorStop(0.5, glow + '.35)');
+  gradient.addColorStop(1, glow + '0)');
+  ctx.fillStyle = gradient;
   ctx.fillRect(x - 34, y0, 68, y1 - y0);
   ctx.fillStyle = fill;
   ctx.strokeStyle = INK_COLOR;
@@ -176,10 +176,10 @@ export function drawNuke(e) {
   ctx.globalCompositeOperation = 'lighter';
   for (const sd of [-1, 1]) {
     const x = cx + sd * (eo * WIDTH * 0.55);
-    const g = ctx.createLinearGradient(x - sd * 140, 0, x, 0);
-    g.addColorStop(0, 'rgba(255,200,90,0)');
-    g.addColorStop(1, 'rgba(255,236,170,' + 0.75 * sh + ')');
-    ctx.fillStyle = g;
+    const gradient = ctx.createLinearGradient(x - sd * 140, 0, x, 0);
+    gradient.addColorStop(0, 'rgba(255,200,90,0)');
+    gradient.addColorStop(1, 'rgba(255,236,170,' + 0.75 * sh + ')');
+    ctx.fillStyle = gradient;
     ctx.fillRect(Math.min(x, x - sd * 140), FLOOR_Y - 230 * (1 - u * 0.4), 140, 230 * (1 - u * 0.4));
   }
   ctx.globalCompositeOperation = 'source-over';
@@ -237,10 +237,10 @@ export function drawNuke(e) {
   }
   ctx.restore();
 }
-export function drawBoom(e) {
-  const u = 1 - Math.max(0, e.life) / 0.4,
-    x = e.x + e.w / 2,
-    y = e.y + 10;
+export function drawBoom(entity) {
+  const u = 1 - Math.max(0, entity.life) / 0.4,
+    x = entity.x + entity.w / 2,
+    y = entity.y + 10;
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, FLOOR_Y, WIDTH, HEIGHT);
@@ -272,13 +272,13 @@ export function drawBoom(e) {
   ctx.fillRect(x - 22, FLOOR_Y - 80 * u, 44, 80 * u);
   ctx.restore();
 }
-export function drawPuff(e) {
-  const u = 1 - Math.max(0, e.life) / 0.3,
-    x = e.x + e.w / 2,
-    y = e.y + e.h / 2;
+export function drawPuff(entity) {
+  const u = 1 - Math.max(0, entity.life) / 0.3,
+    x = entity.x + entity.w / 2,
+    y = entity.y + entity.h / 2;
   ctx.save();
   ctx.globalAlpha = 1 - u;
-  ctx.fillStyle = e.tone === 'sun' ? '#F6C94E' : '#CFE0FF';
+  ctx.fillStyle = entity.tone === 'sun' ? '#F6C94E' : '#CFE0FF';
   ctx.strokeStyle = INK_COLOR;
   ctx.lineWidth = 2;
   starPath(x, y, 8 + u * 14, 3 + u * 4, u * 3);
@@ -290,15 +290,15 @@ export function drawMirrorBG() {
   if (!runtime.level.boss || runtime.level.boss.kind !== 'mirror') return;
   const t = gameState.time;
   ctx.save();
-  let g = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-  g.addColorStop(0, 'rgba(255,232,160,.30)');
-  g.addColorStop(1, 'rgba(255,196,110,.14)');
-  ctx.fillStyle = g;
+  let gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  gradient.addColorStop(0, 'rgba(255,232,160,.30)');
+  gradient.addColorStop(1, 'rgba(255,196,110,.14)');
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, WIDTH / 2, HEIGHT);
-  g = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-  g.addColorStop(0, 'rgba(8,14,72,.66)');
-  g.addColorStop(1, 'rgba(20,20,70,.48)');
-  ctx.fillStyle = g;
+  gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  gradient.addColorStop(0, 'rgba(8,14,72,.66)');
+  gradient.addColorStop(1, 'rgba(20,20,70,.48)');
+  ctx.fillStyle = gradient;
   ctx.fillRect(WIDTH / 2, 0, WIDTH / 2, HEIGHT);
   for (const sd of [-1, 1]) {
     const cx = WIDTH / 2 + sd * 232,

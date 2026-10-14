@@ -10,10 +10,10 @@ export function drawTunnelBG() {
   for (let r = 14; r <= 15; r++)
     for (let c = 1; c <= 28; c++)
       if (runtime.grid[r][c] === '.') {
-        const g = ctx.createLinearGradient(0, r * TILE, 0, r * TILE + TILE);
-        g.addColorStop(0, '#2A2030');
-        g.addColorStop(1, '#16101C');
-        ctx.fillStyle = g;
+        const gradient = ctx.createLinearGradient(0, r * TILE, 0, r * TILE + TILE);
+        gradient.addColorStop(0, '#2A2030');
+        gradient.addColorStop(1, '#16101C');
+        ctx.fillStyle = gradient;
         ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
       }
   ctx.fillStyle = 'rgba(255,214,120,.5)';

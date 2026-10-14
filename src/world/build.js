@@ -49,14 +49,16 @@ function chooseApproachRoom(r, O, newest, used, rnd) {
       need: [],
       d: 0,
     }));
-  const fits = APPROACH_ROOM_POOL.filter((p) => (p.multi || !used.has(p)) && p.need.every((e) => O.has(e)));
+  const fits = APPROACH_ROOM_POOL.filter(
+    (p) => (p.multi || !used.has(p)) && p.need.every((entity) => O.has(entity)),
+  );
   const pickOf = (a) => a[Math.floor(rnd() * a.length)];
   const chosen = [],
     cov = new Set();
   const take = (p) => {
     chosen.push(p);
     if (!p.multi) used.add(p);
-    p.need.forEach((e) => cov.add(e));
+    p.need.forEach((entity) => cov.add(entity));
   };
   for (let k = 0; k < 2; k++) {
     const c = fits.filter((p) => p.need.includes(newest) && (p.multi || !chosen.includes(p)));
@@ -68,7 +70,7 @@ function chooseApproachRoom(r, O, newest, used, rnd) {
     let best = -1,
       bl = [];
     for (const p of c) {
-      const g = p.need.filter((e) => !cov.has(e)).length;
+      const g = p.need.filter((entity) => !cov.has(entity)).length;
       if (g > best) {
         best = g;
         bl = [p];

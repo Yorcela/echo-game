@@ -124,135 +124,135 @@ function isOnLadder(b) {
   for (let r = y0; r <= y1; r++) if (r >= 0 && r < 17 && runtime.grid[r][c] === '|') return c;
   return -1;
 }
-function ladderStep(b, inp, dt) {
+function ladderStep(body, inp, dt) {
   // renvoie true si le corps est (resté) sur l'échelle
-  b.ladCd = Math.max(0, (b.ladCd || 0) - dt);
-  const lc = isOnLadder(b);
-  if (b.lad) {
+  body.ladCd = Math.max(0, (body.ladCd || 0) - dt);
+  const lc = isOnLadder(body);
+  if (body.lad) {
     if (lc < 0) {
       // sorti par le haut ou le bas : petit saut de côté
-      b.lad = 0;
-      b.ladCd = 0.25;
-      const c = Math.floor((b.x + b.w / 2) / TILE);
-      const dir = solid(c + 1, 14) ? 1 : solid(c - 1, 14) ? -1 : b.face || 1;
-      b.vx = dir * MOVE_SPEED * 0.7;
-      b.vy = b.vy < 0 ? -330 : 0;
-      b.face = dir;
+      body.lad = 0;
+      body.ladCd = 0.25;
+      const c = Math.floor((body.x + body.w / 2) / TILE);
+      const dir = solid(c + 1, 14) ? 1 : solid(c - 1, 14) ? -1 : body.face || 1;
+      body.vx = dir * MOVE_SPEED * 0.7;
+      body.vy = body.vy < 0 ? -330 : 0;
+      body.face = dir;
       return false;
     }
     if (inp.js) {
-      b.lad = 0;
-      b.ladCd = 0.3;
-      b.vy = -JUMP_SPEED * 0.85;
-      b.vx = (inp.r - inp.l) * MOVE_SPEED;
-      if (inp.r || inp.l) b.face = inp.r ? 1 : -1;
-      b.g = false;
-      b.jumped = 1;
-      b.dj = 1;
+      body.lad = 0;
+      body.ladCd = 0.3;
+      body.vy = -JUMP_SPEED * 0.85;
+      body.vx = (inp.r - inp.l) * MOVE_SPEED;
+      if (inp.r || inp.l) body.face = inp.r ? 1 : -1;
+      body.g = false;
+      body.jumped = 1;
+      body.dj = 1;
       return false;
     }
     const up = inp.u,
       dn = inp.d;
-    b.vy = up && !dn ? -LADDER_SPEED : dn && !up ? LADDER_SPEED : 0;
-    b.vx = 0;
-    b.g = false;
-    b.co = 0;
-    b.jb = 0;
-    b.dj = 1;
-    b.x += (lc * TILE + TILE / 2 - b.w / 2 - b.x) * Math.min(1, dt * 20);
+    body.vy = up && !dn ? -LADDER_SPEED : dn && !up ? LADDER_SPEED : 0;
+    body.vx = 0;
+    body.g = false;
+    body.co = 0;
+    body.jb = 0;
+    body.dj = 1;
+    body.x += (lc * TILE + TILE / 2 - body.w / 2 - body.x) * Math.min(1, dt * 20);
     return true;
   }
-  if (lc >= 0 && b.ladCd <= 0 && inp.u && !b.dash) {
-    b.lad = 1;
-    b.vx = 0;
-    b.vy = 0;
-    b.g = false;
-    return ladderStep(b, inp, dt);
+  if (lc >= 0 && body.ladCd <= 0 && inp.u && !body.dash) {
+    body.lad = 1;
+    body.vx = 0;
+    body.vy = 0;
+    body.g = false;
+    return ladderStep(body, inp, dt);
   }
   return false;
 }
-function moveBodyCore(b, inp, dt) {
-  const SP = b.spd || MOVE_SPEED;
-  if (b.dash > 0) {
-    b.dash -= dt;
-    b.vy = 0;
-    b.vx = b.dd * 820;
-    if (b.dash <= 0) b.vx = b.dd * MOVE_SPEED;
-    b.lad = 0;
-  } else if (b === runtime.player && !b.big && ladderStep(b, inp, dt)) {
+function moveBodyCore(body, inp, dt) {
+  const SP = body.spd || MOVE_SPEED;
+  if (body.dash > 0) {
+    body.dash -= dt;
+    body.vy = 0;
+    body.vx = body.dd * 820;
+    if (body.dash <= 0) body.vx = body.dd * MOVE_SPEED;
+    body.lad = 0;
+  } else if (body === runtime.player && !body.big && ladderStep(body, inp, dt)) {
     // déplacement sur l'échelle déjà traité par ladderStep
   } else {
-    b.lock = Math.max(0, (b.lock || 0) - dt);
-    var ws = b.g ? 0 : wallSide(b);
+    body.lock = Math.max(0, (body.lock || 0) - dt);
+    var ws = body.g ? 0 : wallSide(body);
     if (ws) {
-      b.ws = ws;
-      b.wc = 0.1;
-    } else b.wc = Math.max(0, (b.wc || 0) - dt);
+      body.ws = ws;
+      body.wc = 0.1;
+    } else body.wc = Math.max(0, (body.wc || 0) - dt);
     const tv = (inp.r - inp.l) * SP,
-      a = (b.g ? 2800 : 1600) * dt;
-    if (!(b.lock > 0)) {
-      b.vx = b.vx < tv ? Math.min(tv, b.vx + a) : Math.max(tv, b.vx - a);
-      if (tv) b.face = Math.sign(tv);
+      a = (body.g ? 2800 : 1600) * dt;
+    if (!(body.lock > 0)) {
+      body.vx = body.vx < tv ? Math.min(tv, body.vx + a) : Math.max(tv, body.vx - a);
+      if (tv) body.face = Math.sign(tv);
     }
-    b.jb = inp.jp ? 0.12 : Math.max(0, b.jb - dt);
-    b.co = b.g ? 0.1 : Math.max(0, b.co - dt);
-    if (b.jb > 0 && b.co > 0) {
-      b.vy = -JUMP_SPEED;
-      b.jb = 0;
-      b.co = 0;
-      b.g = false;
-      b.jumped = 1;
-    } else if (b.jb > 0 && b.wc > 0) {
-      b.vy = -JUMP_SPEED;
-      b.vx = -b.ws * MOVE_SPEED * 1.05;
-      b.face = -b.ws;
-      b.lock = 0.18;
-      b.jb = 0;
-      b.wc = 0;
-      b.jumped = 1;
-    } else if (b.fly && b.jb > 0 && b.dj > 0 && !b.g && b.co <= 0) {
-      b.vy = -JUMP_SPEED * 0.95;
-      b.jb = 0;
-      b.dj = 0;
-      b.jumped = 1;
-      b.djfx = 0.25;
+    body.jb = inp.jp ? 0.12 : Math.max(0, body.jb - dt);
+    body.co = body.g ? 0.1 : Math.max(0, body.co - dt);
+    if (body.jb > 0 && body.co > 0) {
+      body.vy = -JUMP_SPEED;
+      body.jb = 0;
+      body.co = 0;
+      body.g = false;
+      body.jumped = 1;
+    } else if (body.jb > 0 && body.wc > 0) {
+      body.vy = -JUMP_SPEED;
+      body.vx = -body.ws * MOVE_SPEED * 1.05;
+      body.face = -body.ws;
+      body.lock = 0.18;
+      body.jb = 0;
+      body.wc = 0;
+      body.jumped = 1;
+    } else if (body.fly && body.jb > 0 && body.dj > 0 && !body.g && body.co <= 0) {
+      body.vy = -JUMP_SPEED * 0.95;
+      body.jb = 0;
+      body.dj = 0;
+      body.jumped = 1;
+      body.djfx = 0.25;
     }
-    if (b.g || b.wc > 0) b.dj = 1;
-    if (b.g) b.noVar = 0;
+    if (body.g || body.wc > 0) body.dj = 1;
+    if (body.g) body.noVar = 0;
     let g = GRAVITY;
-    if (b.vy < 0 && !inp.jh && !b.noVar) g *= 2.2;
-    b.vy = Math.min(MAX_FALL_SPEED, b.vy + g * dt);
-    if (ws && b.vy > 150 && (ws === 1 ? inp.r : inp.l)) b.vy = 150;
+    if (body.vy < 0 && !inp.jh && !body.noVar) g *= 2.2;
+    body.vy = Math.min(MAX_FALL_SPEED, body.vy + g * dt);
+    if (ws && body.vy > 150 && (ws === 1 ? inp.r : inp.l)) body.vy = 150;
   }
-  let dx = b.vx * dt,
+  let dx = body.vx * dt,
     n = Math.ceil(Math.abs(dx)),
     sx = Math.sign(dx);
   for (let i = 0; i < n; i++) {
     const st = sx * Math.min(1, Math.abs(dx) - i);
-    b.x += st;
-    if (collide(b)) {
-      b.x -= st;
-      b.vx = 0;
+    body.x += st;
+    if (collide(body)) {
+      body.x -= st;
+      body.vx = 0;
       break;
     }
   }
-  let dy = b.vy * dt;
+  let dy = body.vy * dt;
   n = Math.ceil(Math.abs(dy));
   const sy = Math.sign(dy);
-  b.g = false;
+  body.g = false;
   for (let i = 0; i < n; i++) {
     const st = sy * Math.min(1, Math.abs(dy) - i);
-    b.y += st;
-    if (collide(b)) {
-      b.y -= st;
-      if (sy > 0) b.g = true;
-      b.vy = 0;
+    body.y += st;
+    if (collide(body)) {
+      body.y -= st;
+      if (sy > 0) body.g = true;
+      body.vy = 0;
       break;
     }
   }
-  if (b.lad && b.g) {
-    b.lad = 0;
-    b.ladCd = 0.15;
+  if (body.lad && body.g) {
+    body.lad = 0;
+    body.ladCd = 0.15;
   }
 }
 export function hurt(b) {

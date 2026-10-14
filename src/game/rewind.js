@@ -20,8 +20,8 @@ export const takeSnapshot = () => ({
       }
     : null,
   pt: runtime.plates.map((p) => p.t),
-  en: runtime.entities.map((e) => ({
-    ...e,
+  en: runtime.entities.map((entity) => ({
+    ...entity,
   })),
   br: runtime.brokenTilesLog.length,
   ct: {
@@ -31,27 +31,27 @@ export const takeSnapshot = () => ({
     ...(takeSnapshot.inp || IDLE),
   },
 });
-export function restoreSnapshot(e) {
+export function restoreSnapshot(snapshot) {
   runtime.shots = [];
   runtime.player = {
-    ...e.p,
+    ...snapshot.p,
   };
-  runtime.echoClone = e.c
+  runtime.echoClone = snapshot.c
     ? {
-        ...e.c,
+        ...snapshot.c,
       }
     : null;
   runtime.plates.forEach((p, i) => {
-    p.t = e.pt[i];
+    p.t = snapshot.pt[i];
     p.was = p.t > 0 ? 1 : 0;
   });
-  runtime.entities = e.en.map((x) => ({
+  runtime.entities = snapshot.en.map((x) => ({
     ...x,
   }));
   runtime.crumbleTileTimers = {
-    ...e.ct,
+    ...snapshot.ct,
   };
-  while (runtime.brokenTilesLog.length > e.br) {
+  while (runtime.brokenTilesLog.length > snapshot.br) {
     const [c, r, ch] = runtime.brokenTilesLog.pop();
     runtime.grid[r][c] = ch;
   }

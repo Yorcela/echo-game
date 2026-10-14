@@ -5,10 +5,15 @@ export const IS_TOUCH_DEVICE = typeof matchMedia !== 'undefined' && matchMedia('
 export const grainTexture = document.createElement('canvas');
 grainTexture.width = grainTexture.height = 256;
 {
-  const g = grainTexture.getContext('2d');
+  const layerCtx = grainTexture.getContext('2d');
   for (let i = 0; i < 2600; i++) {
-    g.fillStyle = Math.random() < 0.5 ? 'rgba(60,35,10,.35)' : 'rgba(255,248,220,.3)';
-    g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 1.5, 1 + Math.random() * 1.5);
+    layerCtx.fillStyle = Math.random() < 0.5 ? 'rgba(60,35,10,.35)' : 'rgba(255,248,220,.3)';
+    layerCtx.fillRect(
+      Math.random() * 256,
+      Math.random() * 256,
+      1 + Math.random() * 1.5,
+      1 + Math.random() * 1.5,
+    );
   }
 }
 export const INK_COLOR = '#1B1612',

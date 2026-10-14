@@ -131,7 +131,7 @@ export const input = {
 export let infoEnabled = true;
 try {
   infoEnabled = localStorage.getItem('echo-info') !== '0';
-} catch (e) {}
+} catch (entity) {}
 export const showMessage = (t, d = 1.8) => {
   if (!infoEnabled && !showMessage.force) return;
   gameState.message = t;
@@ -142,7 +142,7 @@ export function setInfoEnabled(v) {
   infoEnabled = !!v;
   try {
     localStorage.setItem('echo-info', infoEnabled ? '1' : '0');
-  } catch (e) {}
+  } catch (entity) {}
   if (infoEnabled) {
     gameState.hintTimer = 0;
   } else {
@@ -162,4 +162,4 @@ export const formatTime = (t) => {
   return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
 };
 export const ownedEchoes = () => [0, 1, 2, 3, 4].filter((i) => gameState.echoesOwned[i]);
-export const isBossAlive = () => runtime.entities.some((e) => e.k === 'b' && e.alive);
+export const isBossAlive = () => runtime.entities.some((entity) => entity.k === 'b' && entity.alive);

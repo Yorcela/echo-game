@@ -16,23 +16,23 @@ function blankGrid() {
   }
   return g;
 }
-function placePlatform(g, r, a, b, ch = '#') {
-  for (let c = Math.max(1, a); c <= Math.min(28, b); c++) g[r][c] = ch;
+function placePlatform(grid, r, a, b, ch = '#') {
+  for (let c = Math.max(1, a); c <= Math.min(28, b); c++) grid[r][c] = ch;
 }
-function placeColumn(g, c, r0, r1, ch = '#') {
-  for (let r = r0; r <= r1; r++) g[r][c] = ch;
+function placeColumn(grid, c, r0, r1, ch = '#') {
+  for (let r = r0; r <= r1; r++) grid[r][c] = ch;
 }
-function placePit(g, a, b) {
-  for (let c = a; c <= b; c++) for (let r = 14; r <= 16; r++) g[r][c] = '.';
+function placePit(grid, a, b) {
+  for (let c = a; c <= b; c++) for (let r = 14; r <= 16; r++) grid[r][c] = '.';
 }
 // paliers : F libre · E dash ou double saut · J double saut · D dash · B les deux
 
 // ----- montées (salle du bas, trou de plafond c0..c1). renvoie {zone,hs}
-function placeClimb(g, k, rnd) {
+function placeClimb(grid, k, rnd) {
   const c0 = k.c0,
     c1 = k.c1;
   if (k.kind === 'ladder') {
-    placeColumn(g, c0, 0, 13, '|');
+    placeColumn(grid, c0, 0, 13, '|');
     return {
       zone: [c0 - 2, c1 + 2],
       hs: [],
@@ -69,7 +69,7 @@ function placeClimb(g, k, rnd) {
       [4, fr],
       [2, tp],
     ];
-  for (const [r, [a, b]] of list) placePlatform(g, r, a, b);
+  for (const [r, [a, b]] of list) placePlatform(grid, r, a, b);
   const xs = list.flatMap(([r, [a, b]]) => [a, b]);
   return {
     zone: [Math.min(c0, ...xs) - 1, Math.max(c1, ...xs) + 1],
@@ -77,52 +77,52 @@ function placeClimb(g, k, rnd) {
   };
 }
 // ----- obstacle de palier dans la plage libre [a,b] ; renvoie la zone occupée
-function placeTier(g, t, a, b, rnd) {
+function placeTier(grid, t, a, b, rnd) {
   const span = b - a + 1;
   if (t === 'F') {
     const v = Math.floor(rnd() * 6);
     const m = a + Math.floor(span / 2);
     if (v === 0) {
-      placePit(g, m - 1, m + 1);
+      placePit(grid, m - 1, m + 1);
       return {
         zone: [m - 5, m + 5],
         hs: [],
       };
     }
     if (v === 1) {
-      for (let c = m - 1; c <= m + 1; c++) g[13][c] = '^';
+      for (let c = m - 1; c <= m + 1; c++) grid[13][c] = '^';
       return {
         zone: [m - 5, m + 5],
         hs: [],
       };
     }
     if (v === 2) {
-      placeColumn(g, m, 11, 13);
+      placeColumn(grid, m, 11, 13);
       return {
         zone: [m - 5, m + 5],
         hs: [],
       };
     }
     if (v === 3) {
-      placePit(g, m - 2, m + 1);
+      placePit(grid, m - 2, m + 1);
       return {
         zone: [m - 6, m + 5],
         hs: [],
       };
     }
     if (v === 4) {
-      g[13][m - 3] = '^';
-      g[13][m - 2] = '^';
-      g[13][m + 3] = '^';
-      g[13][m + 4] = '^';
-      placeColumn(g, m, 12, 13);
+      grid[13][m - 3] = '^';
+      grid[13][m - 2] = '^';
+      grid[13][m + 3] = '^';
+      grid[13][m + 4] = '^';
+      placeColumn(grid, m, 12, 13);
       return {
         zone: [m - 6, m + 7],
         hs: [],
       };
     }
-    placePlatform(g, 12, m - 2, m + 2);
-    for (let c = m - 1; c <= m + 1; c++) g[13][c] = '^';
+    placePlatform(grid, 12, m - 2, m + 2);
+    for (let c = m - 1; c <= m + 1; c++) grid[13][c] = '^';
     return {
       zone: [m - 5, m + 5],
       hs: [],
@@ -131,7 +131,7 @@ function placeTier(g, t, a, b, rnd) {
   if (t === 'E') {
     const w = 6 + (rnd() < 0.5 ? 1 : 0),
       m = a + Math.floor((span - w) / 2);
-    placePit(g, m, m + w - 1);
+    placePit(grid, m, m + w - 1);
     return {
       zone: [m - 6, m + w + 5],
       hs: [],
@@ -141,7 +141,7 @@ function placeTier(g, t, a, b, rnd) {
   if (t === 'B') {
     const w = 10 + (rnd() < 0.5 ? 1 : 0),
       m = a + Math.floor((span - w) / 2);
-    placePit(g, m, m + w - 1);
+    placePit(grid, m, m + w - 1);
     return {
       zone: [m - 6, m + w + 5],
       hs: [],
@@ -151,10 +151,10 @@ function placeTier(g, t, a, b, rnd) {
   if (t === 'J') {
     const m = a + Math.floor(span / 2),
       wide = rnd() < 0.5;
-    placeColumn(g, m, 10, 13);
+    placeColumn(grid, m, 10, 13);
     if (wide) {
-      placeColumn(g, m + 1, 10, 13);
-      placeColumn(g, m + 2, 10, 13);
+      placeColumn(grid, m + 1, 10, 13);
+      placeColumn(grid, m + 2, 10, 13);
     }
     return {
       zone: [m - 6, m + (wide ? 8 : 6)],
@@ -164,8 +164,8 @@ function placeTier(g, t, a, b, rnd) {
   if (t === 'D') {
     const w = 7,
       m = a + Math.floor((span - w) / 2);
-    placePit(g, m, m + w - 1);
-    for (let c = m - 2; c <= m + w + 1; c++) for (let r = 1; r <= 10; r++) g[r][c] = '#';
+    placePit(grid, m, m + w - 1);
+    for (let c = m - 2; c <= m + w + 1; c++) for (let r = 1; r <= 10; r++) grid[r][c] = '#';
     return {
       zone: [m - 8, m + w + 7],
       hs: [],

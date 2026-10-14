@@ -49,18 +49,18 @@ export function drawHeart(x, y, s, full, blue) {
   ctx.lineWidth = s * 0.13;
   ctx.strokeStyle = INK_COLOR;
   ctx.stroke();
-  const g = ctx.createLinearGradient(0, y - s * 0.5, 0, y + s * 0.4);
+  const gradient = ctx.createLinearGradient(0, y - s * 0.5, 0, y + s * 0.4);
   if (full && blue) {
-    g.addColorStop(0, '#8FD0FF');
-    g.addColorStop(1, '#2A63C9');
+    gradient.addColorStop(0, '#8FD0FF');
+    gradient.addColorStop(1, '#2A63C9');
   } else if (full) {
-    g.addColorStop(0, '#FF7A6B');
-    g.addColorStop(1, '#C92A2A');
+    gradient.addColorStop(0, '#FF7A6B');
+    gradient.addColorStop(1, '#C92A2A');
   } else {
-    g.addColorStop(0, '#6B625A');
-    g.addColorStop(1, '#3F3832');
+    gradient.addColorStop(0, '#6B625A');
+    gradient.addColorStop(1, '#3F3832');
   }
-  ctx.fillStyle = g;
+  ctx.fillStyle = gradient;
   heartPath(x, y, s);
   ctx.fill();
   if (full) {
@@ -198,12 +198,15 @@ export function drawHUD() {
   }
   ctx.globalAlpha = 1;
   // boss
-  const bl = runtime.entities.filter((e) => e.k === 'b' && e.alive);
+  const bl = runtime.entities.filter((entity) => entity.k === 'b' && entity.alive);
   if (bl.length) {
     const B = runtime.level.boss,
       bw = 220,
       bx = (WIDTH - bw) / 2 + 80,
-      hp = B.kind === 'mirror' ? Math.max(...bl.map((e) => e.hp)) : bl.reduce((s, e) => s + e.hp, 0);
+      hp =
+        B.kind === 'mirror'
+          ? Math.max(...bl.map((entity) => entity.hp))
+          : bl.reduce((s, entity) => s + entity.hp, 0);
     ctx.fillStyle = 'rgba(27,22,18,.6)';
     roundRectPath(bx - 3, 14, bw + 6, 12, 6);
     ctx.fill();
@@ -285,7 +288,7 @@ export function drawHUD() {
   }
 }
 export const HINT_T = 21;
-function drawHint(txt, al) {
+function drawHint(txt, alpha) {
   const bw = 640,
     bx = (WIDTH - bw) / 2,
     y = 60,
@@ -303,7 +306,7 @@ function drawHint(txt, al) {
     } else line = t;
   }
   const h = Math.max(58, lines * 20 + 28);
-  ctx.globalAlpha = al * 0.96;
+  ctx.globalAlpha = alpha * 0.96;
   uiHitBoxes.push({
     id: 'hint',
     x: bx,
@@ -314,12 +317,12 @@ function drawHint(txt, al) {
   ctx.fillStyle = 'rgba(8,6,14,.45)';
   roundRectPath(bx + 5, y + 6, bw, h, 6);
   ctx.fill();
-  const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, '#EBDAA9');
-  g.addColorStop(0.5, '#DCC690');
-  g.addColorStop(1, '#C4A96D');
+  const gradient = ctx.createLinearGradient(0, y, 0, y + h);
+  gradient.addColorStop(0, '#EBDAA9');
+  gradient.addColorStop(0.5, '#DCC690');
+  gradient.addColorStop(1, '#C4A96D');
   roundRectPath(bx, y, bw, h, 6);
-  ctx.fillStyle = g;
+  ctx.fillStyle = gradient;
   ctx.fill();
   ctx.save();
   roundRectPath(bx, y, bw, h, 6);
@@ -409,7 +412,7 @@ export function showNameInput(v) {
     setTimeout(() => {
       try {
         nameInputElement.focus();
-      } catch (e) {}
+      } catch (entity) {}
     }, 50);
   } else nameInputElement.blur();
 }
@@ -464,17 +467,17 @@ export function drawOver() {
     ctx.fillText('Classement', WIDTH / 2, 206);
     const L = scores.over.slice(0, 7);
     for (let i = 0; i < 7; i++) {
-      const e = L[i],
+      const entity = L[i],
         y = 238 + i * 28,
         me = gameState.leaderboardRank === i + 1;
       ctx.fillStyle = me ? '#F2C45A' : '#F6EBCB';
       ctx.font = '900 19px ' + FONT_BODY;
       ctx.textAlign = 'left';
       ctx.fillText(i + 1 + '.', WIDTH / 2 - 300, y);
-      ctx.fillText(e ? e.n : '---', WIDTH / 2 - 262, y);
+      ctx.fillText(entity ? entity.n : '---', WIDTH / 2 - 262, y);
       ctx.textAlign = 'right';
-      ctx.fillText(e ? (e.v ? 'VICTOIRE' : e.l + ' salles') : '', WIDTH / 2 + 210, y);
-      ctx.fillText(e ? formatTime(e.t) : '', WIDTH / 2 + 300, y);
+      ctx.fillText(entity ? (entity.v ? 'VICTOIRE' : entity.l + ' salles') : '', WIDTH / 2 + 210, y);
+      ctx.fillText(entity ? formatTime(entity.t) : '', WIDTH / 2 + 300, y);
     }
     drawButton('again', WIDTH / 2 - 130, 446, 260, 52, 'MENU PRINCIPAL', {
       size: 24,

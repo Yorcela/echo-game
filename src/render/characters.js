@@ -320,13 +320,13 @@ export function drawHero(b, o = {}) {
     }
   }
 }
-export function drawChar(b, col, alpha, clone) {
-  const k = b.h / HERO_BASE_H,
-    sy = 1 + Math.min(0.28, Math.abs(b.vy) / 1800),
+export function drawChar(body, col, alpha, clone) {
+  const k = body.h / HERO_BASE_H,
+    sy = 1 + Math.min(0.28, Math.abs(body.vy) / 1800),
     sx = 1 / sy,
-    cx = b.x + b.w / 2,
-    by = b.y + b.h,
-    run = Math.abs(b.vx) > 20 && b.g;
+    cx = body.x + body.w / 2,
+    by = body.y + body.h,
+    run = Math.abs(body.vx) > 20 && body.g;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(cx, by);
@@ -350,7 +350,7 @@ export function drawChar(b, col, alpha, clone) {
   ctx.fillStyle = 'rgba(246,235,203,.35)';
   roundRectPath(-HERO_BASE_W / 2, -HERO_BASE_H + 4, 6, 10, 3);
   ctx.fill();
-  const f = b.face;
+  const f = body.face;
   ctx.fillStyle = '#F6EBCB';
   for (const ex of [-4, 6]) {
     ctx.beginPath();
@@ -360,7 +360,7 @@ export function drawChar(b, col, alpha, clone) {
     ctx.stroke();
     ctx.fillStyle = INK_COLOR;
     ctx.beginPath();
-    ctx.arc(ex + f * 3.4, -HERO_BASE_H + 11.5 + Math.max(-1.5, Math.min(2, b.vy / 300)), 2.4, 0, 7);
+    ctx.arc(ex + f * 3.4, -HERO_BASE_H + 11.5 + Math.max(-1.5, Math.min(2, body.vy / 300)), 2.4, 0, 7);
     ctx.fill();
     ctx.fillStyle = '#F6EBCB';
   }
@@ -381,11 +381,11 @@ export function drawChar(b, col, alpha, clone) {
     ctx.strokeStyle = col;
     ctx.lineWidth = 2;
     ctx.restore();
-    if (b.ttl < Infinity) {
+    if (body.ttl < Infinity) {
       ctx.fillStyle = INK_COLOR;
-      ctx.fillRect(b.x - 4, b.y - 14, b.w + 8, 5);
+      ctx.fillRect(body.x - 4, body.y - 14, body.w + 8, 5);
       ctx.fillStyle = col;
-      ctx.fillRect(b.x - 3, b.y - 13, (b.w + 6) * Math.max(0, b.ttl / 8), 3);
+      ctx.fillRect(body.x - 3, body.y - 13, (body.w + 6) * Math.max(0, body.ttl / 8), 3);
     }
   }
 }
@@ -398,28 +398,28 @@ export function starPath(cx, cy, R, r, rot) {
   }
   ctx.closePath();
 }
-export function drawWalker(e) {
-  const cx = e.x + e.w / 2,
-    by = e.y + e.h,
+export function drawWalker(entity) {
+  const cx = entity.x + entity.w / 2,
+    by = entity.y + entity.h,
     t = gameState.time;
   ctx.save();
   ctx.translate(cx, by);
-  ctx.scale(e.dir, 1);
+  ctx.scale(entity.dir, 1);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.strokeStyle = INK_COLOR;
-  if (e.inv > 0 && e.t === 'r' && Math.floor(t * 30) % 2) {
+  if (entity.inv > 0 && entity.t === 'r' && Math.floor(t * 30) % 2) {
     ctx.globalAlpha = 0.55;
   }
-  if (e.t === 'c') drawCrab(e, t);
-  else if (e.t === 'r') drawRebel(e, t);
-  else drawSpook(e, t);
+  if (entity.t === 'c') drawCrab(entity, t);
+  else if (entity.t === 'r') drawRebel(entity, t);
+  else drawSpook(entity, t);
   ctx.restore();
 }
 const METAL = '#A9B4B6',
   METAL_D = '#6F7C80';
-function drawCrab(e, t) {
-  const ph = t * 26 + e.x * 0.07;
+function drawCrab(entity, t) {
+  const ph = t * 26 + entity.x * 0.07;
   ctx.lineWidth = 2.6;
   for (const s of [-1, 1])
     for (let i = 0; i < 3; i++) {
@@ -453,7 +453,7 @@ function drawCrab(e, t) {
       ctx.stroke();
     }
   ctx.strokeStyle = INK_COLOR;
-  const sn = Math.sin(t * 9 + e.x) * 0.14;
+  const sn = Math.sin(t * 9 + entity.x) * 0.14;
   for (const s of [-1, 1]) {
     const ax = s * 13,
       ay = -19,
@@ -556,8 +556,8 @@ function drawCrab(e, t) {
   ctx.lineWidth = 1.6;
   ctx.stroke();
 }
-function drawRebel(e, t) {
-  const sw = Math.sin(t * 6 + e.x * 0.05),
+function drawRebel(entity, t) {
+  const sw = Math.sin(t * 6 + entity.x * 0.05),
     bob = Math.abs(sw) * -1.4;
   ctx.translate(0, bob);
   /* jambes métal + bottes */
@@ -720,10 +720,10 @@ function drawSpook(e, t) {
   ctx.quadraticCurveTo(0, 6, -6, -8);
   ctx.quadraticCurveTo(-8, -13, -8.5, -20);
   ctx.closePath();
-  const g = ctx.createLinearGradient(0, -34, 0, 4);
-  g.addColorStop(0, '#C8B4EE');
-  g.addColorStop(1, '#8E74C6');
-  ctx.fillStyle = g;
+  const gradient = ctx.createLinearGradient(0, -34, 0, 4);
+  gradient.addColorStop(0, '#C8B4EE');
+  gradient.addColorStop(1, '#8E74C6');
+  ctx.fillStyle = gradient;
   ctx.fill();
   ctx.lineWidth = 2.6;
   ctx.stroke();
@@ -806,24 +806,24 @@ function drawSpook(e, t) {
 function drawSpritePart(i, sx, sy, sw, sh, k) {
   ctx.drawImage(i, sx, sy, sw, sh, sx * k, sy * k, sw * k, sh * k);
 }
-export function drawSpriteBoss(e, al, tint) {
+export function drawSpriteBoss(entity, alpha, tint) {
   let i = SPRITES[runtime.level.boss.kind];
   const hh = runtime.level.boss.sprH || 78,
     k = hh / i.naturalHeight,
     ww = i.naturalWidth * k,
-    cx = e.x + e.w / 2,
-    by = e.y + e.h + 3;
+    cx = entity.x + entity.w / 2,
+    by = entity.y + entity.h + 3;
   const IW = i.naturalWidth,
     IH = i.naturalHeight,
     CUT = Math.round(IH * (runtime.level.boss.cut || 0.77)),
     MID = IW / 2;
-  const run = e.st === 'charge' && Math.abs(e.vx) > 20,
-    walking = run || (e.st === 'idle' && Math.abs(e.vx) > 8),
-    sit = e.st === 'stun';
+  const run = entity.st === 'charge' && Math.abs(entity.vx) > 20,
+    walking = run || (entity.st === 'idle' && Math.abs(entity.vx) > 8),
+    sit = entity.st === 'stun';
   const ph = gameState.time * (run ? 19 : walking ? 9 : 0),
     LF = run ? 24 : 14,
     RT = run ? 0.5 : 0.22,
-    LEAN = run ? (e.dirc || e.face) * 0.24 : e.face * 0.04,
+    LEAN = run ? (entity.dirc || entity.face) * 0.24 : entity.face * 0.04,
     BOB = run ? 7 : 4;
   for (let pass = 0; pass < (tint ? 2 : 1); pass++) {
     if (pass) {
@@ -844,7 +844,7 @@ export function drawSpriteBoss(e, al, tint) {
     }
     ctx.save();
     ctx.translate(cx, by);
-    ctx.globalAlpha = pass ? al * tint[1] : al;
+    ctx.globalAlpha = pass ? alpha * tint[1] : alpha;
     ctx.translate(-ww / 2, -hh);
     const legW = (sx, sw, lift, rot, dx, dy) => {
       // jambe : pivot à la hanche
@@ -883,7 +883,7 @@ export function drawSpriteBoss(e, al, tint) {
       drawSpritePart(i, 0, 0, IW, CUT + 6, k);
       ctx.restore();
     } else {
-      const bob = e.st === 'idle' ? Math.sin(gameState.time * 3) * 1.3 : 0;
+      const bob = entity.st === 'idle' ? Math.sin(gameState.time * 3) * 1.3 : 0;
       ctx.translate(0, bob);
       drawSpritePart(i, 0, 0, IW, IH, k);
     }
@@ -908,52 +908,52 @@ export function getTintedSprite(key, col) {
   return SPRITES[k];
 }
 // serpent : l'image est découpée en fines tranches verticales qui ondulent
-export function drawWorm(e, al, tint) {
+export function drawWorm(entity, alpha, tint) {
   const B = runtime.level.boss,
-    key = e.join ? 'twin-joined' : e.spr || 'twin-b',
+    key = entity.join ? 'twin-joined' : entity.spr || 'twin-b',
     img = SPRITES[key],
     IW = img.naturalWidth,
     IH = img.naturalHeight;
-  const hh = e.join ? B.sprH : B.sprH * 0.92,
+  const hh = entity.join ? B.sprH : B.sprH * 0.92,
     k = hh / IH,
     ww = IW * k,
-    cx = e.x + e.w / 2,
-    by = e.y + e.h + 4;
-  const sp = Math.abs(e.vx),
-    F = e.fast ? 1.5 : 1,
-    dc = e.dirc || e.face || 1;
+    cx = entity.x + entity.w / 2,
+    by = entity.y + entity.h + 4;
+  const sp = Math.abs(entity.vx),
+    F = entity.fast ? 1.5 : 1,
+    dc = entity.dirc || entity.face || 1;
   let amp = 1.5,
     rate = 2.5,
     freq = 1.3,
     sx = 1,
     sy = 1,
     rot = 0;
-  if (e.st === 'idle' && sp > 10) {
+  if (entity.st === 'idle' && sp > 10) {
     amp = 7;
     rate = 8 * F;
     sx = 1 + Math.sin(gameState.time * 8 * F) * 0.04;
-  } else if (e.st === 'charge' && sp > 20) {
+  } else if (entity.st === 'charge' && sp > 20) {
     amp = 13;
     rate = 24 * F;
     freq = 1.9;
     sx = 1.07 + Math.sin(gameState.time * 24) * 0.04;
     rot = dc * 0.1;
-  } else if (e.st === 'tele') {
+  } else if (entity.st === 'tele') {
     amp = 3;
     rate = 45;
     sy = 1.08;
-  } else if (e.st === 'hop' || e.st === 'slam') {
+  } else if (entity.st === 'hop' || entity.st === 'slam') {
     amp = 4;
     rate = 10;
-    rot = dc * Math.max(-0.5, Math.min(0.5, e.vy / 1700));
-    sy = e.g ? 1 : 1.08;
-  } else if (e.st === 'stun') {
+    rot = dc * Math.max(-0.5, Math.min(0.5, entity.vy / 1700));
+    sy = entity.g ? 1 : 1.08;
+  } else if (entity.st === 'stun') {
     amp = 1.6;
     rate = 2.2;
     sy = 0.8;
     sx = 1.06;
   } else amp = 2.2;
-  const flip = e.join ? 1 : (e.spr === 'twin-a') === e.face > 0 ? 1 : -1;
+  const flip = entity.join ? 1 : (entity.spr === 'twin-a') === entity.face > 0 ? 1 : -1;
   const N = Math.max(10, Math.round(ww / 4)),
     sw = IW / N,
     dw = ww / N,
@@ -962,12 +962,12 @@ export function drawWorm(e, al, tint) {
     const im = pass ? getTintedSprite(key, tint[0]) : img;
     ctx.save();
     ctx.translate(cx, by);
-    ctx.globalAlpha = pass ? al * tint[1] : al;
+    ctx.globalAlpha = pass ? alpha * tint[1] : alpha;
     ctx.rotate(rot);
     ctx.scale(sx * flip, sy);
     for (let n = 0; n < N; n++) {
       const u = (n + 0.5) / N,
-        d = e.join ? Math.abs(u - 0.5) * 2 : u;
+        d = entity.join ? Math.abs(u - 0.5) * 2 : u;
       const lift = amp * (0.5 + 0.5 * Math.sin(ph - d * Math.PI * 2 * freq)) * (amp > 3 ? 1 : 0.6);
       ctx.drawImage(im, n * sw, 0, sw + 0.6, IH, -ww / 2 + n * dw, -hh - lift, dw + 0.6, hh);
     }
