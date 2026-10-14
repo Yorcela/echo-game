@@ -1,23 +1,23 @@
 import { runtime } from '../state/runtime.js';
-import { FLOOR, G, H, T } from '../core/config.js';
-import { gameState, say } from '../state/state.js';
+import { FLOOR_Y, GRAVITY, HEIGHT, TILE } from '../core/config.js';
+import { gameState, showMessage } from '../state/state.js';
 import { moveBody, unsealRoom } from './physics.js';
 import { startGain } from './combat.js';
 import { bossAI } from './boss-ai.js';
-import { sfx } from '../audio/audio.js';
+import { playSfx } from '../audio/audio.js';
 /* ---------- Le Colosse ---------- */
 function collapseTile(c, quiet) {
   if (c < 1 || c > 28 || runtime.grid[14][c] === '.') return;
   for (let r = 14; r <= 16; r++) {
-    runtime.brokenLog.push([c, r, runtime.grid[r][c]]);
+    runtime.brokenTilesLog.push([c, r, runtime.grid[r][c]]);
     runtime.grid[r][c] = '.';
   }
-  runtime.FLR.cnt[c] = 0;
+  runtime.colossusFloor.cnt[c] = 0;
   if (!quiet) {
-    sfx('break');
+    playSfx('break');
     gameState.shake = Math.max(gameState.shake, 0.3);
   }
-  (runtime.FLR.fx || (runtime.FLR.fx = [])).push({
+  (runtime.colossusFloor.fx || (runtime.colossusFloor.fx = [])).push({
     c,
     t: gameState.time,
   });
@@ -31,10 +31,10 @@ export function startColossusDeath(e) {
   e.imp = 0;
   e.rest = 0;
   e.t = 99;
-  for (const x of runtime.ents) if (x.k === 's') x.alive = 0;
-  say("Le Colosse s'effondre…", 2.6);
+  for (const x of runtime.entities) if (x.k === 's') x.alive = 0;
+  showMessage("Le Colosse s'effondre…", 2.6);
   gameState.shake = Math.max(gameState.shake, 0.4);
-  sfx('land');
+  playSfx('land');
 }
 function colossusDie(e, dt) {
   e.dd += dt;
@@ -47,28 +47,28 @@ function colossusDie(e, dt) {
     e.cr = 0;
     const cx = e.x + e.w / 2,
       pcx = runtime.player.x + runtime.player.w / 2,
-      tl = 4 * T + 16,
-      tr = 25 * T + 16;
+      tl = 4 * TILE + 16,
+      tr = 25 * TILE + 16;
     e.tx = Math.abs(pcx - tl) > Math.abs(pcx - tr) ? tl : tr;
     e.vx = (e.tx - cx) / 1.0526;
-    sfx('land');
+    playSfx('land');
     gameState.shake = Math.max(gameState.shake, 0.3);
   }
   if (e.jmp) {
-    e.vy += G * dt;
+    e.vy += GRAVITY * dt;
     e.y += e.vy * dt;
     if (!e.imp) e.x += e.vx * dt;
-    if (!e.imp && e.vy > 0 && e.y + e.h >= FLOOR) {
+    if (!e.imp && e.vy > 0 && e.y + e.h >= FLOOR_Y) {
       e.imp = 1;
       e.vx = 0;
       e.x = e.tx - e.w / 2;
-      const c = Math.floor(e.tx / T);
+      const c = Math.floor(e.tx / TILE);
       for (let q = c - 3; q <= c + 3; q++) collapseTile(q, 1);
       gameState.shake = 0.8;
-      sfx('land');
-      sfx('break');
+      playSfx('land');
+      playSfx('break');
     }
-    if (e.imp && !e.rest && e.y > H + 30) {
+    if (e.imp && !e.rest && e.y > HEIGHT + 30) {
       e.rest = 1;
       e.rt = 0;
     }
@@ -80,19 +80,19 @@ function colossusDie(e, dt) {
       for (let c = 1; c <= 28; c++)
         if (runtime.grid[14][c] === '.') {
           for (let r = 14; r <= 16; r++) runtime.grid[r][c] = '#';
-          runtime.FLR.rise[c] = gameState.time;
+          runtime.colossusFloor.rise[c] = gameState.time;
         }
-      runtime.FLR.cnt = [];
-      runtime.FLR.steps = 0;
+      runtime.colossusFloor.cnt = [];
+      runtime.colossusFloor.steps = 0;
       gameState.shake = 0.7;
-      sfx('land');
-      sfx('break');
+      playSfx('land');
+      playSfx('break');
     }
     if (e.rest === 2 && e.rt > 1.7) {
       e.alive = 0;
       if (!bossAI.any()) {
         unsealRoom();
-        gameState.cl[gameState.lvl] = 1;
+        gameState.clearedBossRooms[gameState.lvl] = 1;
         startGain();
       }
     }
@@ -161,9 +161,9 @@ export function colossusAI(e, dt) {
       e.ph = o + dm * 3.9 * (walk ? 1 : e.wa);
       if (Math.floor(o / Math.PI) !== Math.floor(e.ph / Math.PI) && walk) {
         gameState.shake = Math.max(gameState.shake, 0.22);
-        sfx('land');
-        runtime.FLR.steps = (runtime.FLR.steps || 0) + 1;
-        if (runtime.FLR.steps % 2 === 0) breakEdges();
+        playSfx('land');
+        runtime.colossusFloor.steps = (runtime.colossusFloor.steps || 0) + 1;
+        if (runtime.colossusFloor.steps % 2 === 0) breakEdges();
       }
     }
     if (e.t <= 0) {
@@ -173,7 +173,7 @@ export function colossusAI(e, dt) {
         e.d0 = e.t = ch * m;
         e.vx = 0;
         e.wn = e.hp > 12 ? 1 : e.hp >= 6 ? 2 : 3;
-        sfx('clang');
+        playSfx('clang');
       } // à distance : ondes au sol
       else if (ad <= reach) {
         e.q = e.q.slice(1);
@@ -181,7 +181,7 @@ export function colossusAI(e, dt) {
         e.d0 = e.t = ch * m;
         e.vx = 0;
         e.fx = 0;
-        sfx('clang');
+        playSfx('clang');
       } // corps à corps : il doit être au contact
       else e.t = 0;
       if (!e.q) e.q = '';
@@ -221,11 +221,11 @@ export function colossusAI(e, dt) {
       const f = e.face || 1,
         fx = cx + f * (e.w / 2 + 55);
       if (e.st === 'smash')
-        runtime.ents.push({
+        runtime.entities.push({
           k: 's',
           fist: 1,
           x: cx + f * (e.w / 2 - 10) - (f < 0 ? 120 : 0),
-          y: FLOOR - 130,
+          y: FLOOR_Y - 130,
           w: 120,
           h: 130,
           vx: 0,
@@ -236,11 +236,11 @@ export function colossusAI(e, dt) {
         });
       else
         for (const sd of [-1, 1])
-          runtime.ents.push({
+          runtime.entities.push({
             k: 's',
             shock: 1,
             x: cx + sd * (e.w / 2 - 6) - 15,
-            y: FLOOR - 38,
+            y: FLOOR_Y - 38,
             vx: sd * 330 * m,
             vy: 0,
             w: 30,
@@ -251,8 +251,8 @@ export function colossusAI(e, dt) {
             t0: gameState.time,
           });
       gameState.shake = 0.7;
-      sfx('land');
-      sfx('break');
+      playSfx('land');
+      playSfx('break');
     }
     if (e.t <= 0) {
       if (e.st === 'rsmash' && --e.wn > 0) {

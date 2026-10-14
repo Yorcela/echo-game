@@ -1,11 +1,17 @@
 import { runtime } from '../state/runtime.js';
 import { ctx } from '../core/canvas.js';
 import { gameState } from '../state/state.js';
-import { BCRI, BINFO, BRUN, SPR, sprOK } from './sprites.js';
-import { INK, outlined } from './primitives.js';
-import { star } from './characters.js';
+import {
+  BOLT_CROUCH_METRICS,
+  BOLT_SPRITE_METRICS,
+  BOLT_RUN_METRICS,
+  SPRITES,
+  isSpriteReady,
+} from './sprites.js';
+import { INK_COLOR, drawOutlinedText } from './primitives.js';
+import { starPath } from './characters.js';
 export function drawBolt(e) {
-  const I = BINFO,
+  const I = BOLT_SPRITE_METRICS,
     k = runtime.level.boss.sprH / I.H,
     t = gameState.time,
     cx = e.x + e.w / 2,
@@ -59,8 +65,19 @@ export function drawBolt(e) {
     al *= e.bs === 0 ? Math.max(0, e.t / 0.14) : 1 - Math.max(0, e.t / 0.14);
   }
   if (al <= 0.01) return;
-  if (run && ['rHead', 'rTor', 'rFl', 'rLs', 'rFa', 'rLb', 'rSh'].every(sprOK)) {
-    const R = BRUN,
+  if (
+    run &&
+    [
+      'bolt-run-head',
+      'bolt-run-torso',
+      'bolt-run-lightning',
+      'bolt-run-leg-straight',
+      'bolt-run-arm',
+      'bolt-run-leg-bent',
+      'bolt-run-shoe',
+    ].every(isSpriteReady)
+  ) {
+    const R = BOLT_RUN_METRICS,
       kr = runtime.level.boss.sprH / 712,
       ph = e._ph,
       s1 = Math.sin(ph);
@@ -76,32 +93,38 @@ export function drawBolt(e) {
       ctx.globalAlpha = (0.55 - 0.14 * q) * (0.6 + 0.4 * Math.sin(t * 50 + q * 2)) * al;
       ctx.translate(-330 - q * 190, -330 + ((q * 47) % 3) * 40);
       ctx.rotate(-Math.PI / 2);
-      ctx.drawImage(SPR.rFl, -R.rFl.w / 2, -R.rFl.h / 2, R.rFl.w, R.rFl.h);
+      ctx.drawImage(
+        SPRITES['bolt-run-lightning'],
+        -R['bolt-run-lightning'].w / 2,
+        -R['bolt-run-lightning'].h / 2,
+        R['bolt-run-lightning'].w,
+        R['bolt-run-lightning'].h,
+      );
       ctx.restore();
     }
     ctx.restore();
     ctx.translate(0, -300 + Math.abs(Math.sin(ph)) * -16);
-    const img = (n, x, y) => ctx.drawImage(SPR[n], x, y, R[n].w, R[n].h);
+    const img = (n, x, y) => ctx.drawImage(SPRITES[n], x, y, R[n].w, R[n].h);
     const leg = (phi) => {
       const s = Math.sin(phi);
       ctx.save();
       if (s > 0.1) {
         // jambe levée : genou en avant
         ctx.rotate(-0.1 + 0.2 * s);
-        img('rLb', -14, -22);
+        img('bolt-run-leg-bent', -14, -22);
         ctx.save();
         ctx.translate(-14 + 108, -22 + 150);
         ctx.rotate(0.55);
-        img('rSh', -90, -25);
+        img('bolt-run-shoe', -90, -25);
         ctx.restore();
       } else {
         const a = 0.12 + 0.75 * (-s > 0 ? -s : 0);
         ctx.rotate(a);
-        img('rLs', -25, -10);
+        img('bolt-run-leg-straight', -25, -10);
         ctx.save();
         ctx.translate(0, 252);
         ctx.rotate(-a + 0.12);
-        img('rSh', -90, -25);
+        img('bolt-run-shoe', -90, -25);
         ctx.restore();
       }
       ctx.restore();
@@ -120,7 +143,7 @@ export function drawBolt(e) {
     ctx.translate(-6, -200);
     ctx.rotate(1.2 - 0.95 * s1);
     ctx.globalAlpha = al * 0.85;
-    img('rFa', -12, -42);
+    img('bolt-run-arm', -12, -42);
     ctx.restore();
     ctx.restore();
     ctx.save();
@@ -130,11 +153,11 @@ export function drawBolt(e) {
     // torse + tête
     ctx.save();
     ctx.rotate(lean);
-    img('rTor', -63, -234);
+    img('bolt-run-torso', -63, -234);
     ctx.save();
     ctx.translate(0, -228);
     ctx.rotate(0.12 + Math.sin(ph * 2) * 0.03);
-    img('rHead', -56, -215 + 10);
+    img('bolt-run-head', -56, -215 + 10);
     ctx.restore();
     ctx.restore();
     leg(ph);
@@ -143,14 +166,14 @@ export function drawBolt(e) {
     ctx.save();
     ctx.translate(-6, -200);
     ctx.rotate(1.2 + 0.95 * s1);
-    img('rFa', -12, -42);
+    img('bolt-run-arm', -12, -42);
     ctx.restore();
     ctx.restore();
     ctx.restore();
     return;
   }
-  if (cr && sprOK('bCr')) {
-    const J = BCRI,
+  if (cr && isSpriteReady('bolt-crouch')) {
+    const J = BOLT_CROUCH_METRICS,
       p = 1 - Math.max(0, e.t) / 1.2,
       q = Math.max(0, (p - 0.5) / 0.5),
       w = J.w * k,
@@ -165,9 +188,9 @@ export function drawBolt(e) {
     ctx.rotate(a);
     ctx.scale(1, 1 + Math.sin(t * 3) * 0.01 * (1 - q));
     ctx.translate(-pv[0], -pv[1]);
-    ctx.drawImage(SPR.bCr, -w / 2, -h, w, h);
+    ctx.drawImage(SPRITES['bolt-crouch'], -w / 2, -h, w, h);
     ctx.restore();
-    if (e.t < 0.4) outlined('!', cx, e.y - 30, 34, '#D0402E');
+    if (e.t < 0.4) drawOutlinedText('!', cx, e.y - 30, 34, '#D0402E');
     return;
   }
   // paramètres de pose
@@ -224,7 +247,7 @@ export function drawBolt(e) {
   }
   const hip = I.hip,
     hx = I.W / 2;
-  const img = (n, x, y, w, h) => ctx.drawImage(SPR[n], x, y, w, h);
+  const img = (n, x, y, w, h) => ctx.drawImage(SPRITES[n], x, y, w, h);
   const P_ = (n) => I[n];
   // jambes (pivot hanche)
   const leg = (n, ang, lift, sy2) => {
@@ -266,8 +289,8 @@ export function drawBolt(e) {
   if (stun) {
     lS = rS = 0.85;
   }
-  leg('bLL', lA, lLift, lS);
-  leg('bLR', rA, rLift, rS);
+  leg('bolt-leg-left', lA, lLift, lS);
+  leg('bolt-leg-right', rA, rLift, rS);
   // haut du corps : pivot à la hanche
   ctx.save();
   ctx.translate(0, drop);
@@ -275,7 +298,7 @@ export function drawBolt(e) {
   ctx.rotate(up);
   ctx.scale(sq[0], sq[1]);
   ctx.translate(-hx, -hip);
-  img('bU', I.bU.x, I.bU.y, I.bU.w, I.bU.h);
+  img('bolt-torso', I['bolt-torso'].x, I['bolt-torso'].y, I['bolt-torso'].w, I['bolt-torso'].h);
   const arm = (n, sh, ang) => {
     ctx.save();
     ctx.translate(sh[0], sh[1]);
@@ -308,16 +331,22 @@ export function drawBolt(e) {
     } else a = -1.6 + ((0.08 - Math.max(0, e.t)) / 0.08) * 1.6;
     aR = a;
   }
-  arm('bAL', I.shL, aL);
+  arm('bolt-arm-left', I.shL, aL);
   if (stretch !== 1) {
     ctx.save();
     ctx.translate(I.shR[0], I.shR[1]);
     ctx.rotate(aR);
     ctx.scale(1, stretch);
     ctx.translate(-I.shR[0], -I.shR[1]);
-    img('bAR', I.bAR.x, I.bAR.y, I.bAR.w, I.bAR.h);
+    img(
+      'bolt-arm-right',
+      I['bolt-arm-right'].x,
+      I['bolt-arm-right'].y,
+      I['bolt-arm-right'].w,
+      I['bolt-arm-right'].h,
+    );
     ctx.restore();
-  } else arm('bAR', I.shR, aR);
+  } else arm('bolt-arm-right', I.shR, aR);
   ctx.restore();
   ctx.restore();
   // traînées de course
@@ -358,19 +387,19 @@ export function drawBolt(e) {
     ctx.restore();
   }
   if (cr && e.t < 0.4) {
-    outlined('!', cx, e.y - 30, 34, '#D0402E');
+    drawOutlinedText('!', cx, e.y - 30, 34, '#D0402E');
   }
   if (sl && e.t > 0.28) {
-    outlined('!', cx, e.y - 30, 30, '#D0402E');
+    drawOutlinedText('!', cx, e.y - 30, 30, '#D0402E');
   }
   if (stun) {
     for (let q = 0; q < 3; q++) {
       const a = t * 4 + q * 2.1;
       ctx.fillStyle = '#E2A93B';
-      star(cx + Math.cos(a) * 26, e.y - 8 + Math.sin(a) * 6, 7, 3, a);
+      starPath(cx + Math.cos(a) * 26, e.y - 8 + Math.sin(a) * 6, 7, 3, a);
       ctx.fill();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.stroke();
     }
   }

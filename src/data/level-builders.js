@@ -1,7 +1,7 @@
 /* ---------- Niveaux : 30 colonnes x 17 lignes, sol à la ligne 14 ----------
    # mur  % mur fissuré (coup de tête)  & mur renforcé (coup de tête en Colosse)  ^ pics
    P départ  E sortie  a-z plaques  A-Z portes  * marcheur  @ boss */
-export function build(f) {
+export function buildRoomRows(f) {
   const g = [];
   for (let r = 0; r < 17; r++) {
     g.push([]);
@@ -19,8 +19,8 @@ export function build(f) {
   f(s, h, v);
   return g.map((x) => x.join(''));
 }
-export const arena = (x) =>
-  build((s, h, v) => {
+export const bossArenaRows = (x) =>
+  buildRoomRows((s, h, v) => {
     s(13, 2, 'P');
     s(13, 24, '@');
     s(13, 28, 'E');

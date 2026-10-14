@@ -8,7 +8,7 @@ Jeu de plateforme 2D en un seul fichier HTML5 (canvas, sprites inlinés, son syn
 
 ## Jouer
 
-Ouvre `dist/index.html` dans un navigateur, ou héberge le dossier `dist/` sur n'importe quel site statique (GitHub Pages, Netlify, Cloudflare Pages, un simple serveur web…).
+Ouvre `dist/index.html` dans un navigateur, ou héberge le dossier `dist/` sur n'importe quel site statique (Netlify, Cloudflare Pages, un simple serveur web… ; pour GitHub Pages, voir plus bas).
 
 ## Développer
 
@@ -57,7 +57,9 @@ npm run format       # Prettier
 
 ## Déploiement GitHub Pages
 
-Dans les réglages du dépôt : Pages → Source « Deploy from a branch », branche `main`, dossier `/dist` (le fichier `dist/index.html` est versionné : pense à relancer `npm run build` avant de commiter).
+Le workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) lance les tests, construit le jeu et le publie à chaque push sur `main`.
+
+Réglage à faire une seule fois : **Settings → Pages → Build and deployment → Source : « GitHub Actions »**. (Avec « Deploy from a branch », GitHub servirait le `index.html` source du dépôt, qui ne fonctionne pas sans build.)
 
 ## Licence
 

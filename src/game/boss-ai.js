@@ -1,13 +1,13 @@
 import { runtime } from '../state/runtime.js';
-import { FLOOR, G, T, W } from '../core/config.js';
-import { gameState, say } from '../state/state.js';
-import { hurtP } from './rewind.js';
-import { collide, moveBody, ov } from './physics.js';
+import { FLOOR_Y, GRAVITY, TILE, WIDTH } from '../core/config.js';
+import { gameState, showMessage } from '../state/state.js';
+import { hurtPlayer } from './rewind.js';
+import { collide, moveBody, overlaps } from './physics.js';
 import { colossusAI } from './colossus.js';
-import { reflAI } from './reflets.js';
-import { sfx } from '../audio/audio.js';
+import { mirrorBossAI } from './reflets.js';
+import { playSfx } from '../audio/audio.js';
 // un bond sous une plateforme le sonnerait aussitôt : on simule la trajectoire
-function hopBlocked(e, pcx, cx) {
+function isHopBlocked(e, pcx, cx) {
   let vx = Math.max(-300, Math.min(300, (pcx - cx) / 0.84));
   if (e.fast) vx *= 1.6;
   let x = e.x,
@@ -15,13 +15,13 @@ function hopBlocked(e, pcx, cx) {
     vy = -800;
   for (let i = 0; i < 120; i++) {
     const dt = 1 / 60;
-    vy += G * dt;
+    vy += GRAVITY * dt;
     x += vx * dt;
     y += vy * dt;
-    if (y + e.h >= FLOOR) return false;
+    if (y + e.h >= FLOOR_Y) return false;
     if (
       collide({
-        x: Math.max(34, Math.min(W - 34 - e.w, x)),
+        x: Math.max(34, Math.min(WIDTH - 34 - e.w, x)),
         y,
         w: e.w,
         h: e.h,
@@ -31,12 +31,12 @@ function hopBlocked(e, pcx, cx) {
   }
   return false;
 }
-const GH_R = 5 * T;
+const GHOST_ORBIT_RADIUS = 5 * TILE;
 function ghostBossAI(e, dt) {
   const B = runtime.level.boss,
-    cx0 = W / 2,
-    lo = cx0 - GH_R - e.w / 2,
-    hi = cx0 + GH_R - e.w / 2,
+    cx0 = WIDTH / 2,
+    lo = cx0 - GHOST_ORBIT_RADIUS - e.w / 2,
+    hi = cx0 + GHOST_ORBIT_RADIUS - e.w / 2,
     cx = e.x + e.w / 2,
     pcx = runtime.player.x + runtime.player.w / 2,
     dir = pcx >= cx ? 1 : -1;
@@ -70,7 +70,7 @@ function ghostBossAI(e, dt) {
       },
       dt,
     );
-    if (Math.abs(dd) <= 8 && e.t > 0.6) e.tx = cx0 + (Math.random() * 2 - 1) * GH_R;
+    if (Math.abs(dd) <= 8 && e.t > 0.6) e.tx = cx0 + (Math.random() * 2 - 1) * GHOST_ORBIT_RADIUS;
     if (e.t <= 0) {
       e.st = 'tele';
       e.t = B.tele || 0.5;
@@ -130,7 +130,7 @@ function ghostBossAI(e, dt) {
     if (e.t <= 0) {
       e.st = 'idle';
       e.t = 1.4;
-      e.tx = cx0 + (Math.random() * 2 - 1) * GH_R;
+      e.tx = cx0 + (Math.random() * 2 - 1) * GHOST_ORBIT_RADIUS;
     }
   } else if (e.st === 'stun') {
     e.vx *= 0.85;
@@ -228,7 +228,7 @@ function boltAI(e, dt) {
     e.lock = 0.1;
     e.vx = e.dirc * 900;
     moveBody(e, none0, dt);
-    const atWall = e.x <= T + 10 || e.x >= W - T - e.w - 10;
+    const atWall = e.x <= TILE + 10 || e.x >= WIDTH - TILE - e.w - 10;
     if (e.t <= 0 || Math.abs(e.vx) < 30) {
       e.vx = 0;
       e.lock = 0;
@@ -236,7 +236,7 @@ function boltAI(e, dt) {
         e.st = 'stun';
         e.t = B.stun || 1.8;
         gameState.shake = 0.35;
-        sfx('clang');
+        playSfx('clang');
       } else {
         e.st = 'rest';
         e.t = 0.5;
@@ -258,13 +258,13 @@ function boltAI(e, dt) {
         const step = Math.min(170, Math.max(0, d - 70)),
           ox = e.x;
         e.fa0 = cx;
-        e.x = Math.max(T + 4, Math.min(W - T - e.w - 4, e.x + dir * step));
+        e.x = Math.max(TILE + 4, Math.min(WIDTH - TILE - e.w - 4, e.x + dir * step));
         if (collide(e)) e.x = ox;
         e.fa1 = e.x + e.w / 2;
         e.ft = 0.35;
         e.bs = 1;
         e.t = 0.14;
-        sfx('shot');
+        playSfx('shot');
       } else {
         e.bc++;
         if (e.bc >= 2) {
@@ -299,38 +299,38 @@ function boltAI(e, dt) {
     runtime.echoClone &&
     ((e.st === 'slap' &&
       e.sl &&
-      ov(runtime.echoClone, {
+      overlaps(runtime.echoClone, {
         x: e.face > 0 ? e.x + e.w - 4 : e.x - 48,
         y: e.y + 6,
         w: 52,
         h: e.h - 10,
       })) ||
-      (e.st === 'dash' && ov(runtime.echoClone, e, 6)))
+      (e.st === 'dash' && overlaps(runtime.echoClone, e, 6)))
   ) {
     const cx0 = runtime.echoClone.x + runtime.echoClone.w / 2;
     runtime.echoClone = null;
-    gameState.cd = 0.6;
-    sfx('off');
-    say('Ton clone est détruit : tu encaisses aussi !', 2.2);
-    if (gameState.inv <= 0) hurtP(1, false, cx0);
+    gameState.echoCooldown = 0.6;
+    playSfx('off');
+    showMessage('Ton clone est détruit : tu encaisses aussi !', 2.2);
+    if (gameState.invulnerableTimer <= 0) hurtPlayer(1, false, cx0);
   }
 }
 export function bossAI(e, dt) {
-  runtime.KG = runtime.level.boss && runtime.level.boss.king ? 1 : 0;
-  runtime.BM =
+  runtime.kingAiActive = runtime.level.boss && runtime.level.boss.king ? 1 : 0;
+  runtime.bossCollisionMode =
     runtime.level.boss && runtime.level.boss.kind === 'giant'
       ? 1
       : runtime.level.boss && runtime.level.boss.kind === 'mirror'
         ? 2
         : 0;
   try {
-    bossAI1(e, dt);
+    bossAIInner(e, dt);
   } finally {
-    runtime.KG = 0;
-    runtime.BM = 0;
+    runtime.kingAiActive = 0;
+    runtime.bossCollisionMode = 0;
   }
 }
-function bossAI1(e, dt) {
+function bossAIInner(e, dt) {
   const B = runtime.level.boss,
     K = B.kind;
   e.t -= dt;
@@ -352,7 +352,7 @@ function bossAI1(e, dt) {
     return;
   }
   if (K === 'mirror') {
-    reflAI(e, dt);
+    mirrorBossAI(e, dt);
     return;
   }
   if (e.st !== 'stun') e.sh = 0;
@@ -403,7 +403,7 @@ function bossAI1(e, dt) {
       if (e.t <= 0) {
         e.st = 'dive';
         const tx = pcx - e.w / 2,
-          ty = FLOOR - e.h,
+          ty = FLOOR_Y - e.h,
           dx = tx - e.x,
           dy = ty - e.y,
           d = Math.hypot(dx, dy) || 1;
@@ -414,15 +414,15 @@ function bossAI1(e, dt) {
     } else if (e.st === 'dive') {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      e.x = Math.max(34, Math.min(W - 34 - e.w, e.x));
-      if (e.y + e.h >= FLOOR) {
-        e.y = FLOOR - e.h;
+      e.x = Math.max(34, Math.min(WIDTH - 34 - e.w, e.x));
+      if (e.y + e.h >= FLOOR_Y) {
+        e.y = FLOOR_Y - e.h;
         e.fly = 0;
         e.vx = 0;
         e.vy = 0;
         e.g = true;
         gameState.shake = 0.35;
-        sfx('land');
+        playSfx('land');
         if (e.combo) {
           e.st = 'tele';
           e.kind = 'charge';
@@ -448,7 +448,7 @@ function bossAI1(e, dt) {
   if (e.st === 'idle') {
     e.face = dir;
     if (K === 'mirror' || K === 'king') {
-      const tx = Math.max(70, Math.min(W - 70 - e.w / 2, W - pcx + (e.id ? 75 : -75))),
+      const tx = Math.max(70, Math.min(WIDTH - 70 - e.w / 2, WIDTH - pcx + (e.id ? 75 : -75))),
         dd = tx - cx;
       e.spd = 190;
       moveBody(
@@ -540,7 +540,7 @@ function bossAI1(e, dt) {
     e.face = dir;
     moveBody(e, none, dt);
     if (e.t <= 0) {
-      if (K === 'twin' && e.kind === 'hop' && hopBlocked(e, pcx, cx)) e.kind = 'charge';
+      if (K === 'twin' && e.kind === 'hop' && isHopBlocked(e, pcx, cx)) e.kind = 'charge';
       if (e.kind === 'charge') {
         e.st = 'charge';
         e.t = 6;
@@ -610,8 +610,8 @@ function bossAI1(e, dt) {
       e.vx = 0;
       e.spd = 0;
       gameState.shake = 0.3;
-      sfx('clang');
-    } else if ((cx - pcx) * e.dirc > 5 * T) {
+      playSfx('clang');
+    } else if ((cx - pcx) * e.dirc > 5 * TILE) {
       e.st = 'tele';
       e.kind = 'charge';
       e.t = 0.2;
@@ -641,10 +641,10 @@ function bossAI1(e, dt) {
     moveBody(e, none, dt);
     if (e.t <= 0) {
       for (const sd of [-1, 1])
-        runtime.ents.push({
+        runtime.entities.push({
           k: 's',
           x: cx - 13 + (sd * e.w) / 2,
-          y: FLOOR - 24,
+          y: FLOOR_Y - 24,
           vx: sd * 330,
           vy: 0,
           w: 26,
@@ -658,15 +658,15 @@ function bossAI1(e, dt) {
       e.vx = 0;
       e.spd = 0;
       gameState.shake = 0.4;
-      sfx('land');
+      playSfx('land');
     }
   } else if (e.st === 'volley') {
     e.face = e.dirc;
     moveBody(e, none, dt);
-    const ys = [FLOOR - 12, FLOOR - 52, FLOOR - 12],
+    const ys = [FLOOR_Y - 12, FLOOR_Y - 52, FLOOR_Y - 12],
       at = [0.8, 0.5, 0.2];
     while (e.vn < 3 && e.t <= at[e.vn]) {
-      runtime.ents.push({
+      runtime.entities.push({
         k: 's',
         bul: 1,
         spell: K === 'shooter' ? 1 : 0,
@@ -683,7 +683,7 @@ function bossAI1(e, dt) {
         face: e.dirc,
       });
       e.vn++;
-      sfx('shot');
+      playSfx('shot');
     }
     if (e.t <= 0) {
       e.sv = (e.sv || 0) + 1;
@@ -697,7 +697,7 @@ function bossAI1(e, dt) {
         e.t = B.stun || 2;
         e.spd = 0;
         gameState.shake = 0.3;
-        sfx('clang');
+        playSfx('clang');
       } else {
         e.st = 'idle';
         e.t = 0.5;
@@ -718,10 +718,10 @@ function bossAI1(e, dt) {
     if (e.g || e.t <= 0) {
       if (e.st === 'slam') {
         for (const sd of [-1, 1])
-          runtime.ents.push({
+          runtime.entities.push({
             k: 's',
             x: cx - 13 + (sd * e.w) / 2,
-            y: FLOOR - 24,
+            y: FLOOR_Y - 24,
             vx: sd * 330,
             vy: 0,
             w: 26,
@@ -736,7 +736,7 @@ function bossAI1(e, dt) {
       e.vx = 0;
       e.spd = 0;
       gameState.shake = 0.35;
-      sfx('land');
+      playSfx('land');
     }
   } else if (e.st === 'rage') {
     e.face = dir;
@@ -748,8 +748,8 @@ function bossAI1(e, dt) {
       e.rc += 0.15;
       e.rh = (e.rh || 0) + 1;
       const hi = Math.random() < 0.5,
-        y0 = hi ? FLOOR - 52 : FLOOR - 12;
-      runtime.ents.push({
+        y0 = hi ? FLOOR_Y - 52 : FLOOR_Y - 12;
+      runtime.entities.push({
         k: 's',
         bul: 1,
         spell: 1,
@@ -765,7 +765,7 @@ function bossAI1(e, dt) {
         life: 7,
         face: dir,
       });
-      sfx('shot');
+      playSfx('shot');
     }
     if (e.t <= 0) {
       e.st = 'idle';

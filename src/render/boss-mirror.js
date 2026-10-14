@@ -1,15 +1,15 @@
 import { runtime } from '../state/runtime.js';
-import { FLOOR, H, W } from '../core/config.js';
+import { FLOOR_Y, HEIGHT, WIDTH } from '../core/config.js';
 import { ctx } from '../core/canvas.js';
 import { gameState } from '../state/state.js';
-import { SPR } from './sprites.js';
-import { INK } from './primitives.js';
-import { star } from './characters.js';
+import { SPRITES } from './sprites.js';
+import { INK_COLOR } from './primitives.js';
+import { starPath } from './characters.js';
 import { energyCharge } from './boss-witch.js';
 // Soleil / Lune : tronc + 2 jambes articulées
 export function drawReflet(e, al) {
   const key = e.id ? 'moon' : 'sun',
-    iT = SPR[key + 'T'],
+    iT = SPRITES[key + '-torso'],
     IW = iT.naturalWidth,
     IH = iT.naturalHeight,
     B = runtime.level.boss,
@@ -55,7 +55,7 @@ export function drawReflet(e, al) {
     ctx.translate(px, hy);
     ctx.rotate(ph2 * 0.4 * wa);
     ctx.translate(-px, -hy - lift);
-    ctx.drawImage(SPR[key + (sd < 0 ? 'LL' : 'LR')], 0, 0);
+    ctx.drawImage(SPRITES[key + (sd < 0 ? '-leg-left' : '-leg-right')], 0, 0);
     ctx.restore();
   }
   ctx.translate(IW / 2, hy);
@@ -82,10 +82,10 @@ export function drawReflet(e, al) {
     for (let q = 0; q < 3; q++) {
       const a2 = t * 4 + q * 2.1;
       ctx.fillStyle = e.id ? '#CFE0FF' : '#E2A93B';
-      star(cx + Math.cos(a2) * 22, by - e.h - 10 + Math.sin(a2) * 5, 7, 3, a2);
+      starPath(cx + Math.cos(a2) * 22, by - e.h - 10 + Math.sin(a2) * 5, 7, 3, a2);
       ctx.fill();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.stroke();
     }
   }
@@ -108,7 +108,7 @@ export function drawBeam(e) {
   ctx.fillStyle = g;
   ctx.fillRect(x - 34, y0, 68, y1 - y0);
   ctx.fillStyle = fill;
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_COLOR;
   ctx.lineWidth = 3;
   ctx.beginPath();
   const n = Math.max(4, Math.round((y1 - y0) / 14));
@@ -142,7 +142,7 @@ export function drawBeam(e) {
     ctx.fillStyle = '#FFF1A8';
     for (let i = 0; i < 4; i++) {
       const yy = y0 + 14 + ((t * 60 + i * 38) % (y1 - y0 - 20));
-      star(x + Math.sin(i * 2 + t * 3) * 6, yy, 5, 2.2, t * 5 + i);
+      starPath(x + Math.sin(i * 2 + t * 3) * 6, yy, 5, 2.2, t * 5 + i);
       ctx.fill();
     }
   }
@@ -150,47 +150,47 @@ export function drawBeam(e) {
 }
 export function drawNuke(e) {
   const u = 1 - Math.max(0, e.life) / 1.7,
-    cx = W / 2,
+    cx = WIDTH / 2,
     t = gameState.time - e.t0;
   ctx.save();
   ctx.lineJoin = 'round';
   // souterrain : éclat
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, FLOOR, W, H);
+  ctx.rect(0, FLOOR_Y, WIDTH, HEIGHT);
   ctx.clip();
   ctx.globalAlpha = Math.max(0, 1 - u * 1.5);
   ctx.fillStyle = '#FFF1B8';
   ctx.beginPath();
-  ctx.arc(cx, FLOOR + 30, 30 + u * 90, 0, 7);
+  ctx.arc(cx, FLOOR_Y + 30, 30 + u * 90, 0, 7);
   ctx.fill();
   ctx.restore();
   ctx.beginPath();
-  ctx.rect(0, 0, W, FLOOR);
+  ctx.rect(0, 0, WIDTH, FLOOR_Y);
   ctx.clip();
   const eo = 1 - Math.pow(1 - Math.min(1, u * 1.6), 3),
     fl = Math.max(0, 1 - u * 3.5);
   ctx.fillStyle = 'rgba(255,246,214,' + fl * 0.95 + ')';
-  ctx.fillRect(0, 0, W, FLOOR);
+  ctx.fillRect(0, 0, WIDTH, FLOOR_Y);
   const sh = u < 0.75 ? 1 - u / 0.75 : 0; // onde de choc au sol
   ctx.globalCompositeOperation = 'lighter';
   for (const sd of [-1, 1]) {
-    const x = cx + sd * (eo * W * 0.55);
+    const x = cx + sd * (eo * WIDTH * 0.55);
     const g = ctx.createLinearGradient(x - sd * 140, 0, x, 0);
     g.addColorStop(0, 'rgba(255,200,90,0)');
     g.addColorStop(1, 'rgba(255,236,170,' + 0.75 * sh + ')');
     ctx.fillStyle = g;
-    ctx.fillRect(Math.min(x, x - sd * 140), FLOOR - 230 * (1 - u * 0.4), 140, 230 * (1 - u * 0.4));
+    ctx.fillRect(Math.min(x, x - sd * 140), FLOOR_Y - 230 * (1 - u * 0.4), 140, 230 * (1 - u * 0.4));
   }
   ctx.globalCompositeOperation = 'source-over';
   const stemH = 300 * eo,
     capR = 40 + 150 * eo,
-    top = FLOOR - stemH,
+    top = FLOOR_Y - stemH,
     al = u < 0.8 ? 1 : 1 - (u - 0.8) / 0.2;
   ctx.globalAlpha = Math.max(0, al);
   const puffs = (n, col, rad, yy, sp) => {
     ctx.fillStyle = col;
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 3;
     for (let i = 0; i < n; i++) {
       const a = (i * Math.PI * 2) / n + t * sp,
@@ -205,10 +205,10 @@ export function drawNuke(e) {
   // pied
   for (let k = 0; k < 9; k++) {
     const kk = k / 8,
-      yy = FLOOR - stemH * kk,
+      yy = FLOOR_Y - stemH * kk,
       rw = (26 + 22 * (1 - kk)) * (0.8 + 0.2 * Math.sin(t * 6 + k));
     ctx.fillStyle = kk < 0.35 ? '#E8742A' : '#C8501E';
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.ellipse(cx, yy, rw, 16, 0, 0, 7);
@@ -229,7 +229,7 @@ export function drawNuke(e) {
     const a = i * 2.4,
       rr2 = (60 + i * 9) * eo,
       px = cx + Math.cos(a) * rr2 * 1.4,
-      py = FLOOR - 20 - Math.abs(Math.sin(a * 1.7)) * rr2 * 1.1 - u * 40;
+      py = FLOOR_Y - 20 - Math.abs(Math.sin(a * 1.7)) * rr2 * 1.1 - u * 40;
     ctx.globalAlpha = Math.max(0, al * (1 - u * 0.6));
     ctx.beginPath();
     ctx.arc(px, py, 2 + (i % 3), 0, 7);
@@ -243,7 +243,7 @@ export function drawBoom(e) {
     y = e.y + 10;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, FLOOR, W, H);
+  ctx.rect(0, FLOOR_Y, WIDTH, HEIGHT);
   ctx.clip();
   ctx.lineJoin = 'round';
   ctx.globalAlpha = 1 - u * 0.7;
@@ -251,7 +251,7 @@ export function drawBoom(e) {
     const a = (i * Math.PI) / 7 + u,
       r = (20 + u * 70) * (i % 2 ? 0.7 : 1);
     ctx.fillStyle = i % 2 ? '#F6C94E' : '#CFE0FF';
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -269,7 +269,7 @@ export function drawBoom(e) {
   ctx.save();
   ctx.globalAlpha = 0.8 * (1 - u);
   ctx.fillStyle = '#FFF6D0';
-  ctx.fillRect(x - 22, FLOOR - 80 * u, 44, 80 * u);
+  ctx.fillRect(x - 22, FLOOR_Y - 80 * u, 44, 80 * u);
   ctx.restore();
 }
 export function drawPuff(e) {
@@ -279,9 +279,9 @@ export function drawPuff(e) {
   ctx.save();
   ctx.globalAlpha = 1 - u;
   ctx.fillStyle = e.tone === 'sun' ? '#F6C94E' : '#CFE0FF';
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_COLOR;
   ctx.lineWidth = 2;
-  star(x, y, 8 + u * 14, 3 + u * 4, u * 3);
+  starPath(x, y, 8 + u * 14, 3 + u * 4, u * 3);
   ctx.fill();
   ctx.stroke();
   ctx.restore();
@@ -290,33 +290,33 @@ export function drawMirrorBG() {
   if (!runtime.level.boss || runtime.level.boss.kind !== 'mirror') return;
   const t = gameState.time;
   ctx.save();
-  let g = ctx.createLinearGradient(0, 0, 0, H);
+  let g = ctx.createLinearGradient(0, 0, 0, HEIGHT);
   g.addColorStop(0, 'rgba(255,232,160,.30)');
   g.addColorStop(1, 'rgba(255,196,110,.14)');
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W / 2, H);
-  g = ctx.createLinearGradient(0, 0, 0, H);
+  ctx.fillRect(0, 0, WIDTH / 2, HEIGHT);
+  g = ctx.createLinearGradient(0, 0, 0, HEIGHT);
   g.addColorStop(0, 'rgba(8,14,72,.66)');
   g.addColorStop(1, 'rgba(20,20,70,.48)');
   ctx.fillStyle = g;
-  ctx.fillRect(W / 2, 0, W / 2, H);
+  ctx.fillRect(WIDTH / 2, 0, WIDTH / 2, HEIGHT);
   for (const sd of [-1, 1]) {
-    const cx = W / 2 + sd * 232,
+    const cx = WIDTH / 2 + sd * 232,
       top = 70,
       w = 128,
       h = 170,
       x0 = cx - w / 2;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const lg = ctx.createLinearGradient(0, top + h, 0, FLOOR);
+    const lg = ctx.createLinearGradient(0, top + h, 0, FLOOR_Y);
     lg.addColorStop(0, sd < 0 ? 'rgba(255,220,130,.22)' : 'rgba(130,150,255,.20)');
     lg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = lg;
     ctx.beginPath();
     ctx.moveTo(x0 + 8, top + h);
     ctx.lineTo(x0 + w - 8, top + h);
-    ctx.lineTo(x0 + w + 60, FLOOR);
-    ctx.lineTo(x0 - 60, FLOOR);
+    ctx.lineTo(x0 + w + 60, FLOOR_Y);
+    ctx.lineTo(x0 - 60, FLOOR_Y);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -340,7 +340,7 @@ export function drawMirrorBG() {
     ctx.fillRect(x0, top, w, h);
     if (sd < 0) {
       ctx.fillStyle = '#FFD45A';
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(cx, top + 60, 22, 0, 7);
@@ -372,12 +372,12 @@ export function drawMirrorBG() {
           sy = top + ((i * 53) % (h - 10)),
           tw = 0.5 + 0.5 * Math.sin(t * 3 + i);
         ctx.globalAlpha = 0.4 + 0.6 * tw;
-        star(sx, sy, 2.5 + tw * 1.5, 1, i);
+        starPath(sx, sy, 2.5 + tw * 1.5, 1, i);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
       ctx.fillStyle = '#E4E8F4';
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(cx, top + 62, 24, 0, 7);
@@ -389,7 +389,7 @@ export function drawMirrorBG() {
       ctx.fill();
     }
     ctx.restore();
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 7;
     ctx.beginPath();
     ctx.moveTo(x0, top + h);
@@ -401,7 +401,7 @@ export function drawMirrorBG() {
     ctx.strokeStyle = '#8B8497';
     ctx.lineWidth = 3;
     ctx.stroke();
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(cx, top);
@@ -411,7 +411,7 @@ export function drawMirrorBG() {
     ctx.stroke();
     ctx.fillStyle = '#6A6277';
     ctx.fillRect(x0 - 8, top + h, w + 16, 8);
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 3;
     ctx.strokeRect(x0 - 8, top + h, w + 16, 8);
   }

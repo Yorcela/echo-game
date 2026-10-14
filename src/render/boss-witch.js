@@ -1,11 +1,11 @@
 import { runtime } from '../state/runtime.js';
-import { FLOOR, W } from '../core/config.js';
+import { FLOOR_Y, WIDTH } from '../core/config.js';
 import { ctx } from '../core/canvas.js';
 import { gameState } from '../state/state.js';
 import { BEAM_H } from '../game/reflets.js';
-import { SPR, WINFO, sprOK } from './sprites.js';
-import { FB, INK } from './primitives.js';
-import { star } from './characters.js';
+import { SPRITES, WITCH_SPRITE_METRICS, isSpriteReady } from './sprites.js';
+import { FONT_BODY, INK_COLOR } from './primitives.js';
+import { starPath } from './characters.js';
 function yinYang(x, y, R, rot) {
   ctx.save();
   ctx.translate(x, y);
@@ -21,7 +21,7 @@ function yinYang(x, y, R, rot) {
   ctx.arc(0, R / 2, R / 2, Math.PI / 2, -Math.PI / 2, true);
   ctx.arc(0, -R / 2, R / 2, Math.PI / 2, -Math.PI / 2, false);
   ctx.fill();
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_COLOR;
   ctx.lineWidth = Math.max(2.5, R * 0.1);
   ctx.beginPath();
   ctx.arc(0, 0, R, 0, Math.PI * 2);
@@ -35,7 +35,7 @@ function yinYang(x, y, R, rot) {
   ctx.translate(0, -R / 2);
   ctx.rotate(-rot);
   ctx.fillStyle = '#E4E8F4';
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_COLOR;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(0, 0, r2 * 1.5, 0, 7);
@@ -59,7 +59,7 @@ function yinYang(x, y, R, rot) {
     ctx.stroke();
   }
   ctx.fillStyle = '#FFD45A';
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_COLOR;
   ctx.beginPath();
   ctx.arc(0, 0, r2 * 1.4, 0, 7);
   ctx.fill();
@@ -177,16 +177,16 @@ export function drawOrb(e) {
   yinYang(x, y, R, t * (drop ? 10 : 2.2));
   if (e.nk && !drop) {
     ctx.fillStyle = '#D0402E';
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 3;
-    ctx.font = '800 15px ' + FB;
+    ctx.font = '800 15px ' + FONT_BODY;
     ctx.textAlign = 'center';
     ctx.strokeText('☢ ABRI !', x, y - R - 32);
     ctx.fillText('☢ ABRI !', x, y - R - 32);
   }
   if (!drop) {
     ctx.fillStyle = 'rgba(27,22,18,.85)';
-    ctx.font = '800 12px ' + FB;
+    ctx.font = '800 12px ' + FONT_BODY;
     ctx.textAlign = 'center';
     ctx.fillText(Math.max(0, e.tm).toFixed(1) + ' s', x, y - R - 14);
   }
@@ -198,30 +198,30 @@ export function drawTelegraph(e) {
     t = gameState.time;
   ctx.save();
   for (const sd of [-1, 1]) {
-    const x = sd < 0 ? 34 : W - 34,
+    const x = sd < 0 ? 34 : WIDTH - 34,
       col = sd < 0 ? '255,210,90' : '170,190,255';
     ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createLinearGradient(0, FLOOR - BEAM_H, 0, FLOOR);
+    const g = ctx.createLinearGradient(0, FLOOR_Y - BEAM_H, 0, FLOOR_Y);
     g.addColorStop(0, 'rgba(' + col + ',0)');
     g.addColorStop(1, 'rgba(' + col + ',.8)');
     ctx.globalAlpha = (0.3 + 0.6 * u) * (0.75 + 0.25 * Math.sin(t * 35));
     ctx.fillStyle = g;
-    ctx.fillRect(x - 14 * u - 4, FLOOR - BEAM_H, 28 * u + 8, BEAM_H);
+    ctx.fillRect(x - 14 * u - 4, FLOOR_Y - BEAM_H, 28 * u + 8, BEAM_H);
     ctx.fillStyle = 'rgba(' + col + ',.9)';
     for (let i = 0; i < 16; i++) {
       const k = (t * 1.6 + i / 16) % 1;
       ctx.globalAlpha = (1 - k) * u;
       ctx.beginPath();
-      ctx.arc(x + Math.sin(i * 5 + t * 4) * 18 * u, FLOOR - k * BEAM_H, 1.5 + 2 * u, 0, 7);
+      ctx.arc(x + Math.sin(i * 5 + t * 4) * 18 * u, FLOOR_Y - k * BEAM_H, 1.5 + 2 * u, 0, 7);
       ctx.fill();
     }
     ctx.globalAlpha = 0.55 * u;
-    const r = ctx.createRadialGradient(x, FLOOR, 2, x, FLOOR, 70 * u + 10);
+    const r = ctx.createRadialGradient(x, FLOOR_Y, 2, x, FLOOR_Y, 70 * u + 10);
     r.addColorStop(0, 'rgba(' + col + ',.9)');
     r.addColorStop(1, 'rgba(' + col + ',0)');
     ctx.fillStyle = r;
     ctx.beginPath();
-    ctx.ellipse(x, FLOOR, 70 * u + 10, 16 * u + 4, 0, 0, 7);
+    ctx.ellipse(x, FLOOR_Y, 70 * u + 10, 16 * u + 4, 0, 0, 7);
     ctx.fill();
   }
   ctx.restore();
@@ -234,7 +234,7 @@ export function drawWitch(e, al) {
     by = e.y + e.h + 3,
     t = gameState.time,
     f = e.face || 1,
-    WI = WINFO;
+    WI = WITCH_SPRITE_METRICS;
   const dtf = Math.min(0.05, Math.max(0, t - (e._lt === undefined ? t : e._lt)));
   e._lt = t;
   const vx = e.vx || 0;
@@ -289,12 +289,12 @@ export function drawWitch(e, al) {
   ctx.rotate(rot + lean);
   ctx.scale((f > 0 ? -1 : 1) * sx * k, sy * k);
   ctx.translate(-101, -465);
-  const img = (n, x, y, w, h) => ctx.drawImage(SPR[n], x, y, w || WI[n].w, h || WI[n].h);
+  const img = (n, x, y, w, h) => ctx.drawImage(SPRITES[n], x, y, w || WI[n].w, h || WI[n].h);
   // mèches (derrière)
   [
-    ['h1', 34, 176],
-    ['h2', 92, 180],
-    ['h3', 150, 176],
+    ['witch-hair-1', 34, 176],
+    ['witch-hair-2', 92, 180],
+    ['witch-hair-3', 150, 176],
   ].forEach(([n, x, y], i) => {
     ctx.save();
     ctx.translate(x, y);
@@ -304,23 +304,23 @@ export function drawWitch(e, al) {
   });
   // jambes
   const lg = [
-    ['wLL', 64, Math.max(0, Math.sin(e._ph))],
-    ['wLR', 100, Math.max(0, -Math.sin(e._ph))],
+    ['witch-leg-left', 64, Math.max(0, Math.sin(e._ph))],
+    ['witch-leg-right', 100, Math.max(0, -Math.sin(e._ph))],
   ];
   for (const [n, x, l] of lg) {
     ctx.save();
     const hgt = WI[n].h,
       py = 465 - hgt - (stun ? 0 : l * 16);
     ctx.translate(x + WI[n].w / 2, py);
-    ctx.rotate(l * 0.22 * (e._sw < 0 ? -1 : 1) + (stun ? (n === 'wLL' ? -0.2 : 0.25) : 0));
+    ctx.rotate(l * 0.22 * (e._sw < 0 ? -1 : 1) + (stun ? (n === 'witch-leg-left' ? -0.2 : 0.25) : 0));
     img(n, -WI[n].w / 2, 0);
     ctx.restore();
   }
   // jupe : ourlet ondulant
   {
-    const n = 'wS',
-      iw = SPR[n].naturalWidth,
-      ih = SPR[n].naturalHeight,
+    const n = 'witch-skirt',
+      iw = SPRITES[n].naturalWidth,
+      ih = SPRITES[n].naturalHeight,
       w = WI[n].w,
       h = WI[n].h,
       S3 = 3;
@@ -332,7 +332,7 @@ export function drawWitch(e, al) {
         u = v * v;
       const dx = skirt * 14 * u + (v > 0.7 ? (Math.sin(v * 30 - t * 7) * 2 * (v - 0.7)) / 0.3 : 0);
       ctx.drawImage(
-        SPR[n],
+        SPRITES[n],
         0,
         s0,
         iw,
@@ -345,11 +345,11 @@ export function drawWitch(e, al) {
     }
     ctx.restore();
   }
-  img('wB', 0, 0);
+  img('witch-body', 0, 0);
   // bras libre (droite du corps)
   {
     const castF = cock > 0.15 || flick > 0.05,
-      n = castF ? 'fE' : 'fU',
+      n = castF ? 'witch-free-arm-cast' : 'witch-free-arm-up',
       p = WI[n].pv;
     let a = Math.sin(t * 3.1) * 0.06 - sp * Math.sin(t * 9) * 0.15;
     if (castF) a += -cock * 0.25 + flick * 0.2;
@@ -362,12 +362,12 @@ export function drawWitch(e, al) {
   }
   // bras à baguette (gauche du corps) : levé au repos, tendu au lancer, tombant si étourdie
   {
-    const n = stun ? 'wD' : flick > 0.12 ? 'wE' : 'wU',
+    const n = stun ? 'witch-wand-arm-down' : flick > 0.12 ? 'witch-wand-arm-flick' : 'witch-wand-arm-up',
       p = WI[n].pv,
       w = WI[n].wt;
     let a = Math.sin(t * 2.1) * 0.05 + sp * Math.sin(t * 9) * 0.1;
-    if (n === 'wU') a += cock * -0.35 + (tele ? Math.sin(t * 45) * 0.03 : 0);
-    if (n === 'wE') a += (1 - flick) * 0.12;
+    if (n === 'witch-wand-arm-up') a += cock * -0.35 + (tele ? Math.sin(t * 45) * 0.03 : 0);
+    if (n === 'witch-wand-arm-flick') a += (1 - flick) * 0.12;
     if (stun) a = Math.sin(t * 5) * 0.06;
     ctx.save();
     ctx.translate(76, 203);
@@ -417,16 +417,16 @@ export function drawWitch(e, al) {
     for (let q = 0; q < 3; q++) {
       const a = t * 4 + q * 2.1;
       ctx.fillStyle = '#E2A93B';
-      star(cx + Math.cos(a) * 24, e.y - 14 + Math.sin(a) * 6, 7, 3, a);
+      starPath(cx + Math.cos(a) * 24, e.y - 14 + Math.sin(a) * 6, 7, 3, a);
       ctx.fill();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.stroke();
     }
   }
 }
 export function drawAfter(g) {
-  const i = SPR.ghostR,
+  const i = SPRITES['ghost-afterimage'],
     hh = 50,
     ww = (i.naturalWidth * hh) / i.naturalHeight,
     t = gameState.time;
@@ -489,7 +489,7 @@ export function drawAfter(g) {
   ctx.drawImage(i, -ww / 2, -hh, ww, hh);
   ctx.restore();
   // impact sur le vieux touché par le fantôme
-  for (const e of runtime.ents)
+  for (const e of runtime.entities)
     if (e.alive && e.k === 'b' && e.inv > 0.4) {
       const k = (e.inv - 0.4) / 0.2,
         x = e.x + e.w / 2,
@@ -497,15 +497,16 @@ export function drawAfter(g) {
       ctx.save();
       ctx.globalAlpha = Math.min(1, k * 1.5);
       ctx.fillStyle = '#FFF8E1';
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.lineWidth = 2.5;
-      star(x, y, 34 * (1.3 - k * 0.3), 12, t * 3);
+      starPath(x, y, 34 * (1.3 - k * 0.3), 12, t * 3);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = '#8FD3FF';
-      star(x, y, 18, 7, -t * 4);
+      starPath(x, y, 18, 7, -t * 4);
       ctx.fill();
       ctx.restore();
     }
 }
-export const BOLT_OK = () => ['bU', 'bAL', 'bAR', 'bLL', 'bLR'].every(sprOK);
+export const BOLT_OK = () =>
+  ['bolt-torso', 'bolt-arm-left', 'bolt-arm-right', 'bolt-leg-left', 'bolt-leg-right'].every(isSpriteReady);

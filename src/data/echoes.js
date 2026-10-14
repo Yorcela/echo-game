@@ -1,4 +1,4 @@
-export const GAIN = {
+export const ECHO_GAIN_TEXTS = {
   t: [
     'Écho du Temps',
     "Appuie sur R : retour de 5 s ; deux fois de suite (R R) ou T : 10 s. Le Temps ne se recharge plus tout seul : seuls les lits des salles de repos le remplissent. Un coup mortel l'utilise automatiquement (5 s) pour t'épargner.",
@@ -20,7 +20,7 @@ export const GAIN = {
     'Touche X : un projectile à 5 blocs, pour toujours. Il assomme les crabes et appuie sur les plaques',
   ],
 };
-export const TYPES = [
+export const ECHO_TYPES = [
   {
     n: 'Miroir',
     c: '#2F8F8A',

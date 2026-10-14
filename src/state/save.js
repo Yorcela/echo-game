@@ -1,7 +1,7 @@
 import { levels } from '../data/levels.js';
-import { HUB, SAVEKEY, gameState } from './state.js';
+import { HUB_ROOM, SAVEKEY, gameState } from './state.js';
 import { buildWorld } from '../world/build.js';
-import { load, pickBlue } from '../world/rooms.js';
+import { loadRoom, pickBlue } from '../world/rooms.js';
 import { showNameInput } from '../ui/hud.js';
 export const scores = {
   best: {},
@@ -23,29 +23,29 @@ function loadScores() {
     }
   } catch (e) {}
 }
-export function save() {
+export function saveGame() {
   if (gameState.trial) return;
   try {
     localStorage.setItem(
       SAVEKEY,
       JSON.stringify({
-        h: gameState.have,
-        t: gameState.haveT,
-        r: gameState.run,
+        h: gameState.echoesOwned,
+        t: gameState.hasTimeEcho,
+        r: gameState.runTime,
         hp: gameState.hp,
-        sh: gameState.sh,
+        sh: gameState.bonusHearts,
         g: gameState.gauge,
-        v: gameState.vis,
-        cl: gameState.cl,
-        aa: gameState.anchAll,
-        so: gameState.sol,
-        bu: gameState.bu,
+        v: gameState.visitedRooms,
+        cl: gameState.clearedBossRooms,
+        aa: gameState.anchorsByRoom,
+        so: gameState.solvedRooms,
+        bu: gameState.usedBeds,
         bl: gameState.blue,
         sd: gameState.seed,
-        hc: gameState.hcol,
+        hc: gameState.collectedHearts,
         cur: gameState.cur,
         ca: gameState.called,
-        ck: gameState.ck,
+        ck: gameState.checkpointRoom,
         dh: gameState.deaths,
       }),
     );
@@ -56,29 +56,29 @@ function newGame() {
   buildWorld(gameState.seed);
   gameState.blue = pickBlue(gameState.seed);
 }
-export function loadSave() {
+export function loadSavedGame() {
   let ok = false;
   try {
     const d = JSON.parse(localStorage.getItem(SAVEKEY) || 'null');
     if (d && d.bl) {
       ok = true;
-      gameState.have = (d.h || gameState.have).concat([0, 0, 0, 0, 0, 0, 0]).slice(0, 7);
-      gameState.haveT = d.t | 0;
-      gameState.run = +d.r || 0;
+      gameState.echoesOwned = (d.h || gameState.echoesOwned).concat([0, 0, 0, 0, 0, 0, 0]).slice(0, 7);
+      gameState.hasTimeEcho = d.t | 0;
+      gameState.runTime = +d.r || 0;
       gameState.hpMax = 3;
       gameState.hp = d.hp > 0 ? Math.min(gameState.hpMax, +d.hp) : gameState.hpMax;
-      gameState.sh = Math.max(0, Math.min(6, +d.sh || 0));
+      gameState.bonusHearts = Math.max(0, Math.min(6, +d.sh || 0));
       gameState.gauge = Math.max(0, Math.min(10, d.g === undefined ? 10 : +d.g));
-      gameState.vis = d.v || {};
-      gameState.cl = d.cl || {};
-      gameState.anchAll = d.aa || {};
-      gameState.sol = d.so || {};
-      gameState.bu = d.bu || {};
+      gameState.visitedRooms = d.v || {};
+      gameState.clearedBossRooms = d.cl || {};
+      gameState.anchorsByRoom = d.aa || {};
+      gameState.solvedRooms = d.so || {};
+      gameState.usedBeds = d.bu || {};
       gameState.blue = d.bl || {};
       gameState.seed = d.sd | 0;
-      gameState.hcol = d.hc || {};
+      gameState.collectedHearts = d.hc || {};
       gameState.called = d.ca | 0;
-      gameState.ck = d.ck === undefined ? undefined : d.ck | 0;
+      gameState.checkpointRoom = d.ck === undefined ? undefined : d.ck | 0;
       gameState.deaths = d.dh | 0;
       buildWorld(gameState.seed);
       gameState.cur = Math.min(levels.length - 1, Math.max(0, d.cur | 0));
@@ -97,32 +97,32 @@ export function clearSave() {
 export function resetAll() {
   clearSave();
   gameState.victory = 0;
-  gameState.ph = 0;
+  gameState.overPhase = 0;
   showNameInput(false);
-  gameState.lost = 0;
+  gameState.exploredAtEnd = 0;
   gameState.lt = 0;
-  gameState.run = 0;
+  gameState.runTime = 0;
   gameState.hpMax = 3;
   gameState.hp = 3;
-  gameState.sh = 0;
-  gameState.idle = 0;
+  gameState.bonusHearts = 0;
+  gameState.idleTime = 0;
   gameState.gauge = 10;
-  gameState.hcol = {};
-  gameState.vis = {};
-  gameState.cl = {};
-  gameState.anchAll = {};
-  gameState.sol = {};
-  gameState.bu = {};
+  gameState.collectedHearts = {};
+  gameState.visitedRooms = {};
+  gameState.clearedBossRooms = {};
+  gameState.anchorsByRoom = {};
+  gameState.solvedRooms = {};
+  gameState.usedBeds = {};
   gameState.called = 0;
-  gameState.ck = undefined;
+  gameState.checkpointRoom = undefined;
   gameState.deaths = 0;
-  gameState.cur = HUB;
-  gameState.have = [0, 0, 0, 0, 0, 0, 0];
-  gameState.haveT = 0;
-  gameState.sel = 0;
-  gameState.rst = 0;
+  gameState.cur = HUB_ROOM;
+  gameState.echoesOwned = [0, 0, 0, 0, 0, 0, 0];
+  gameState.hasTimeEcho = 0;
+  gameState.selectedEcho = 0;
+  gameState.resetArmedTimer = 0;
   gameState.name = '';
   newGame();
-  load(HUB);
+  loadRoom(HUB_ROOM);
   gameState.mode = 'title';
 }

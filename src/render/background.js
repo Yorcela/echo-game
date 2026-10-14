@@ -1,11 +1,11 @@
 import { runtime } from '../state/runtime.js';
-import { FLOOR, H, T, W } from '../core/config.js';
+import { FLOOR_Y, HEIGHT, TILE, WIDTH } from '../core/config.js';
 import { ctx } from '../core/canvas.js';
 import { levels } from '../data/levels.js';
 import { gameState } from '../state/state.js';
-import { INK } from './primitives.js';
+import { INK_COLOR } from './primitives.js';
 /* ---------- Décor : château hanté ---------- */
-const ZPAL = [
+const ZONE_PALETTES = [
   {
     w: '#4C566C',
     w2: '#424B60',
@@ -79,15 +79,15 @@ const ZPAL = [
     win: '#FFE0A0',
   },
 ];
-const zoneOf = (i) => Math.min((levels[i] && levels[i].zone) | 0, ZPAL.length - 1);
-const mulb = (a) => () => {
+const zoneOf = (i) => Math.min((levels[i] && levels[i].zone) | 0, ZONE_PALETTES.length - 1);
+const mulberry32 = (a) => () => {
   a |= 0;
   a = (a + 0x6d2b79f5) | 0;
   let t = Math.imul(a ^ (a >>> 15), 1 | a);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
-const BGC = {};
+const backgroundCache = {};
 function archPath(g, x, y, w, h) {
   // arc brisé : base (x..x+w, y+h), sommet (x+w/2,y)
   g.beginPath();
@@ -98,20 +98,20 @@ function archPath(g, x, y, w, h) {
   g.lineTo(x + w, y + h);
   g.closePath();
 }
-function castleBG(i) {
-  if (BGC[i]) return BGC[i];
+function buildCastleBackground(i) {
+  if (backgroundCache[i]) return backgroundCache[i];
   const cv = document.createElement('canvas');
-  cv.width = W;
-  cv.height = H;
+  cv.width = WIDTH;
+  cv.height = HEIGHT;
   const g = cv.getContext('2d');
-  const R = mulb(9137 + i * 131),
-    Z = ZPAL[zoneOf(i)],
+  const R = mulberry32(9137 + i * 131),
+    Z = ZONE_PALETTES[zoneOf(i)],
     lights = [],
     eyes = [],
     flames = [];
   // mur de pierre
   g.fillStyle = Z.w;
-  g.fillRect(0, 0, W, H);
+  g.fillRect(0, 0, WIDTH, HEIGHT);
   for (let r = 0; r < 34; r++) {
     const off = (r % 2) * 16;
     for (let c = -1; c < 31; c++) {
@@ -128,7 +128,7 @@ function castleBG(i) {
   g.beginPath();
   for (let r = 0; r <= 34; r++) {
     g.moveTo(0, r * 16);
-    g.lineTo(W, r * 16);
+    g.lineTo(WIDTH, r * 16);
   }
   for (let r = 0; r < 34; r++) {
     const off = (r % 2) * 16;
@@ -140,16 +140,16 @@ function castleBG(i) {
   g.stroke();
   g.globalAlpha = 1;
   // ombre profonde en haut et en bas
-  let gr = g.createLinearGradient(0, 0, 0, H);
+  let gr = g.createLinearGradient(0, 0, 0, HEIGHT);
   gr.addColorStop(0, 'rgba(8,6,16,.55)');
   gr.addColorStop(0.28, 'rgba(8,6,16,0)');
   gr.addColorStop(0.7, 'rgba(8,6,16,0)');
   gr.addColorStop(1, 'rgba(8,6,16,.5)');
   g.fillStyle = gr;
-  g.fillRect(0, 0, W, H);
+  g.fillRect(0, 0, WIDTH, HEIGHT);
   // travées : piliers + arcs brisés
   const bays = 4,
-    bw = W / bays;
+    bw = WIDTH / bays;
   for (let b = 0; b < bays; b++) {
     const x0 = b * bw + 22,
       w = bw - 44;
@@ -196,8 +196,8 @@ function castleBG(i) {
       g.beginPath();
       g.moveTo(wx, wy + wh);
       g.lineTo(wx + ww, wy + wh);
-      g.lineTo(wx + ww + 60, H - 40);
-      g.lineTo(wx - 60, H - 40);
+      g.lineTo(wx + ww + 60, HEIGHT - 40);
+      g.lineTo(wx - 60, HEIGHT - 40);
       g.fill();
       g.globalAlpha = 1;
     } else if (kind < 0.62) {
@@ -218,7 +218,7 @@ function castleBG(i) {
       g.fillStyle = Z.tp;
       g.fill();
       g.lineWidth = 4;
-      g.strokeStyle = INK;
+      g.strokeStyle = INK_COLOR;
       g.stroke();
       g.strokeStyle = '#E2B04A';
       g.lineWidth = 3;
@@ -235,7 +235,7 @@ function castleBG(i) {
       g.quadraticCurveTo(cx, ty + 112, cx - 18, ty + 90);
       g.closePath();
       g.fill();
-      g.strokeStyle = INK;
+      g.strokeStyle = INK_COLOR;
       g.lineWidth = 3;
       g.stroke();
       g.fillStyle = Z.tp;
@@ -258,7 +258,7 @@ function castleBG(i) {
       g.fillStyle = '#8A6A2E';
       g.fillRect(px - 8, py - 8, pw + 16, ph + 16);
       g.lineWidth = 4;
-      g.strokeStyle = INK;
+      g.strokeStyle = INK_COLOR;
       g.strokeRect(px - 8, py - 8, pw + 16, ph + 16);
       g.fillStyle = '#BFA05A';
       g.fillRect(px - 4, py - 4, pw + 8, 4);
@@ -302,7 +302,7 @@ function castleBG(i) {
       g.strokeStyle = Z.m;
       g.stroke();
       g.fillStyle = '#7C8496';
-      g.strokeStyle = INK;
+      g.strokeStyle = INK_COLOR;
       g.lineWidth = 3;
       g.beginPath();
       g.ellipse(ax, ay - 62, 13, 15, 0, 0, 7);
@@ -311,7 +311,7 @@ function castleBG(i) {
       g.fillStyle = '#10101A';
       g.fillRect(ax - 8, ay - 65, 16, 4);
       g.fillStyle = '#7C8496';
-      rr2(g, ax - 17, ay - 48, 34, 48, 6);
+      roundRectPathOn(g, ax - 17, ay - 48, 34, 48, 6);
       g.fill();
       g.stroke();
       g.fillRect(ax - 26, ay - 46, 10, 34);
@@ -331,23 +331,23 @@ function castleBG(i) {
     // pilier à droite de la travée
     const px = b * bw + bw - 22;
     g.fillStyle = Z.w2;
-    g.fillRect(px - 14, 60, 28, H);
+    g.fillRect(px - 14, 60, 28, HEIGHT);
     g.fillStyle = Z.w3;
-    g.fillRect(px - 14, 60, 6, H);
+    g.fillRect(px - 14, 60, 6, HEIGHT);
     g.fillStyle = 'rgba(8,6,16,.25)';
-    g.fillRect(px + 6, 60, 8, H);
-    g.strokeStyle = INK;
+    g.fillRect(px + 6, 60, 8, HEIGHT);
+    g.strokeStyle = INK_COLOR;
     g.lineWidth = 3;
-    g.strokeRect(px - 14, 60, 28, H);
+    g.strokeRect(px - 14, 60, 28, HEIGHT);
     g.fillStyle = Z.w3;
     g.fillRect(px - 20, 52, 40, 14);
     g.strokeRect(px - 20, 52, 40, 14);
-    g.fillRect(px - 20, H - 62, 40, 12);
-    g.strokeRect(px - 20, H - 62, 40, 12);
+    g.fillRect(px - 20, HEIGHT - 62, 40, 12);
+    g.strokeRect(px - 20, HEIGHT - 62, 40, 12);
     // gargouille sur le chapiteau
     if (R() < 0.7) {
       g.fillStyle = '#6E7688';
-      g.strokeStyle = INK;
+      g.strokeStyle = INK_COLOR;
       g.lineWidth = 3;
       g.beginPath();
       g.moveTo(px - 14, 76);
@@ -372,7 +372,7 @@ function castleBG(i) {
       g.fillStyle = '#1A1410';
       g.fillRect(lx - 2, ly - 14, 4, 10);
       g.fillRect(lx - 8, ly - 4, 16, 18);
-      g.strokeStyle = INK;
+      g.strokeStyle = INK_COLOR;
       g.lineWidth = 2.5;
       g.strokeRect(lx - 8, ly - 4, 16, 18);
       g.fillStyle = Z.gl;
@@ -387,10 +387,10 @@ function castleBG(i) {
   }
   // piliers d'extrémité gauche
   g.fillStyle = Z.w2;
-  g.fillRect(0, 60, 22, H);
-  g.strokeStyle = INK;
+  g.fillRect(0, 60, 22, HEIGHT);
+  g.strokeStyle = INK_COLOR;
   g.lineWidth = 3;
-  g.strokeRect(-2, 60, 24, H);
+  g.strokeRect(-2, 60, 24, HEIGHT);
   // lustres
   const nl = 1 + (R() < 0.6 ? 1 : 0);
   for (let k = 0; k < nl; k++) {
@@ -424,7 +424,7 @@ function castleBG(i) {
       const fy = ly + (dx ? 10 - Math.abs(dx) * 0.0 : 6) - 2;
       g.fillStyle = '#F4EBD0';
       g.fillRect(lx + dx - 3, fy - 12, 6, 12);
-      g.strokeStyle = INK;
+      g.strokeStyle = INK_COLOR;
       g.lineWidth = 1.5;
       g.strokeRect(lx + dx - 3, fy - 12, 6, 12);
       flames.push({
@@ -462,17 +462,24 @@ function castleBG(i) {
     g.stroke();
   };
   web(24, 34, 1, 1, 92);
-  web(W - 24, 34, -1, 1, 80);
+  web(WIDTH - 24, 34, -1, 1, 80);
   // grandes poutres du plafond
   g.fillStyle = 'rgba(8,6,16,.4)';
-  for (let k = 0; k < 5; k++) g.fillRect((k * W) / 4 - 8, 34, 16, 26);
+  for (let k = 0; k < 5; k++) g.fillRect((k * WIDTH) / 4 - 8, 34, 16, 26);
   // vignette
-  const v = g.createRadialGradient(W / 2, H / 2, H * 0.38, W / 2, H / 2, H * 0.98);
+  const v = g.createRadialGradient(
+    WIDTH / 2,
+    HEIGHT / 2,
+    HEIGHT * 0.38,
+    WIDTH / 2,
+    HEIGHT / 2,
+    HEIGHT * 0.98,
+  );
   v.addColorStop(0, 'rgba(6,4,14,0)');
   v.addColorStop(1, 'rgba(6,4,14,.62)');
   g.fillStyle = v;
-  g.fillRect(0, 0, W, H);
-  return (BGC[i] = {
+  g.fillRect(0, 0, WIDTH, HEIGHT);
+  return (backgroundCache[i] = {
     cv,
     lights,
     eyes,
@@ -480,17 +487,24 @@ function castleBG(i) {
     Z,
   });
 }
-export function drawBGPaper() {
-  drawBG(0, 0);
+export function drawPaperBackground() {
+  drawBackground(0, 0);
   ctx.fillStyle = 'rgba(238,224,184,.80)';
-  ctx.fillRect(0, 0, W, H);
-  const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.95);
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  const v = ctx.createRadialGradient(
+    WIDTH / 2,
+    HEIGHT / 2,
+    HEIGHT * 0.3,
+    WIDTH / 2,
+    HEIGHT / 2,
+    HEIGHT * 0.95,
+  );
   v.addColorStop(0, 'rgba(60,35,10,0)');
   v.addColorStop(1, 'rgba(40,22,8,.45)');
   ctx.fillStyle = v;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 }
-function rr2(g, x, y, w, h, r) {
+function roundRectPathOn(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y);
   g.arcTo(x + w, y, x + w, y + h, r);
@@ -499,8 +513,8 @@ function rr2(g, x, y, w, h, r) {
   g.arcTo(x, y, x + w, y, r);
   g.closePath();
 }
-export function drawBG(boil, i = 0) {
-  const B = castleBG(i);
+export function drawBackground(boil, i = 0) {
+  const B = buildCastleBackground(i);
   ctx.drawImage(B.cv, 0, 0);
   const t = gameState.time;
   ctx.save();
@@ -548,7 +562,7 @@ export function drawBG(boil, i = 0) {
   for (let k = 0; k < 4; k++) {
     const x = ((t * 14 + k * 260) % 1300) - 220;
     ctx.beginPath();
-    ctx.ellipse(x, H - 120 + Math.sin(t * 0.6 + k) * 8, 190, 26, 0, 0, 7);
+    ctx.ellipse(x, HEIGHT - 120 + Math.sin(t * 0.6 + k) * 8, 190, 26, 0, 0, 7);
     ctx.fill();
   }
   ctx.restore();
@@ -560,7 +574,7 @@ export function drawFloorFx() {
   ctx.lineCap = 'round';
   // fissures sur les deux dalles qui tomberont aux prochains pas
   {
-    const heavy = (runtime.FLR.steps || 0) % 2 === 1,
+    const heavy = (runtime.colossusFloor.steps || 0) % 2 === 1,
       L = [];
     let l = -1,
       r = -1;
@@ -576,49 +590,49 @@ export function drawFloorFx() {
       }
     for (const cc of [l, r]) {
       if (cc < 0) continue;
-      const x = cc * T;
-      ctx.strokeStyle = INK;
+      const x = cc * TILE;
+      ctx.strokeStyle = INK_COLOR;
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(x + 6, FLOOR + 1);
-      ctx.lineTo(x + 12, FLOOR + 9);
-      ctx.lineTo(x + 9, FLOOR + 17);
-      ctx.lineTo(x + 16, FLOOR + 27);
+      ctx.moveTo(x + 6, FLOOR_Y + 1);
+      ctx.lineTo(x + 12, FLOOR_Y + 9);
+      ctx.lineTo(x + 9, FLOOR_Y + 17);
+      ctx.lineTo(x + 16, FLOOR_Y + 27);
       if (heavy) {
-        ctx.moveTo(x + 26, FLOOR + 2);
-        ctx.lineTo(x + 20, FLOOR + 11);
-        ctx.lineTo(x + 24, FLOOR + 20);
-        ctx.moveTo(x + 2, FLOOR + 14);
-        ctx.lineTo(x + 14, FLOOR + 16);
-        ctx.lineTo(x + 30, FLOOR + 12);
+        ctx.moveTo(x + 26, FLOOR_Y + 2);
+        ctx.lineTo(x + 20, FLOOR_Y + 11);
+        ctx.lineTo(x + 24, FLOOR_Y + 20);
+        ctx.moveTo(x + 2, FLOOR_Y + 14);
+        ctx.lineTo(x + 14, FLOOR_Y + 16);
+        ctx.lineTo(x + 30, FLOOR_Y + 12);
       }
       ctx.stroke();
       if (heavy && Math.floor(t * 6 + cc) % 3 === 0) {
         ctx.fillStyle = 'rgba(233,223,196,.8)';
-        ctx.fillRect(x + 4 + ((cc * 7) % 20), FLOOR - 2 - ((t * 30) % 10), 3, 3);
+        ctx.fillRect(x + 4 + ((cc * 7) % 20), FLOOR_Y - 2 - ((t * 30) % 10), 3, 3);
       }
     }
   }
   // débris qui tombent
   const nf = [];
-  for (const f of runtime.FLR.fx || []) {
+  for (const f of runtime.colossusFloor.fx || []) {
     const a = t - f.t;
     if (a > 1.6) continue;
     nf.push(f);
     for (let r = 0; r < 3; r++)
       for (let q = 0; q < 2; q++) {
         const sd = ((f.c * 13 + r * 7 + q * 5) % 9) - 4,
-          x0 = f.c * T + q * 16 + 8,
+          x0 = f.c * TILE + q * 16 + 8,
           vy0 = -60 - ((f.c + r * 3 + q) % 5) * 30;
         const x = x0 + sd * a * 18,
-          y = FLOOR + r * T + 16 + vy0 * a + 950 * a * a,
+          y = FLOOR_Y + r * TILE + 16 + vy0 * a + 950 * a * a,
           rot = a * (sd || 1) * 3;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(rot);
         ctx.globalAlpha = Math.max(0, 1 - a / 1.6);
         ctx.fillStyle = (f.c + r + q) % 2 ? '#51424A' : '#5C4B50';
-        ctx.strokeStyle = INK;
+        ctx.strokeStyle = INK_COLOR;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.rect(-8, -7, 16, 14);
@@ -631,10 +645,10 @@ export function drawFloorFx() {
         ctx.restore();
       }
   }
-  runtime.FLR.fx = nf;
+  runtime.colossusFloor.fx = nf;
   // dalles qui reviennent : projetées en l'air, elles retombent à leur place
   for (let c = 1; c <= 28; c++) {
-    const rs = runtime.FLR.rise[c];
+    const rs = runtime.colossusFloor.rise[c];
     if (!rs) continue;
     const a = t - rs;
     if (a >= 0.9) continue;
@@ -643,18 +657,18 @@ export function drawFloorFx() {
       rot = (1 - u) * (c % 2 ? 0.5 : -0.5);
     for (let r = 14; r <= 16; r++) {
       ctx.save();
-      ctx.translate(c * T + T / 2, r * T + T / 2 + off);
+      ctx.translate(c * TILE + TILE / 2, r * TILE + TILE / 2 + off);
       ctx.rotate(rot);
       ctx.fillStyle = (c + r) % 3 ? '#51424A' : '#5C4B50';
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.rect(-T / 2, -T / 2, T, T);
+      ctx.rect(-TILE / 2, -TILE / 2, TILE, TILE);
       ctx.fill();
       ctx.stroke();
       if (r === 14) {
         ctx.fillStyle = '#CDB98A';
-        ctx.fillRect(-T / 2, -T / 2, T, 7);
+        ctx.fillRect(-TILE / 2, -TILE / 2, TILE, 7);
       }
       ctx.restore();
     }

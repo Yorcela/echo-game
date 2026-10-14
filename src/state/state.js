@@ -1,71 +1,71 @@
 import { runtime } from './runtime.js';
 /* ---------- État ---------- */
-export const GW = 13,
-  GH = 10,
-  HUB = 43,
+export const MAP_COLS = 13,
+  MAP_ROWS = 10,
+  HUB_ROOM = 43,
   SAVEKEY = 'echo-4';
 export const gameState = {
-  slide: 0,
-  sdir: 1,
-  sv: 0,
+  slideTimer: 0,
+  slideDirX: 1,
+  slideDirY: 0,
   entryRoom: -1,
   entryRow: 13,
-  vis: {},
-  cl: {},
-  anchAll: {},
-  sol: {},
-  bu: {},
+  visitedRooms: {},
+  clearedBossRooms: {},
+  anchorsByRoom: {},
+  solvedRooms: {},
+  usedBeds: {},
   blue: {},
   seed: 0,
   name: '',
   called: 0,
-  cur: HUB,
+  cur: HUB_ROOM,
   entry: 'p',
   fade: 0,
   stA: 1,
   exA: 1,
   bkA: 0,
   bkT: 0,
-  won: -1,
-  mapFrom: 'pause',
+  wonRoom: -1,
+  mapOpenedFrom: 'pause',
   hp: 3,
   hpMax: 3,
-  sh: 0,
-  idle: 0,
-  inv: 0,
-  hcol: {},
+  bonusHearts: 0,
+  idleTime: 0,
+  invulnerableTimer: 0,
+  collectedHearts: {},
   ic: 0,
-  ph: 0,
-  lost: 0,
-  lostRank: 0,
+  overPhase: 0,
+  exploredAtEnd: 0,
+  leaderboardRank: 0,
   lt: 0,
-  run: 0,
-  newRec: 0,
-  bmax: 0,
+  runTime: 0,
+  newRecordKind: 0,
+  bossMaxHp: 0,
   page: 0,
-  endInfo: null,
-  anch: {},
-  rst: 0,
+  endResult: null,
+  roomAnchors: {},
+  resetArmedTimer: 0,
   mode: 'title',
-  lvl: HUB,
-  have: [0, 0, 0, 0, 0, 0, 0],
-  haveT: 0,
-  hist: [],
+  lvl: HUB_ROOM,
+  echoesOwned: [0, 0, 0, 0, 0, 0, 0],
+  hasTimeEcho: 0,
+  history: [],
   gauge: 10,
-  cd: 0,
-  sel: 0,
+  echoCooldown: 0,
+  selectedEcho: 0,
   time: 0,
-  hintT: 0,
+  hintTimer: 0,
   flash: 0,
   shake: 0,
   winT: 0,
-  rtarget: 1,
+  rewindTargetFrame: 1,
   free: 0,
-  msg: '',
-  msgT: 0,
-  gainT: 0,
-  gain: null,
-  bedT: 0,
+  message: '',
+  messageTimer: 0,
+  gainTimer: 0,
+  gainedEcho: null,
+  bedFadeTimer: 0,
   victory: 0,
 };
 export const enemyTypes = {
@@ -88,8 +88,8 @@ export const enemyTypes = {
     hp: 99,
   },
 };
-runtime.CR = [];
-runtime.crT = 0;
+runtime.crumbleTiles = [];
+runtime.crumbleTimer = 0;
 runtime.statue = null;
 runtime.bed = null;
 runtime.hearts = [];
@@ -97,13 +97,13 @@ runtime.level = undefined;
 runtime.grid = undefined;
 runtime.plates = undefined;
 runtime.anchors = [];
-runtime.ctm = {};
-runtime.ents = undefined;
-runtime.brokenLog = undefined;
-runtime.open = {};
+runtime.crumbleTileTimers = {};
+runtime.entities = undefined;
+runtime.brokenTilesLog = undefined;
+runtime.openDoors = {};
 runtime.player = undefined;
 runtime.echoClone = null;
-runtime.spawnPt = undefined;
+runtime.spawnPoint = undefined;
 export const input = {
     l: 0,
     r: 0,
@@ -129,35 +129,38 @@ export const input = {
     jp: 0,
     jh: 0,
   };
-export let INFO = true;
+export let infoEnabled = true;
 try {
-  INFO = localStorage.getItem('echo-info') !== '0';
+  infoEnabled = localStorage.getItem('echo-info') !== '0';
 } catch (e) {}
-export const say = (t, d = 1.8) => {
-  if (!INFO && !say.force) return;
-  gameState.msg = t;
-  gameState.msgT = d;
+export const showMessage = (t, d = 1.8) => {
+  if (!infoEnabled && !showMessage.force) return;
+  gameState.message = t;
+  gameState.messageTimer = d;
 };
-say.force = 0;
-export function setInfo(v) {
-  INFO = !!v;
+showMessage.force = 0;
+export function setInfoEnabled(v) {
+  infoEnabled = !!v;
   try {
-    localStorage.setItem('echo-info', INFO ? '1' : '0');
+    localStorage.setItem('echo-info', infoEnabled ? '1' : '0');
   } catch (e) {}
-  if (INFO) {
-    gameState.hintT = 0;
+  if (infoEnabled) {
+    gameState.hintTimer = 0;
   } else {
-    gameState.msgT = 0;
+    gameState.messageTimer = 0;
   }
-  say.force = 1;
-  say(INFO ? 'Infos activées (I pour les couper)' : 'Infos désactivées (I pour les remettre)', 2.2);
-  say.force = 0;
+  showMessage.force = 1;
+  showMessage(
+    infoEnabled ? 'Infos activées (I pour les couper)' : 'Infos désactivées (I pour les remettre)',
+    2.2,
+  );
+  showMessage.force = 0;
 }
-export const fmt = (t) => {
+export const formatTime = (t) => {
   t = Math.max(0, t);
   const m = Math.floor(t / 60),
     s = t - m * 60;
   return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
 };
-export const owned = () => [0, 1, 2, 3, 4].filter((i) => gameState.have[i]);
-export const bossAlive = () => runtime.ents.some((e) => e.k === 'b' && e.alive);
+export const ownedEchoes = () => [0, 1, 2, 3, 4].filter((i) => gameState.echoesOwned[i]);
+export const isBossAlive = () => runtime.entities.some((e) => e.k === 'b' && e.alive);

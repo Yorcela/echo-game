@@ -1,5 +1,5 @@
 /* ---------- Générateur de salles (fonctions pures, aussi chargées par les tests) ---------- */
-export function rngf(seed) {
+export function seededRandom(seed) {
   let a = seed | 0;
   return () => {
     a = (a + 0x6d2b79f5) | 0;
@@ -8,7 +8,7 @@ export function rngf(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function gBlank() {
+function blankGrid() {
   const g = [];
   for (let r = 0; r < 17; r++) {
     g.push([]);
@@ -16,13 +16,13 @@ function gBlank() {
   }
   return g;
 }
-function gPl(g, r, a, b, ch = '#') {
+function placePlatform(g, r, a, b, ch = '#') {
   for (let c = Math.max(1, a); c <= Math.min(28, b); c++) g[r][c] = ch;
 }
-function gCol(g, c, r0, r1, ch = '#') {
+function placeColumn(g, c, r0, r1, ch = '#') {
   for (let r = r0; r <= r1; r++) g[r][c] = ch;
 }
-function gPit(g, a, b) {
+function placePit(g, a, b) {
   for (let c = a; c <= b; c++) for (let r = 14; r <= 16; r++) g[r][c] = '.';
 }
 // paliers : F libre · E dash ou double saut · J double saut · D dash · B les deux
@@ -42,11 +42,11 @@ const TIERS = {
   },
 };
 // ----- montées (salle du bas, trou de plafond c0..c1). renvoie {zone,hs}
-function gClimb(g, k, rnd) {
+function placeClimb(g, k, rnd) {
   const c0 = k.c0,
     c1 = k.c1;
   if (k.kind === 'ladder') {
-    gCol(g, c0, 0, 13, '|');
+    placeColumn(g, c0, 0, 13, '|');
     return {
       zone: [c0 - 2, c1 + 2],
       hs: [],
@@ -83,7 +83,7 @@ function gClimb(g, k, rnd) {
       [4, fr],
       [2, tp],
     ];
-  for (const [r, [a, b]] of list) gPl(g, r, a, b);
+  for (const [r, [a, b]] of list) placePlatform(g, r, a, b);
   const xs = list.flatMap(([r, [a, b]]) => [a, b]);
   const hr = k.kind === 'dj' ? [3, (fr[0] + fr[1]) >> 1] : [7, (fr[0] + fr[1]) >> 1];
   return {
@@ -92,13 +92,13 @@ function gClimb(g, k, rnd) {
   };
 }
 // ----- obstacle de palier dans la plage libre [a,b] ; renvoie la zone occupée
-function gTier(g, t, a, b, rnd) {
+function placeTier(g, t, a, b, rnd) {
   const span = b - a + 1;
   if (t === 'F') {
     const v = Math.floor(rnd() * 6);
     const m = a + Math.floor(span / 2);
     if (v === 0) {
-      gPit(g, m - 1, m + 1);
+      placePit(g, m - 1, m + 1);
       return {
         zone: [m - 5, m + 5],
         hs: [],
@@ -113,14 +113,14 @@ function gTier(g, t, a, b, rnd) {
       };
     }
     if (v === 2) {
-      gCol(g, m, 11, 13);
+      placeColumn(g, m, 11, 13);
       return {
         zone: [m - 5, m + 5],
         hs: [],
       };
     }
     if (v === 3) {
-      gPit(g, m - 2, m + 1);
+      placePit(g, m - 2, m + 1);
       return {
         zone: [m - 6, m + 5],
         hs: [],
@@ -131,13 +131,13 @@ function gTier(g, t, a, b, rnd) {
       g[13][m - 2] = '^';
       g[13][m + 3] = '^';
       g[13][m + 4] = '^';
-      gCol(g, m, 12, 13);
+      placeColumn(g, m, 12, 13);
       return {
         zone: [m - 6, m + 7],
         hs: [],
       };
     }
-    gPl(g, 12, m - 2, m + 2);
+    placePlatform(g, 12, m - 2, m + 2);
     for (let c = m - 1; c <= m + 1; c++) g[13][c] = '^';
     return {
       zone: [m - 5, m + 5],
@@ -147,7 +147,7 @@ function gTier(g, t, a, b, rnd) {
   if (t === 'E') {
     const w = 6 + (rnd() < 0.5 ? 1 : 0),
       m = a + Math.floor((span - w) / 2);
-    gPit(g, m, m + w - 1);
+    placePit(g, m, m + w - 1);
     return {
       zone: [m - 6, m + w + 5],
       hs: [],
@@ -157,7 +157,7 @@ function gTier(g, t, a, b, rnd) {
   if (t === 'B') {
     const w = 10 + (rnd() < 0.5 ? 1 : 0),
       m = a + Math.floor((span - w) / 2);
-    gPit(g, m, m + w - 1);
+    placePit(g, m, m + w - 1);
     return {
       zone: [m - 6, m + w + 5],
       hs: [],
@@ -167,10 +167,10 @@ function gTier(g, t, a, b, rnd) {
   if (t === 'J') {
     const m = a + Math.floor(span / 2),
       wide = rnd() < 0.5;
-    gCol(g, m, 10, 13);
+    placeColumn(g, m, 10, 13);
     if (wide) {
-      gCol(g, m + 1, 10, 13);
-      gCol(g, m + 2, 10, 13);
+      placeColumn(g, m + 1, 10, 13);
+      placeColumn(g, m + 2, 10, 13);
     }
     return {
       zone: [m - 6, m + (wide ? 8 : 6)],
@@ -180,7 +180,7 @@ function gTier(g, t, a, b, rnd) {
   if (t === 'D') {
     const w = 7,
       m = a + Math.floor((span - w) / 2);
-    gPit(g, m, m + w - 1);
+    placePit(g, m, m + w - 1);
     for (let c = m - 2; c <= m + w + 1; c++) for (let r = 1; r <= 10; r++) g[r][c] = '#';
     return {
       zone: [m - 8, m + w + 7],
@@ -195,14 +195,14 @@ function gTier(g, t, a, b, rnd) {
 }
 /* sp = {links:[{s:'l'|'r'|'t'|'b',c0,c1,r0,r1,kind,lad}], tier, rest, seed}
    renvoie {rows, hs:[[c,r]...]} ; les trous t/b restent ouverts dans la grille de base (le moteur les referme si le lien est scellé) */
-export function genRoom(sp) {
-  const rnd = rngf(sp.seed | 0),
-    g = gBlank(),
+export function generateRoom(sp) {
+  const rnd = seededRandom(sp.seed | 0),
+    g = blankGrid(),
     zones = [];
   let hs = [];
   for (const k of sp.links) {
     if (k.s === 'l' || k.s === 'r') {
-      gCol(g, k.s === 'l' ? 0 : 29, k.r0, k.r1, '.');
+      placeColumn(g, k.s === 'l' ? 0 : 29, k.r0, k.r1, '.');
     } else if (k.s === 'b') {
       for (let c = k.c0; c <= k.c1; c++) for (let r = 14; r <= 16; r++) g[r][c] = '.';
       zones.push([k.c0 - 3, k.c1 + 3]);
@@ -211,7 +211,7 @@ export function genRoom(sp) {
       }
     } else {
       for (let c = k.c0; c <= k.c1; c++) g[0][c] = '.';
-      const z = gClimb(g, k, rnd);
+      const z = placeClimb(g, k, rnd);
       zones.push(z.zone);
       hs = hs.concat(z.hs);
     }
@@ -220,7 +220,7 @@ export function genRoom(sp) {
     nv = sp.links.length - nh;
   let used = zones.slice();
   if (!sp.rest && nv === 0 && nh >= 1) {
-    const ob = gTier(g, sp.tier || 'F', 6, 23, rnd);
+    const ob = placeTier(g, sp.tier || 'F', 6, 23, rnd);
     used.push(ob.zone);
     if (ob.pit) hs.push([ob.pit[1] + 3, 13]);
     else if (!hs.length) hs.push([ob.zone[1] + 1, 13]);
@@ -231,15 +231,15 @@ export function genRoom(sp) {
     const c = 2 + Math.floor(rnd() * 26);
     if (free(c) && free(c - 1) && free(c + 1)) {
       const h = 1 + Math.floor(rnd() * 3);
-      gCol(g, c, 1, h);
-      if (rnd() < 0.5) gCol(g, c + 1, 1, Math.max(1, h - 1));
+      placeColumn(g, c, 1, h);
+      if (rnd() < 0.5) placeColumn(g, c + 1, 1, Math.max(1, h - 1));
     }
   }
   if (sp.rest) {
     g[13][17] = '=';
     g[13][12] = 'P';
     if (!hs.length) hs.push([21, 10]);
-    gPl(g, 11, 20, 22);
+    placePlatform(g, 11, 20, 22);
   } else if (sp.crabs) {
     for (let i = 0; i < sp.crabs; i++) {
       const c = 3 + Math.floor(rnd() * 24);
@@ -252,7 +252,7 @@ export function genRoom(sp) {
     while (tries++ < 40) {
       const c = 4 + Math.floor(rnd() * 22);
       if (free(c - 2) && free(c + 2)) {
-        gPl(g, 11, c - 1, c + 1);
+        placePlatform(g, 11, c - 1, c + 1);
         hs.push([c, 10]);
         break;
       }

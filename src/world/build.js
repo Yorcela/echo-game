@@ -1,37 +1,55 @@
-import { ARENA, KING, N, ORDER, POOL, handLevels, levels } from '../data/levels.js';
-import { genRoom, rngf } from './generator.js';
-import { HUB } from '../state/state.js';
 import {
-  ALC1,
-  ALC2,
-  BNAME,
-  ENEMY,
+  BOSS_ARENAS,
+  kingRoom,
+  namedRooms,
+  BOSS_ORDER,
+  APPROACH_ROOM_POOL,
+  handLevels,
+  levels,
+} from '../data/levels.js';
+import { generateRoom, seededRandom } from './generator.js';
+import { HUB_ROOM } from '../state/state.js';
+import {
+  colossusAlcove,
+  boltAlcove,
+  WING_NAME_BY_BOSS,
+  ROOM_ENEMIES,
   FL,
-  GCELLS,
-  HLAST,
-  NF,
-  PATCH2,
-  POS,
-  REST_AT,
-  SLOTS,
-  TIER_AT,
+  GENERATED_CELLS,
+  LAST_HANDMADE_ROOM,
+  NO_FLIP,
+  ROOM_PATCHES,
+  ROOM_POSITIONS,
+  REST_ROOM_AT,
+  WING_SLOTS,
+  TIER_AT_CELL,
   WORLD,
-  ZONE_OF,
-  cellAt,
-  rev,
-  setCh,
-  swapLR,
+  ZONE_BY_BOSS,
+  roomAtCell,
+  reverseRow,
+  setTile,
+  swapLeftRightText,
 } from './world.js';
-import { GA, GATE_KIND, GN, HFREE, HKIND, HTIER, edgeCols, hEdge, vEdge } from './edges.js';
+import {
+  CORRIDOR_SUFFIXES,
+  GATE_REQUIREMENTS,
+  CORRIDOR_NAMES,
+  HINT_FREE,
+  HINT_BY_KIND,
+  HINT_BY_TIER,
+  edgeColumns,
+  horizontalEdge,
+  verticalEdge,
+} from './edges.js';
 // choix des 4 salles d'approche d'une aile : elles n'exigent que des échos déjà possédés (O), dont le dernier gagné (newest)
-function chooseApproach(r, O, newest, used, rnd) {
+function chooseApproachRoom(r, O, newest, used, rnd) {
   if (r === 1)
-    return [N.pont1, N.pont2, N.pont3, N.pont4].map((x) => ({
+    return [namedRooms.pont1, namedRooms.pont2, namedRooms.pont3, namedRooms.pont4].map((x) => ({
       r: x,
       need: [],
       d: 0,
     }));
-  const fits = POOL.filter((p) => (p.multi || !used.has(p)) && p.need.every((e) => O.has(e)));
+  const fits = APPROACH_ROOM_POOL.filter((p) => (p.multi || !used.has(p)) && p.need.every((e) => O.has(e)));
   const pickOf = (a) => a[Math.floor(rnd() * a.length)];
   const chosen = [],
     cov = new Set();
@@ -69,15 +87,16 @@ function chooseApproach(r, O, newest, used, rnd) {
   chosen.sort((a, b) => a.d - b.d || a._o - b._o);
   return chosen;
 }
-function prepHand(l, i) {
+function prepareHandmadeRoom(l, i) {
   l.rows = l.rows.slice();
   let sw = 0;
-  if (l.rev && !NF) {
-    l.rows = l.rows.map(rev);
+  if (l.rev && !NO_FLIP) {
+    l.rows = l.rows.map(reverseRow);
     sw++;
   }
   for (let r = 0; r < 17; r++) if (l.rows[r].includes('E')) l.rows[r] = l.rows[r].replace(/E/g, '.');
-  for (const [r, c0, c1, ch] of PATCH2[l.name] || []) for (let c = c0; c <= c1; c++) setCh(l, r, c, ch);
+  for (const [r, c0, c1, ch] of ROOM_PATCHES[l.name] || [])
+    for (let c = c0; c <= c1; c++) setTile(l, r, c, ch);
   // portes et murs renforcés sur toute la hauteur : le double saut ne doit pas les contourner
   if (l.need && !l.boss && !l.noExt)
     for (let c = 1; c < 29; c++) {
@@ -85,15 +104,15 @@ function prepHand(l, i) {
       if ((ch >= 'A' && ch <= 'Z' && ch !== 'E' && ch !== 'P') || ch === '&') {
         let r0 = 13;
         while (r0 > 1 && l.rows[r0 - 1][c] === ch) r0--;
-        for (let r = 1; r < r0; r++) if (l.rows[r][c] === '.') setCh(l, r, c, ch);
+        for (let r = 1; r < r0; r++) if (l.rows[r][c] === '.') setTile(l, r, c, ch);
       }
     }
   {
-    const en = (ENEMY[l.name] || []).slice();
+    const en = (ROOM_ENEMIES[l.name] || []).slice();
     for (let r = 0; r < 17; r++)
       if (l.rows[r].includes('*')) l.rows[r] = l.rows[r].replace(/\*/g, () => en.shift() || '+');
   }
-  if (l.name === 'Pics en rafale') setCh(l, 13, 22, '?');
+  if (l.name === 'Pics en rafale') setTile(l, 13, 22, '?');
   if (l.name === 'Les petites bêtes')
     l.plug = {
       to: 39,
@@ -113,27 +132,29 @@ function prepHand(l, i) {
       [4, 4, 6],
       [2, 0, 2],
     ])
-      for (let c = c0; c <= c1; c++) if (l.rows[r][c] === '.') setCh(l, r, c, '#');
+      for (let c = c0; c <= c1; c++) if (l.rows[r][c] === '.') setTile(l, r, c, '#');
   }
   if (FL[i]) {
-    l.rows = l.rows.map(rev);
+    l.rows = l.rows.map(reverseRow);
     l.flip = 1;
     if (l.sym) l.rows = l.rows.map((r) => r.replace(/[@$]/g, (q) => (q === '@' ? '$' : '@')));
     sw++;
     if (l.plug) l.plug.cells = l.plug.cells.map(([r, c]) => [r, 29 - c]);
   }
-  if (sw % 2 && l.hint) l.hint = swapLR(l.hint);
+  if (sw % 2 && l.hint) l.hint = swapLeftRightText(l.hint);
   for (const k of l.links)
     if (k.s === 'l' || k.s === 'r') {
       const col = k.s === 'l' ? 0 : 29;
-      for (let r = k.r0; r <= k.r1; r++) setCh(l, r, col, '.');
+      for (let r = k.r0; r <= k.r1; r++) setTile(l, r, col, '.');
     }
-  if (l.plug) for (const [r, c] of l.plug.cells) setCh(l, r, c, '&');
+  if (l.plug) for (const [r, c] of l.plug.cells) setTile(l, r, c, '&');
   if (l.boss) l.bossIdx = i;
 }
 // tests : installe une salle du catalogue (par son nom) en salle 0, avec une sortie à droite
 export function installRoom(name) {
-  const r = [...Object.values(N), ...handLevels, KING].find((x) => x && x.name === name && x.rows);
+  const r = [...Object.values(namedRooms), ...handLevels, kingRoom].find(
+    (x) => x && x.name === name && x.rows,
+  );
   if (!r) throw new Error('salle inconnue : ' + name);
   const l = {
     ...r,
@@ -143,21 +164,21 @@ export function installRoom(name) {
         s: 'r',
         r0: 1,
         r1: 13,
-        to: HUB,
+        to: HUB_ROOM,
         fwd: 1,
       },
     ],
-    pos: POS[0],
+    pos: ROOM_POSITIONS[0],
   };
-  const pe = POOL.find((p) => p.r && p.r.name === name);
+  const pe = APPROACH_ROOM_POOL.find((p) => p.r && p.r.name === name);
   if (pe) l.need = pe.need.slice();
   levels[0] = l;
-  prepHand(l, 0);
+  prepareHandmadeRoom(l, 0);
   return 0;
 }
 export function buildWorld(seed) {
   seed = seed | 0;
-  const rnd = rngf(seed ^ 0x2545f491);
+  const rnd = seededRandom(seed ^ 0x2545f491);
   levels.length = 0;
   WORLD.seed = seed;
   WORLD.ranks = [];
@@ -169,11 +190,13 @@ export function buildWorld(seed) {
   });
   // 1. contenu des salles à la main
   const H = [];
-  [handLevels[0], handLevels[1], handLevels[2], N.bestioles, N.briques].forEach((r, i) => (H[i] = mk(r)));
-  H[5] = mk(ARENA.t);
-  H[39] = mk(ALC1);
-  H[40] = mk(ALC2);
-  const perm = SLOTS.map((_, k) => k);
+  [handLevels[0], handLevels[1], handLevels[2], namedRooms.bestioles, namedRooms.briques].forEach(
+    (r, i) => (H[i] = mk(r)),
+  );
+  H[5] = mk(BOSS_ARENAS.t);
+  H[39] = mk(colossusAlcove);
+  H[40] = mk(boltAlcove);
+  const perm = WING_SLOTS.map((_, k) => k);
   for (let k = perm.length - 1; k > 0; k--) {
     const j = Math.floor(rnd() * (k + 1));
     [perm[k], perm[j]] = [perm[j], perm[k]];
@@ -182,12 +205,12 @@ export function buildWorld(seed) {
     O = new Set(),
     plan = [];
   for (let r = 1; r <= 7; r++) {
-    const gain = ORDER[r],
-      slot = SLOTS[perm[r - 1]],
-      newest = ORDER[r - 1];
+    const gain = BOSS_ORDER[r],
+      slot = WING_SLOTS[perm[r - 1]],
+      newest = BOSS_ORDER[r - 1];
     if (r >= 2) O.add(newest);
-    const ap = chooseApproach(r, O, newest, used, rnd);
-    H[slot.b] = mk(ARENA[gain]);
+    const ap = chooseApproachRoom(r, O, newest, used, rnd);
+    H[slot.b] = mk(BOSS_ARENAS[gain]);
     ap.forEach((p, j) => {
       const i = slot.ap[j];
       H[i] = p.gen
@@ -219,11 +242,11 @@ export function buildWorld(seed) {
       ap: ap.map((p) => (p.r ? p.r.name : '(couloir ' + p.gen + ')')),
     });
   }
-  for (let i = 0; i <= HLAST; i++) {
+  for (let i = 0; i <= LAST_HANDMADE_ROOM; i++) {
     if (!H[i]) throw new Error('salle manquante ' + i);
     levels[i] = H[i];
   }
-  levels[HUB] = {
+  levels[HUB_ROOM] = {
     name: 'Hall des Échos',
     hint: '',
     rows: [],
@@ -231,7 +254,7 @@ export function buildWorld(seed) {
     bench: true,
     links: [],
   };
-  GCELLS.forEach((o) => {
+  GENERATED_CELLS.forEach((o) => {
     if (o.skip) return;
     levels[o.i] = {
       name: '',
@@ -243,7 +266,7 @@ export function buildWorld(seed) {
     };
   });
   levels.forEach((l, i) => {
-    l.pos = POS[i];
+    l.pos = ROOM_POSITIONS[i];
   });
   WORLD.perm = perm;
   WORLD.ranks = plan.map((p) => ({
@@ -260,7 +283,7 @@ export function buildWorld(seed) {
   {
     const strip = (a, b) => {
       for (let i = a; i < b; i++)
-        hEdge(
+        horizontalEdge(
           i,
           i + 1,
           {
@@ -269,11 +292,11 @@ export function buildWorld(seed) {
           {},
         );
     };
-    hEdge(HUB, 0, {}, {});
+    horizontalEdge(HUB_ROOM, 0, {}, {});
     strip(0, 2);
     {
       const c = FL[2] ? [1, 3] : [26, 28];
-      vEdge(2, 3, {
+      verticalEdge(2, 3, {
         c0: c[0],
         c1: c[1],
         kind: 'stairs',
@@ -281,7 +304,7 @@ export function buildWorld(seed) {
         fwd: 1,
       });
       const c2 = FL[3] ? [1, 3] : [26, 28];
-      vEdge(3, 4, {
+      verticalEdge(3, 4, {
         c0: c2[0],
         c1: c2[1],
         kind: 'stairs',
@@ -289,7 +312,7 @@ export function buildWorld(seed) {
         fwd: 1,
       });
     }
-    hEdge(
+    horizontalEdge(
       2,
       40,
       {
@@ -299,7 +322,7 @@ export function buildWorld(seed) {
         sec: 1,
       },
     );
-    hEdge(
+    horizontalEdge(
       3,
       39,
       {
@@ -309,7 +332,7 @@ export function buildWorld(seed) {
         sec: 1,
       },
     );
-    hEdge(
+    horizontalEdge(
       4,
       5,
       {
@@ -319,7 +342,7 @@ export function buildWorld(seed) {
     );
     for (const p of plan) {
       const ch = [...p.slot.ap, p.slot.b];
-      hEdge(
+      horizontalEdge(
         p.slot.from,
         ch[0],
         {
@@ -328,7 +351,7 @@ export function buildWorld(seed) {
         {},
       );
       for (let k = 0; k < ch.length - 1; k++)
-        hEdge(
+        horizontalEdge(
           ch[k],
           ch[k + 1],
           {
@@ -337,11 +360,11 @@ export function buildWorld(seed) {
           {},
         );
     }
-    hEdge(cellAt(6, 9), cellAt(7, 9));
-    hEdge(cellAt(7, 9), cellAt(8, 9));
+    horizontalEdge(roomAtCell(6, 9), roomAtCell(7, 9));
+    horizontalEdge(roomAtCell(7, 9), roomAtCell(8, 9));
     for (let x = 0; x < 12; x++) {
-      hEdge(cellAt(x, 0), cellAt(x + 1, 0));
-      hEdge(cellAt(x, 8), cellAt(x + 1, 8));
+      horizontalEdge(roomAtCell(x, 0), roomAtCell(x + 1, 0));
+      horizontalEdge(roomAtCell(x, 8), roomAtCell(x + 1, 8));
     }
     for (const [a, b] of [
       [
@@ -373,18 +396,18 @@ export function buildWorld(seed) {
         [6, 7],
       ],
     ])
-      hEdge(cellAt(...a), cellAt(...b));
+      horizontalEdge(roomAtCell(...a), roomAtCell(...b));
     const SPINE = ['gap', 'ladder', 'stairs', 'stairs', 'ladder', 'stairs', 'ladder', 'stairs', 'stairs'];
     const vs = (x, y, kind) => {
-      const u = cellAt(x, y),
-        d = cellAt(x, y + 1);
+      const u = roomAtCell(x, y),
+        d = roomAtCell(x, y + 1);
       if (u === undefined || d === undefined) throw new Error('puits ' + x + ',' + y);
-      const c = edgeCols(y, kind);
-      vEdge(u, d, {
+      const c = edgeColumns(y, kind);
+      verticalEdge(u, d, {
         c0: c[0],
         c1: c[1],
         kind,
-        gate: GATE_KIND[kind],
+        gate: GATE_REQUIREMENTS[kind],
       });
     };
     SPINE.forEach((k, y) => vs(6, y, k));
@@ -392,11 +415,11 @@ export function buildWorld(seed) {
       vs(0, y, k),
     );
     ['ladder', 'stairs', 'dj', 'stairs', 'gap', 'ladder', 'stairs', 'stairs'].forEach((k, y) => vs(12, y, k));
-    for (const [k, b] of Object.entries(REST_AT)) {
+    for (const [k, b] of Object.entries(REST_ROOM_AT)) {
       if (b < 0) continue;
       const [x, y] = k.split(',').map(Number);
-      if (cellAt(x, y + 1) !== b) throw new Error('boss ' + b + ' pas sous la salle de repos ' + k);
-      vEdge(cellAt(x, y), b, {
+      if (roomAtCell(x, y + 1) !== b) throw new Error('boss ' + b + ' pas sous la salle de repos ' + k);
+      verticalEdge(roomAtCell(x, y), b, {
         c0: -1,
         c1: -1,
         kind: 'ladder',
@@ -407,7 +430,7 @@ export function buildWorld(seed) {
       levels[b].links[levels[b].links.length - 1].gate = {
         cl: b,
       };
-      levels[cellAt(x, y)].links[levels[cellAt(x, y)].links.length - 1].gate = {
+      levels[roomAtCell(x, y)].links[levels[roomAtCell(x, y)].links.length - 1].gate = {
         cl: b,
       };
     }
@@ -415,8 +438,8 @@ export function buildWorld(seed) {
 
   // 3. transformation des salles écrites à la main (retournement, remplissage, escaliers, ennemis…)
   levels.forEach((l, i) => {
-    if (i > HLAST || l.genFill) return;
-    prepHand(l, i);
+    if (i > LAST_HANDMADE_ROOM || l.genFill) return;
+    prepareHandmadeRoom(l, i);
   });
   // colonne de l'échelle de chaque boss : la plus centrale dont les lignes 1..13 sont vides
   const ladderCol = (rows) => {
@@ -430,12 +453,12 @@ export function buildWorld(seed) {
     if (!cs.length) throw new Error('pas de place pour une échelle');
     return cs[0];
   };
-  for (const [k, b] of Object.entries(REST_AT)) {
+  for (const [k, b] of Object.entries(REST_ROOM_AT)) {
     if (b < 0) continue;
     const col = ladderCol(levels[b].rows);
     const [x, y] = k.split(',').map(Number);
     const lk1 = levels[b].links.find((q) => q.lad && q.s === 't'),
-      lk2 = levels[cellAt(x, y)].links.find((q) => q.lad && q.s === 'b');
+      lk2 = levels[roomAtCell(x, y)].links.find((q) => q.lad && q.s === 'b');
     lk1.c0 = lk1.c1 = lk2.c0 = lk2.c1 = col;
   }
 
@@ -445,28 +468,33 @@ export function buildWorld(seed) {
     let nm,
       k = 0;
     do {
-      nm = GN[(o.x * 3 + o.y * 5 + k) % GN.length] + ' ' + GA[(o.x * 7 + o.y * 11 + k * 3) % GA.length];
+      nm =
+        CORRIDOR_NAMES[(o.x * 3 + o.y * 5 + k) % CORRIDOR_NAMES.length] +
+        ' ' +
+        CORRIDOR_SUFFIXES[(o.x * 7 + o.y * 11 + k * 3) % CORRIDOR_SUFFIXES.length];
       k++;
     } while (used2[nm]);
     used2[nm] = 1;
     if (restB !== undefined) {
-      nm = restB > 0 ? 'Repos ' + BNAME[levels[restB].gain] : 'Alcôve de repos';
+      nm = restB > 0 ? 'Repos ' + WING_NAME_BY_BOSS[levels[restB].gain] : 'Alcôve de repos';
     } else if (vt.length) {
       const a = vt.find((q) => q.s === 't') || vt[0];
-      nm = (a.kind === 'ladder' ? 'Puits ' : 'Cheminée ') + GA[(o.x * 5 + o.y * 7) % GA.length];
+      nm =
+        (a.kind === 'ladder' ? 'Puits ' : 'Cheminée ') +
+        CORRIDOR_SUFFIXES[(o.x * 5 + o.y * 7) % CORRIDOR_SUFFIXES.length];
       if (used2[nm]) nm += ' ' + (o.x + o.y);
       used2[nm] = 1;
     }
     return nm;
   };
-  GCELLS.forEach((o) => {
+  GENERATED_CELLS.forEach((o) => {
     if (o.skip) return;
     const l = levels[o.i],
       key = o.x + ',' + o.y,
-      restB = REST_AT[key];
+      restB = REST_ROOM_AT[key];
     l.rest = restB !== undefined;
     l.bench = l.rest;
-    l.tier = TIER_AT[key] || 'F';
+    l.tier = TIER_AT_CELL[key] || 'F';
     const sd = o.fresh ? o.i * 7919 + 13 : (42 + o.k) * 7919 + 13;
     const sp = {
       links: l.links,
@@ -475,7 +503,7 @@ export function buildWorld(seed) {
       seed: sd,
       crabs: l.rest ? 0 : l.tier === 'F' || l.tier === 'E' ? 1 + ((42 + o.k) % 2) : 0,
     };
-    const g = genRoom(sp);
+    const g = generateRoom(sp);
     l.rows = g.rows;
     l.hs = g.hs;
     const vt = l.links.filter((q) => q.s === 't' || q.s === 'b');
@@ -487,15 +515,15 @@ export function buildWorld(seed) {
         (restB > 0 ? " L'échelle ouverte descend jusqu'à la salle du boss." : '');
     else if (vt.length) {
       const a = vt.find((q) => q.s === 't') || vt[0];
-      hint = HKIND[a.kind] || '';
-    } else hint = l.tier === 'F' ? HFREE[(42 + o.k) % HFREE.length] : HTIER[l.tier];
+      hint = HINT_BY_KIND[a.kind] || '';
+    } else hint = l.tier === 'F' ? HINT_FREE[(42 + o.k) % HINT_FREE.length] : HINT_BY_TIER[l.tier];
     l.name = nm;
     l.hint = hint;
   });
   // salles d'approche remplies par le générateur (couloirs à obstacle de palier)
   levels.forEach((l, i) => {
-    if (i > HLAST || !l.genFill) return;
-    const g = genRoom({
+    if (i > LAST_HANDMADE_ROOM || !l.genFill) return;
+    const g = generateRoom({
       links: l.links,
       tier: l.genFill,
       rest: false,
@@ -506,13 +534,16 @@ export function buildWorld(seed) {
     l.hs = g.hs;
     l.gen = 1;
     l.tier = l.genFill;
-    l.name = GN[i % GN.length] + ' ' + GA[(i * 7 + (seed & 15)) % GA.length];
-    l.hint = l.tier === 'F' ? HFREE[i % HFREE.length] : HTIER[l.tier];
+    l.name =
+      CORRIDOR_NAMES[i % CORRIDOR_NAMES.length] +
+      ' ' +
+      CORRIDOR_SUFFIXES[(i * 7 + (seed & 15)) % CORRIDOR_SUFFIXES.length];
+    l.hint = l.tier === 'F' ? HINT_FREE[i % HINT_FREE.length] : HINT_BY_TIER[l.tier];
   });
   // Hall des Échos (départ au centre, arène du Roi à la fin)
   {
-    const l = levels[HUB];
-    const g = genRoom({
+    const l = levels[HUB_ROOM];
+    const g = generateRoom({
       links: l.links,
       tier: 'F',
       rest: true,
@@ -528,19 +559,21 @@ export function buildWorld(seed) {
   }
   // zones de décor : celle du boss de l'aile ; les couloirs générés prennent celle de la salle écrite la plus proche
   levels.forEach((l, i) => {
-    if (i > HLAST) return;
-    l.zone = i <= 5 || i === 39 || i === 40 || l.zoneG === undefined ? 0 : ZONE_OF[l.zoneG];
+    if (i > LAST_HANDMADE_ROOM) return;
+    l.zone = i <= 5 || i === 39 || i === 40 || l.zoneG === undefined ? 0 : ZONE_BY_BOSS[l.zoneG];
   });
   levels.forEach((l, i) => {
-    if (i <= HLAST) return;
-    if (i === HUB) {
+    if (i <= LAST_HANDMADE_ROOM) return;
+    if (i === HUB_ROOM) {
       l.zone = 0;
       return;
     }
     let best = 99,
       z = 0;
-    for (let j = 0; j <= HLAST; j++) {
-      const d = Math.abs(POS[j][0] - POS[i][0]) + Math.abs(POS[j][1] - POS[i][1]);
+    for (let j = 0; j <= LAST_HANDMADE_ROOM; j++) {
+      const d =
+        Math.abs(ROOM_POSITIONS[j][0] - ROOM_POSITIONS[i][0]) +
+        Math.abs(ROOM_POSITIONS[j][1] - ROOM_POSITIONS[i][1]);
       if (d < best) {
         best = d;
         z = levels[j].zone;

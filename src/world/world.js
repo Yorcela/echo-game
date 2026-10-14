@@ -1,15 +1,17 @@
-import { KING, levels } from '../data/levels.js';
-import { HUB, gameState } from '../state/state.js';
-export const kingReady = () =>
-  !!gameState.haveT && [0, 1, 2, 3, 4, 5, 6].every((k) => gameState.have[k]) && !gameState.cl[HUB];
-export const kingLv = () => {
-  const r = KING.rows.map((x) => x.slice(0, 29) + '.');
+import { kingRoom, levels } from '../data/levels.js';
+import { HUB_ROOM, gameState } from '../state/state.js';
+export const isKingReady = () =>
+  !!gameState.hasTimeEcho &&
+  [0, 1, 2, 3, 4, 5, 6].every((k) => gameState.echoesOwned[k]) &&
+  !gameState.clearedBossRooms[HUB_ROOM];
+export const kingArenaLevel = () => {
+  const r = kingRoom.rows.map((x) => x.slice(0, 29) + '.');
   for (let q = 0; q < 17; q++) if (q === 0 || q >= 14) r[q] = r[q].slice(0, 29) + '#';
   return {
-    ...levels[HUB],
-    name: KING.name,
-    hint: KING.hint,
-    boss: KING.boss,
+    ...levels[HUB_ROOM],
+    name: kingRoom.name,
+    hint: kingRoom.hint,
+    boss: kingRoom.boss,
     rows: r,
     king: 1,
     links: [],
@@ -21,19 +23,19 @@ export const kingLv = () => {
 /* ---------- LE MONDE : une grille de 13 x 10 cases, ~100 salles ----------
    Cases et salles de repos fixes ; en revanche le CONTENU des 7 ailes (quelle aile abrite quel boss, et les salles d'approche
    qui obligent à utiliser les échos déjà gagnés) est tiré à chaque nouvelle partie (buildWorld(seed)). */
-export const HLAST = 42; // salles « à la main » : indices 0..42 ; le Hall est 43 ; les salles générées suivent
-export const OPP = {
+export const LAST_HANDMADE_ROOM = 42; // salles « à la main » : indices 0..42 ; le Hall est 43 ; les salles générées suivent
+export const OPPOSITE_SIDE = {
   l: 'r',
   r: 'l',
   t: 'b',
   b: 't',
 };
-export const NF = typeof globalThis !== 'undefined' && !!globalThis.__NOFLIP; // tests : salles non retournées
+export const NO_FLIP = typeof globalThis !== 'undefined' && !!globalThis.__NOFLIP; // tests : salles non retournées
 export const ENTB = {},
   EXITB = {
     1: [1, 4],
   };
-const ALC = (name, hint) => ({
+const makeAlcove = (name, hint) => ({
   name,
   hint,
   bench: false,
@@ -54,9 +56,9 @@ const ALC = (name, hint) => ({
     return r;
   })(),
 });
-export const ALC1 = ALC('Alcôve du Colosse', '');
-export const ALC2 = ALC("Alcôve de l'Éclair", '');
-export const PATCH2 = {
+export const colossusAlcove = makeAlcove('Alcôve du Colosse', '');
+export const boltAlcove = makeAlcove("Alcôve de l'Éclair", '');
+export const ROOM_PATCHES = {
   'Les petites bêtes': [
     [12, 20, 21, '#'],
     [10, 23, 24, '#'],
@@ -76,7 +78,7 @@ export const PATCH2 = {
   'Le rempart': [1, 2, 3, 4, 5, 6, 7].map((r) => [r, 10, 12, '#']),
   'Rempart et miroir': [1, 2, 3, 4, 5, 6, 7].map((r) => [r, 13, 15, '#']),
 };
-export const ENEMY = {
+export const ROOM_ENEMIES = {
   'Coup de tête': ['+'],
   'Les petites bêtes': ['+', '?', '+'],
   'Mur de briques': ['!'],
@@ -85,16 +87,17 @@ export const ENEMY = {
   'Trois remparts': ['!'],
   'Le dernier effort': ['+'],
 };
-export const setCh = (l, r, c, ch) => {
+export const setTile = (l, r, c, ch) => {
   const a = l.rows[r].split('');
   a[c] = ch;
   l.rows[r] = a.join('');
 };
-export const rev = (r) => [...r].reverse().join('');
-export const swapLR = (t) => t.replace(/gauche|droite/g, (m) => (m === 'gauche' ? 'droite' : 'gauche'));
+export const reverseRow = (r) => [...r].reverse().join('');
+export const swapLeftRightText = (t) =>
+  t.replace(/gauche|droite/g, (m) => (m === 'gauche' ? 'droite' : 'gauche'));
 
 // salles écrites à la main : [salle, x, y, entrée à droite ?]
-const HP = [
+const HANDMADE_PLACEMENTS = [
   [0, 5, 5, 1],
   [1, 4, 5, 1],
   [2, 3, 5, 1],
@@ -139,20 +142,20 @@ const HP = [
   [42, 2, 9, 1],
   [36, 1, 9, 1],
 ];
-export const POS = [],
+export const ROOM_POSITIONS = [],
   FL = [],
   CELL = {};
-for (const [i, x, y, f] of HP) {
-  POS[i] = [x, y];
-  FL[i] = !!f && !NF;
+for (const [i, x, y, f] of HANDMADE_PLACEMENTS) {
+  ROOM_POSITIONS[i] = [x, y];
+  FL[i] = !!f && !NO_FLIP;
 }
-POS[HUB] = [6, 5];
-FL[HUB] = false;
+ROOM_POSITIONS[HUB_ROOM] = [6, 5];
+FL[HUB_ROOM] = false;
 // salles générées : cases libres (l'ordre d'origine est gardé pour que chaque graine de salle reste celle qui a été vérifiée)
-export const GCELLS = [];
+export const GENERATED_CELLS = [];
 {
   const add = (x, y, o = {}) =>
-    GCELLS.push({
+    GENERATED_CELLS.push({
       x,
       y,
       ...o,
@@ -195,14 +198,14 @@ export const GCELLS = [];
     fresh: 1,
   });
   let n = 0;
-  GCELLS.forEach((o, k) => {
+  GENERATED_CELLS.forEach((o, k) => {
     o.k = k;
     if (!o.skip) {
-      o.i = HUB + 1 + n++;
+      o.i = HUB_ROOM + 1 + n++;
     }
   });
 }
-export const REST_AT = {
+export const REST_ROOM_AT = {
   '1,0': 30,
   '11,0': 35,
   '1,2': 15,
@@ -213,7 +216,7 @@ export const REST_AT = {
   '1,8': 36,
   '5,7': -1,
 }; // case -> boss dont l'échelle y arrive
-export const TIER_AT = {
+export const TIER_AT_CELL = {
   '2,0': 'E',
   '3,0': 'F',
   '4,0': 'D',
@@ -234,20 +237,21 @@ export const TIER_AT = {
   '7,9': 'F',
   '8,9': 'J',
 };
-GCELLS.forEach((o) => {
+GENERATED_CELLS.forEach((o) => {
   if (o.skip) return;
-  POS[o.i] = [o.x, o.y];
+  ROOM_POSITIONS[o.i] = [o.x, o.y];
   FL[o.i] = false;
 });
-for (let i = 0; i < POS.length; i++) {
-  if (!POS[i]) continue;
-  const k = POS[i] + '';
+for (let i = 0; i < ROOM_POSITIONS.length; i++) {
+  if (!ROOM_POSITIONS[i]) continue;
+  const k = ROOM_POSITIONS[i] + '';
   if (CELL[k] !== undefined) throw new Error('case ' + k + ' : ' + CELL[k] + ' / ' + i);
   CELL[k] = i;
 }
-for (let i = 0; i <= HLAST; i++) if (!POS[i]) throw new Error('salle sans case : ' + i);
-export const cellAt = (x, y) => CELL[x + ',' + y];
-export const ZONE_OF = {
+for (let i = 0; i <= LAST_HANDMADE_ROOM; i++)
+  if (!ROOM_POSITIONS[i]) throw new Error('salle sans case : ' + i);
+export const roomAtCell = (x, y) => CELL[x + ',' + y];
+export const ZONE_BY_BOSS = {
   t: 0,
   0: 1,
   2: 2,
@@ -257,7 +261,7 @@ export const ZONE_OF = {
   6: 6,
   5: 7,
 }; // décor selon le boss de l'aile
-export const BNAME = {
+export const WING_NAME_BY_BOSS = {
   t: 'du Gardien',
   0: 'des Reflets',
   2: 'des Jumeaux',
@@ -268,41 +272,41 @@ export const BNAME = {
   5: "de l'Envol",
 };
 // les 7 ailes mobiles : salles d'approche, salle du boss, case d'où l'on y entre
-export const SLOTS = [
+export const WING_SLOTS = [
   {
     ap: [6, 7, 8, 9],
     b: 10,
-    from: HUB,
+    from: HUB_ROOM,
   },
   {
     ap: [11, 12, 13, 14],
     b: 15,
-    from: cellAt(6, 3),
+    from: roomAtCell(6, 3),
   },
   {
     ap: [16, 17, 18, 19],
     b: 20,
-    from: cellAt(6, 7),
+    from: roomAtCell(6, 7),
   },
   {
     ap: [21, 22, 23, 24],
     b: 25,
-    from: cellAt(6, 3),
+    from: roomAtCell(6, 3),
   },
   {
     ap: [26, 27, 28, 29],
     b: 30,
-    from: cellAt(6, 1),
+    from: roomAtCell(6, 1),
   },
   {
     ap: [31, 32, 33, 34],
     b: 35,
-    from: cellAt(6, 1),
+    from: roomAtCell(6, 1),
   },
   {
     ap: [37, 38, 41, 42],
     b: 36,
-    from: cellAt(6, 9),
+    from: roomAtCell(6, 9),
   },
 ];
 export const WORLD = {

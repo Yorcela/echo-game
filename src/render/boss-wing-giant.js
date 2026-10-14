@@ -1,11 +1,11 @@
 import { runtime } from '../state/runtime.js';
 import { ctx } from '../core/canvas.js';
 import { gameState } from '../state/state.js';
-import { SPR } from './sprites.js';
-import { wormTint } from './characters.js';
+import { SPRITES } from './sprites.js';
+import { getTintedSprite } from './characters.js';
 export function drawEnvol(e, al, tint) {
   const B = runtime.level.boss,
-    iB = SPR.envB,
+    iB = SPRITES['wing-body'],
     IW = iB.naturalWidth,
     IH = iB.naturalHeight,
     k = B.sprH / IH,
@@ -35,7 +35,7 @@ export function drawEnvol(e, al, tint) {
     sx = 0.62;
   }
   for (let pass = 0; pass < (tint ? 2 : 1); pass++) {
-    const g = (n) => (pass ? wormTint(n, tint[0]) : SPR[n]);
+    const g = (n) => (pass ? getTintedSprite(n, tint[0]) : SPRITES[n]);
     ctx.save();
     ctx.translate(cx, by + bob);
     ctx.scale(k, k);
@@ -48,10 +48,10 @@ export function drawEnvol(e, al, tint) {
       ctx.rotate(-sd * ang);
       ctx.scale(sx, 1);
       ctx.translate(-px, -py);
-      ctx.drawImage(g(sd < 0 ? 'envL' : 'envR'), 0, 0);
+      ctx.drawImage(g(sd < 0 ? 'wing-left' : 'wing-right'), 0, 0);
       ctx.restore();
     }
-    ctx.drawImage(g('envB'), 0, 0);
+    ctx.drawImage(g('wing-body'), 0, 0);
     ctx.restore();
   }
 }
@@ -91,7 +91,7 @@ export function drawColossus(e, al, tint) {
   const sy = 1 - cr * 0.28,
     drop = (1 - sy) * (IH - 223.8);
   for (let pass = 0; pass < (tint ? 2 : 1); pass++) {
-    const g = (n) => (pass ? wormTint(n, tint[0]) : SPR[n]);
+    const g = (n) => (pass ? getTintedSprite(n, tint[0]) : SPRITES[n]);
     ctx.save();
     ctx.globalAlpha = pass ? al * tint[1] : al;
     ctx.translate(cx, by);
@@ -111,7 +111,7 @@ export function drawColossus(e, al, tint) {
       ctx.translate(0, IH);
       ctx.scale(1, sy);
       ctx.translate(0, -IH);
-      ctx.drawImage(g(sd < 0 ? 'colLL' : 'colLR'), 0, 0);
+      ctx.drawImage(g(sd < 0 ? 'giant-leg-left' : 'giant-leg-right'), 0, 0);
       ctx.restore();
     }
     // torse + bras (le torse suit le balancement)
@@ -124,7 +124,7 @@ export function drawColossus(e, al, tint) {
       ctx.beginPath();
       ctx.ellipse(sd < 0 ? 157 : 349, 74, 38, 40, 0, 0, 7);
       ctx.clip();
-      ctx.drawImage(g(sd < 0 ? 'colAL' : 'colAR'), 0, 0);
+      ctx.drawImage(g(sd < 0 ? 'giant-arm-left' : 'giant-arm-right'), 0, 0);
       ctx.restore();
     }
     for (const sd of [-1, 1]) {
@@ -136,7 +136,7 @@ export function drawColossus(e, al, tint) {
         a = arm;
       const a1 = a > 0.9 ? a * 0.44 : a,
         a2 = a > 0.9 ? a * 0.56 : 0,
-        key = g(sd < 0 ? 'colAL' : 'colAR'),
+        key = g(sd < 0 ? 'giant-arm-left' : 'giant-arm-right'),
         m = sd < 0 ? IW : 0,
         X = (x) => (sd < 0 ? IW - x : x),
         ex = X(442),
@@ -165,7 +165,7 @@ export function drawColossus(e, al, tint) {
       } else ctx.drawImage(key, 0, 0);
       ctx.restore();
     }
-    ctx.drawImage(g('colT'), 0, 0);
+    ctx.drawImage(g('giant-torso'), 0, 0);
     ctx.restore();
   }
 }

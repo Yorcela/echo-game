@@ -1,13 +1,21 @@
 import { runtime } from '../state/runtime.js';
 import { canvas } from '../core/canvas.js';
-import { INFO, actions, gameState, input, owned, say, setInfo } from '../state/state.js';
-import { resetAll, save, saveScores, scores } from '../state/save.js';
-import { load } from '../world/rooms.js';
-import { doSleep, extendRewind } from '../game/rewind.js';
+import {
+  infoEnabled,
+  actions,
+  gameState,
+  input,
+  ownedEchoes,
+  showMessage,
+  setInfoEnabled,
+} from '../state/state.js';
+import { resetAll, saveGame, saveScores, scores } from '../state/save.js';
+import { loadRoom } from '../world/rooms.js';
+import { sleepInBed, extendRewind } from '../game/rewind.js';
 import { pick } from '../game/echoes.js';
-import { aud, sfx } from '../audio/audio.js';
-import { hitUI } from '../render/primitives.js';
-import { HINT_T, nmEl, showNameInput } from '../ui/hud.js';
+import { ensureAudio, playSfx } from '../audio/audio.js';
+import { hitTestUI } from '../render/primitives.js';
+import { HINT_T, nameInputElement, showNameInput } from '../ui/hud.js';
 import { endTrial, startTrial } from '../ui/screens.js';
 /* ---------- Entrées ---------- */
 const KEYS = {
@@ -39,36 +47,36 @@ export function press(k, down) {
   else if (k === 'h') actions.hit = 1;
 }
 export function advance(fx, fy) {
-  aud();
-  const hit = fx !== undefined && fy !== undefined ? hitUI(fx, fy) : null;
+  ensureAudio();
+  const hit = fx !== undefined && fy !== undefined ? hitTestUI(fx, fy) : null;
   if (hit) {
     gameState.press = hit;
     gameState.pressT = 0.15;
   }
   if (gameState.mode === 'title') {
     if (hit === 'reset') {
-      if (gameState.rst > 0) {
+      if (gameState.resetArmedTimer > 0) {
         resetAll();
-        sfx('death');
+        playSfx('death');
       } else {
-        gameState.rst = 3;
-        sfx('tick');
+        gameState.resetArmedTimer = 3;
+        playSfx('tick');
       }
       return;
     }
     if (hit === 'scores') {
       gameState.mode = 'scores';
       gameState.page = 0;
-      sfx('tick');
+      playSfx('tick');
       return;
     }
     if (hit === 'trial') {
       gameState.mode = 'trial';
-      sfx('tick');
+      playSfx('tick');
       return;
     }
     if (hit === 'play' || fx === undefined) {
-      load(gameState.cur);
+      loadRoom(gameState.cur);
       gameState.fade = 0.4;
     }
   } else if (gameState.mode === 'trial') {
@@ -78,12 +86,12 @@ export function advance(fx, fy) {
     }
     if (hit === 'tback' || fx === undefined) {
       gameState.mode = 'title';
-      sfx('tick');
+      playSfx('tick');
     }
   } else if (gameState.mode === 'scores') {
     if (hit === 'sback' || fx === undefined) {
       gameState.mode = 'title';
-      sfx('tick');
+      playSfx('tick');
     }
   } else if (gameState.mode === 'play') {
     if (hit === 'pause') pauseGame();
@@ -93,9 +101,9 @@ export function advance(fx, fy) {
       if (gameState.bedNear) {
         gameState.mode = 'sleep';
         input.l = input.r = input.jh = input.u = input.d = 0;
-        sfx('tick');
+        playSfx('tick');
       } else
-        say(
+        showMessage(
           runtime.bed &&
             runtime.player.g &&
             Math.abs(runtime.player.x + runtime.player.w / 2 - runtime.bed.x) < 40 &&
@@ -107,16 +115,16 @@ export function advance(fx, fy) {
     } else if (hit === 'bed' || (fx === undefined && gameState.bedNear)) {
       gameState.mode = 'sleep';
       input.l = input.r = input.jh = input.u = input.d = 0;
-      sfx('tick');
+      playSfx('tick');
     } else if (hit === 'hint' || hit === 'toast' || fx === undefined) {
-      gameState.hintT = HINT_T;
-      gameState.msgT = 0;
+      gameState.hintTimer = HINT_T;
+      gameState.messageTimer = 0;
     }
   } else if (gameState.mode === 'sleep') {
     if (hit === 'no') {
       gameState.mode = 'play';
       input.jp = 0;
-    } else if (hit === 'yes' || fx === undefined) doSleep();
+    } else if (hit === 'yes' || fx === undefined) sleepInBed();
   } else if (gameState.mode === 'pause') {
     if (hit === 'menu') {
       if (gameState.trial) {
@@ -124,28 +132,28 @@ export function advance(fx, fy) {
         return;
       }
       gameState.mode = 'title';
-      save();
-      sfx('tick');
+      saveGame();
+      playSfx('tick');
     } else if (hit === 'map') openMap('pause');
     else if (hit === 'info') {
-      setInfo(!INFO);
-      sfx('tick');
+      setInfoEnabled(!infoEnabled);
+      playSfx('tick');
     } else if (hit === 'resume' || fx === undefined) {
       gameState.mode = 'play';
       input.jp = 0;
-      sfx('tick');
+      playSfx('tick');
     }
   } else if (gameState.mode === 'map') {
     if (hit === 'mback' || fx === undefined) mapBack();
     else if (hit && /^m\d+$/.test(hit)) {
       const i = +hit.slice(1);
       gameState.fade = 0.45;
-      load(i, 'p');
-      sfx('tick');
+      loadRoom(i, 'p');
+      playSfx('tick');
     }
   } else if (gameState.mode === 'rewind') {
     if (hit === 'rew') extendRewind();
-  } else if (gameState.mode === 'gain' && gameState.gainT > 0.8) {
+  } else if (gameState.mode === 'gain' && gameState.gainTimer > 0.8) {
     if (gameState.trial) {
       endTrial();
       return;
@@ -155,57 +163,57 @@ export function advance(fx, fy) {
   } else if (gameState.mode === 'end') {
     resetAll();
   } else if (gameState.mode === 'over') {
-    if (gameState.ph === 0) {
+    if (gameState.overPhase === 0) {
       if (hit === 'ok' || fx === undefined) submitOver();
     } else if (hit === 'again' || fx === undefined) {
       resetAll();
-      sfx('tick');
+      playSfx('tick');
     }
   }
 }
 export function submitOver() {
-  if (gameState.mode !== 'over' || gameState.ph !== 0) return;
-  const n = (nmEl.value || '').trim().slice(0, 20) || 'Anonyme',
+  if (gameState.mode !== 'over' || gameState.overPhase !== 0) return;
+  const n = (nameInputElement.value || '').trim().slice(0, 20) || 'Anonyme',
     e = {
       n,
-      l: gameState.lost,
-      t: +gameState.run.toFixed(2),
+      l: gameState.exploredAtEnd,
+      t: +gameState.runTime.toFixed(2),
       v: gameState.victory ? 1 : 0,
     };
   scores.over.push(e);
   scores.over.sort((a, b) => (b.v | 0) - (a.v | 0) || (a.v && b.v ? a.t - b.t : b.l - a.l || a.t - b.t));
   scores.over = scores.over.slice(0, 10);
-  gameState.lostRank = scores.over.indexOf(e) + 1;
+  gameState.leaderboardRank = scores.over.indexOf(e) + 1;
   saveScores();
-  gameState.ph = 1;
+  gameState.overPhase = 1;
   showNameInput(false);
-  sfx('win');
+  playSfx('win');
 }
 function openMap(from) {
-  gameState.mapFrom = from;
+  gameState.mapOpenedFrom = from;
   gameState.mode = 'map';
   input.l = input.r = input.jh = input.u = input.d = 0;
-  sfx('tick');
+  playSfx('tick');
 }
 function mapBack() {
-  if (gameState.mapFrom === 'pause') {
+  if (gameState.mapOpenedFrom === 'pause') {
     gameState.mode = 'pause';
   } else {
     gameState.mode = 'play';
     input.jp = 0;
   }
-  sfx('tick');
+  playSfx('tick');
 }
 function pauseGame() {
   if (gameState.mode !== 'play') return;
   gameState.mode = 'pause';
   input.l = input.r = input.jh = input.u = input.d = 0;
-  sfx('tick');
+  playSfx('tick');
 }
 /* clavier (indépendant de la disposition AZERTY/QWERTY : on lit la lettre tapée)
    flèches = bouger · ↑ ou Espace = sauter · A = coup · Z = écho · E = changer d'écho · R/T = rembobiner · P = pause */
 addEventListener('keydown', (e) => {
-  if (e.target === nmEl) {
+  if (e.target === nameInputElement) {
     if (e.key === 'Enter') {
       e.preventDefault();
       submitOver();
@@ -221,9 +229,9 @@ addEventListener('keydown', (e) => {
   )
     e.preventDefault();
   if (e.repeat) return;
-  aud();
+  ensureAudio();
   if (gameState.mode === 'over') {
-    if (e.code === 'Enter' && gameState.ph === 1) advance();
+    if (e.code === 'Enter' && gameState.overPhase === 1) advance();
     return;
   }
   if (k === 'd') {
@@ -264,7 +272,7 @@ addEventListener('keydown', (e) => {
   else if (ch === 'r') press('r5', true);
   else if (ch === 't') press('r10', true);
   else if (ch === 'n') runtime.mute = !runtime.mute;
-  else if (ch === 'i') setInfo(!INFO);
+  else if (ch === 'i') setInfoEnabled(!infoEnabled);
   else if (ch === 'm') {
     if (gameState.mode === 'play') openMap('play');
     else if (gameState.mode === 'map') mapBack();
@@ -274,7 +282,7 @@ addEventListener('keyup', (e) => {
   const k = KEYS[e.code];
   if (k) press(k, false);
 });
-function fitKeys() {
+function fitKeyboardOverlay() {
   try {
     const k = document.querySelector('.keys'),
       kb = k && k.firstElementChild;
@@ -289,12 +297,12 @@ function fitKeys() {
     k.style.height = h * s + 'px';
   } catch (_) {}
 }
-addEventListener('resize', fitKeys);
+addEventListener('resize', fitKeyboardOverlay);
 addEventListener('load', () => {
-  fitKeys();
-  setTimeout(fitKeys, 300);
+  fitKeyboardOverlay();
+  setTimeout(fitKeyboardOverlay, 300);
 });
-const kbId = (e) => {
+const keyboardKeyId = (e) => {
   const k = e.key || '';
   return k.length === 1 && /[a-zà-ÿ]/i.test(k) && !/^Digit/.test(e.code)
     ? 'L' + k.toUpperCase()
@@ -302,19 +310,19 @@ const kbId = (e) => {
       ? e.code
       : '';
 };
-const kbMark = (e, on) => {
+const markKeyboardKey = (e, on) => {
   try {
-    const id = kbId(e);
+    const id = keyboardKeyId(e);
     if (!id) return;
     const el = document.querySelector('[data-kc="' + id + '"]');
     if (el) el.classList.toggle('on', on);
   } catch (_) {}
 };
-addEventListener('keydown', (e) => kbMark(e, true));
-addEventListener('keyup', (e) => kbMark(e, false));
+addEventListener('keydown', (e) => markKeyboardKey(e, true));
+addEventListener('keyup', (e) => markKeyboardKey(e, false));
 addEventListener('blur', () => document.querySelectorAll('.kb2.on').forEach((x) => x.classList.remove('on')));
 canvas.addEventListener('pointerdown', (e) => {
-  aud();
+  ensureAudio();
   const r = canvas.getBoundingClientRect();
   advance((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
 });
@@ -323,7 +331,7 @@ document.querySelectorAll('#pad button').forEach((b) => {
     hold = k === 'j';
   b.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    aud();
+    ensureAudio();
     if (k[0] === 's') {
       if (gameState.mode === 'play') pick(+k[1]);
       return;
@@ -368,7 +376,7 @@ document.querySelectorAll('#pad button').forEach((b) => {
   };
   joy.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    aud();
+    ensureAudio();
     pid = e.pointerId;
     joy.setPointerCapture(pid);
     joy.classList.add('held');
@@ -385,28 +393,32 @@ addEventListener('blur', () => {
   input.l = input.r = input.jh = input.u = input.d = 0;
 });
 // les boutons n'apparaissent qu'avec les échos gagnés
-const padEl = document.getElementById('pad');
-const pwBtns = document.querySelectorAll('#pw button');
-export function syncPad() {
-  padEl.dataset.m = gameState.mode;
-  const n = owned().length,
-    key = (gameState.haveT ? 1 : 0) + '-' + gameState.have.join('') + '-' + gameState.sel;
-  if (syncPad.k !== key) {
-    syncPad.k = key;
-    padEl.dataset.t = gameState.haveT ? 1 : 0;
-    padEl.dataset.p = n ? 1 : 0;
-    padEl.dataset.x = gameState.have[6] ? 1 : 0;
+const touchPadElement = document.getElementById('pad');
+const powerButtons = document.querySelectorAll('#pw button');
+export function syncTouchPad() {
+  touchPadElement.dataset.m = gameState.mode;
+  const n = ownedEchoes().length,
+    key =
+      (gameState.hasTimeEcho ? 1 : 0) + '-' + gameState.echoesOwned.join('') + '-' + gameState.selectedEcho;
+  if (syncTouchPad.k !== key) {
+    syncTouchPad.k = key;
+    touchPadElement.dataset.t = gameState.hasTimeEcho ? 1 : 0;
+    touchPadElement.dataset.p = n ? 1 : 0;
+    touchPadElement.dataset.x = gameState.echoesOwned[6] ? 1 : 0;
     document
       .querySelectorAll('.kb2[data-echo]')
-      .forEach((el) => el.classList.toggle('kd', !gameState.have[+el.dataset.echo]));
+      .forEach((el) => el.classList.toggle('kd', !gameState.echoesOwned[+el.dataset.echo]));
     document.querySelectorAll('.kb2[data-need]').forEach((el) => {
       const q = el.dataset.need;
-      el.classList.toggle('kd', q === 'x' ? !gameState.have[6] : q === 't' ? !gameState.haveT : n < 1);
+      el.classList.toggle(
+        'kd',
+        q === 'x' ? !gameState.echoesOwned[6] : q === 't' ? !gameState.hasTimeEcho : n < 1,
+      );
     });
-    setTimeout(fitKeys, 0);
-    pwBtns.forEach((b, i) => {
-      b.hidden = !gameState.have[i];
-      b.classList.toggle('sel', gameState.sel === i);
+    setTimeout(fitKeyboardOverlay, 0);
+    powerButtons.forEach((b, i) => {
+      b.hidden = !gameState.echoesOwned[i];
+      b.classList.toggle('sel', gameState.selectedEcho === i);
     });
   }
 }

@@ -1,11 +1,20 @@
 import { runtime } from '../state/runtime.js';
-import { H, W } from '../core/config.js';
+import { HEIGHT, WIDTH } from '../core/config.js';
 import { canvas, ctx } from '../core/canvas.js';
-import { TYPES } from '../data/echoes.js';
+import { ECHO_TYPES } from '../data/echoes.js';
 import { levels } from '../data/levels.js';
-import { INFO, fmt, gameState, owned } from '../state/state.js';
+import { infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.js';
 import { scores } from '../state/save.js';
-import { FB, INK, TOUCH, UI, btn, outlined, rr, wrap } from '../render/primitives.js';
+import {
+  FONT_BODY,
+  INK_COLOR,
+  IS_TOUCH_DEVICE,
+  uiHitBoxes,
+  drawButton,
+  drawOutlinedText,
+  roundRectPath,
+  drawWrappedText,
+} from '../render/primitives.js';
 // cœur partiellement rempli (fraction f de 0 à 1, par quarts)
 function drawHeartF(x, y, s, f, blue) {
   if (f >= 0.999) {
@@ -38,7 +47,7 @@ export function drawHeart(x, y, s, full, blue) {
   ctx.fill();
   heartPath(x, y, s);
   ctx.lineWidth = s * 0.13;
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_COLOR;
   ctx.stroke();
   const g = ctx.createLinearGradient(0, y - s * 0.5, 0, y + s * 0.4);
   if (full && blue) {
@@ -66,11 +75,11 @@ export function drawHUD() {
   ctx.textAlign = 'left';
   // en haut à gauche : médaillon rond + barre (Temps) et bouton pause
   let px0 = 16;
-  if (gameState.haveT) {
+  if (gameState.hasTimeEcho) {
     const cx = 44,
       cy = 40;
     ctx.globalAlpha = 0.92;
-    UI.push({
+    uiHitBoxes.push({
       id: 'rew',
       x: 12,
       y: 6,
@@ -78,25 +87,25 @@ export function drawHUD() {
       h: 68,
     });
     ctx.fillStyle = 'rgba(27,22,18,.78)';
-    rr(cx, cy - 13, 150, 26, 13);
+    roundRectPath(cx, cy - 13, 150, 26, 13);
     ctx.fill();
     ctx.strokeStyle = '#F6EBCB';
     ctx.lineWidth = 2;
-    rr(cx, cy - 13, 150, 26, 13);
+    roundRectPath(cx, cy - 13, 150, 26, 13);
     ctx.stroke();
     const gw = (98 * gameState.gauge) / 10;
     ctx.fillStyle = gameState.gauge >= 10 ? '#4DB8B1' : gameState.gauge >= 5 ? '#F2C45A' : '#E8604C';
-    rr(cx + 36, cy - 6, Math.max(6, gw), 12, 6);
+    roundRectPath(cx + 36, cy - 6, Math.max(6, gw), 12, 6);
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.35)';
-    rr(cx + 39, cy - 4.5, Math.max(2, gw - 6), 3, 2);
+    roundRectPath(cx + 39, cy - 4.5, Math.max(2, gw - 6), 3, 2);
     ctx.fill();
     ctx.fillStyle = 'rgba(246,235,203,.9)';
     ctx.fillRect(cx + 36 + 49 - 1, cy - 8, 2, 16);
     if (gameState.flash < 0) {
       ctx.strokeStyle = '#E8604C';
       ctx.lineWidth = 3;
-      rr(cx, cy - 13, 150, 26, 13);
+      roundRectPath(cx, cy - 13, 150, 26, 13);
       ctx.stroke();
       gameState.flash = Math.min(0, gameState.flash + 0.03);
     }
@@ -116,7 +125,7 @@ export function drawHUD() {
     ctx.fillStyle = '#FFF8E1';
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(cx, cy - 7);
@@ -130,17 +139,17 @@ export function drawHUD() {
   }
   if (gameState.mode === 'play' || gameState.mode === 'pause') {
     ctx.globalAlpha = 0.9;
-    btn('pause', px0, 14, 46, 34, '', {
+    drawButton('pause', px0, 14, 46, 34, '', {
       lip: 6,
       r: 10,
       c: '#55C2BA',
       d: '#23807A',
       icon: (x, y) => {
         ctx.fillStyle = '#FFF8E1';
-        ctx.strokeStyle = INK;
+        ctx.strokeStyle = INK_COLOR;
         ctx.lineWidth = 2;
         for (const dx of [-7, 3]) {
-          rr(x + dx, y - 9, 6, 18, 2);
+          roundRectPath(x + dx, y - 9, 6, 18, 2);
           ctx.fill();
           ctx.stroke();
         }
@@ -153,134 +162,137 @@ export function drawHUD() {
     for (let i = 0; i < gameState.hpMax; i++) {
       const f = Math.max(0, Math.min(1, gameState.hp - i)),
         bump =
-          f > 0 && f <= 1 && i === Math.ceil(gameState.hp) - 1 && gameState.inv > 0
+          f > 0 && f <= 1 && i === Math.ceil(gameState.hp) - 1 && gameState.invulnerableTimer > 0
             ? Math.sin(gameState.time * 14) * 1.5
             : 0;
       drawHeartF(hx + i * 31, 31 + bump, 29, f);
     }
-    const nb = Math.ceil(gameState.sh - 1e-6);
+    const nb = Math.ceil(gameState.bonusHearts - 1e-6);
     for (let j = 0; j < nb; j++)
-      drawHeartF(hx + (gameState.hpMax + j) * 31, 31, 29, Math.min(1, gameState.sh - j), true);
+      drawHeartF(hx + (gameState.hpMax + j) * 31, 31, 29, Math.min(1, gameState.bonusHearts - j), true);
   }
   // échos possédés : petites pastilles en haut à droite
-  const o = TOUCH ? [] : owned();
-  let x = W - 16;
+  const o = IS_TOUCH_DEVICE ? [] : ownedEchoes();
+  let x = WIDTH - 16;
   ctx.globalAlpha = 0.9;
   for (let i = o.length - 1; i >= 0; i--) {
     const t = o[i],
-      sel = gameState.sel === t;
+      sel = gameState.selectedEcho === t;
     x -= sel ? 34 : 28;
-    rr(x, 14, sel ? 30 : 24, sel ? 30 : 24, 7);
-    ctx.fillStyle = sel ? TYPES[t].c : 'rgba(246,235,203,.75)';
+    roundRectPath(x, 14, sel ? 30 : 24, sel ? 30 : 24, 7);
+    ctx.fillStyle = sel ? ECHO_TYPES[t].c : 'rgba(246,235,203,.75)';
     ctx.fill();
     ctx.lineWidth = sel ? 3.5 : 2.5;
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.stroke();
-    ctx.fillStyle = INK;
-    ctx.font = '800 ' + (sel ? 13 : 11) + 'px ' + FB;
+    ctx.fillStyle = INK_COLOR;
+    ctx.font = '800 ' + (sel ? 13 : 11) + 'px ' + FONT_BODY;
     ctx.textAlign = 'center';
     ctx.fillText(String(t + 1), x + (sel ? 15 : 12), sel ? 34 : 30);
   }
-  if (o.length && gameState.have[gameState.sel]) {
-    ctx.font = '800 11px ' + FB;
+  if (o.length && gameState.echoesOwned[gameState.selectedEcho]) {
+    ctx.font = '800 11px ' + FONT_BODY;
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(27,22,18,.75)';
-    ctx.fillText(TYPES[gameState.sel].n.toUpperCase(), W - 16, 56);
+    ctx.fillText(ECHO_TYPES[gameState.selectedEcho].n.toUpperCase(), WIDTH - 16, 56);
   }
   ctx.globalAlpha = 1;
   // boss
-  const bl = runtime.ents.filter((e) => e.k === 'b' && e.alive);
+  const bl = runtime.entities.filter((e) => e.k === 'b' && e.alive);
   if (bl.length) {
     const B = runtime.level.boss,
       bw = 220,
-      bx = (W - bw) / 2 + 80,
+      bx = (WIDTH - bw) / 2 + 80,
       hp = B.kind === 'mirror' ? Math.max(...bl.map((e) => e.hp)) : bl.reduce((s, e) => s + e.hp, 0);
     ctx.fillStyle = 'rgba(27,22,18,.6)';
-    rr(bx - 3, 14, bw + 6, 12, 6);
+    roundRectPath(bx - 3, 14, bw + 6, 12, 6);
     ctx.fill();
     ctx.fillStyle = B.c;
-    rr(bx, 17, Math.max(6, (bw * hp) / Math.max(1, gameState.bmax)), 6, 3);
+    roundRectPath(bx, 17, Math.max(6, (bw * hp) / Math.max(1, gameState.bossMaxHp)), 6, 3);
     ctx.fill();
     ctx.fillStyle = 'rgba(27,22,18,.8)';
-    ctx.font = '800 11px ' + FB;
+    ctx.font = '800 11px ' + FONT_BODY;
     ctx.textAlign = 'center';
     ctx.fillText(B.n.toUpperCase(), bx + bw / 2, 40);
   }
   // chronomètre de toute la partie
-  ctx.font = '900 15px ' + FB;
+  ctx.font = '900 15px ' + FONT_BODY;
   ctx.textAlign = 'left';
   ctx.lineWidth = 4;
   ctx.strokeStyle = 'rgba(27,22,18,.85)';
   ctx.lineJoin = 'round';
-  const tt = '⏱ ' + fmt(gameState.run);
+  const tt = '⏱ ' + formatTime(gameState.runTime);
   ctx.strokeText(tt, 16, 88);
   ctx.fillStyle = '#FFF8E1';
   ctx.fillText(tt, 16, 88);
   // nom du niveau, discret
   ctx.fillStyle = 'rgba(27,22,18,.4)';
-  ctx.font = '800 11px ' + FB;
+  ctx.font = '800 11px ' + FONT_BODY;
   ctx.textAlign = 'left';
-  ctx.fillText(runtime.level.name.toUpperCase(), 16, H - 8);
+  ctx.fillText(runtime.level.name.toUpperCase(), 16, HEIGHT - 8);
   if (gameState.bedNear && gameState.mode === 'play') {
-    const tx = TOUCH ? 'Touche ici pour dormir' : 'Entrée : dormir';
-    ctx.font = '800 15px ' + FB;
+    const tx = IS_TOUCH_DEVICE ? 'Touche ici pour dormir' : 'Entrée : dormir';
+    ctx.font = '800 15px ' + FONT_BODY;
     const w = ctx.measureText(tx).width + 36,
-      bx = W / 2 - w / 2,
-      by = H - 110;
-    UI.push({
+      bx = WIDTH / 2 - w / 2,
+      by = HEIGHT - 110;
+    uiHitBoxes.push({
       id: 'bed',
       x: bx,
       y: by,
       w,
       h: 34,
     });
-    ctx.fillStyle = INK;
-    rr(bx, by, w, 34, 12);
+    ctx.fillStyle = INK_COLOR;
+    roundRectPath(bx, by, w, 34, 12);
     ctx.fill();
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#F2C45A';
-    rr(bx, by, w, 34, 12);
+    roundRectPath(bx, by, w, 34, 12);
     ctx.stroke();
     ctx.fillStyle = '#F6EBCB';
     ctx.textAlign = 'center';
-    ctx.fillText('🛏 ' + tx, W / 2, by + 22);
+    ctx.fillText('🛏 ' + tx, WIDTH / 2, by + 22);
   }
-  if (gameState.bedT > 0 && gameState.mode === 'play') {
-    ctx.globalAlpha = Math.min(1, gameState.bedT);
-    outlined('REPOS : cœurs et Temps rechargés', W / 2, H / 2 - 70, 30, '#F2C45A');
+  if (gameState.bedFadeTimer > 0 && gameState.mode === 'play') {
+    ctx.globalAlpha = Math.min(1, gameState.bedFadeTimer);
+    drawOutlinedText('REPOS : cœurs et Temps rechargés', WIDTH / 2, HEIGHT / 2 - 70, 30, '#F2C45A');
     ctx.globalAlpha = 1;
   }
-  if (INFO && runtime.level.hint && gameState.hintT < HINT_T && gameState.mode === 'play')
-    drawHint(runtime.level.hint, Math.min(1, HINT_T - gameState.hintT, gameState.hintT * 2.5 + 0.001));
-  if (gameState.msgT > 0) {
-    ctx.globalAlpha = Math.min(1, gameState.msgT);
-    ctx.font = '700 14px ' + FB;
-    const w = ctx.measureText(gameState.msg).width + 28;
-    UI.push({
+  if (infoEnabled && runtime.level.hint && gameState.hintTimer < HINT_T && gameState.mode === 'play')
+    drawHint(
+      runtime.level.hint,
+      Math.min(1, HINT_T - gameState.hintTimer, gameState.hintTimer * 2.5 + 0.001),
+    );
+  if (gameState.messageTimer > 0) {
+    ctx.globalAlpha = Math.min(1, gameState.messageTimer);
+    ctx.font = '700 14px ' + FONT_BODY;
+    const w = ctx.measureText(gameState.message).width + 28;
+    uiHitBoxes.push({
       id: 'toast',
-      x: W / 2 - w / 2,
-      y: H - 60,
+      x: WIDTH / 2 - w / 2,
+      y: HEIGHT - 60,
       w,
       h: 28,
     });
-    ctx.fillStyle = INK;
-    rr(W / 2 - w / 2, H - 60, w, 28, 10);
+    ctx.fillStyle = INK_COLOR;
+    roundRectPath(WIDTH / 2 - w / 2, HEIGHT - 60, w, 28, 10);
     ctx.fill();
     ctx.fillStyle = '#F6EBCB';
     ctx.textAlign = 'center';
-    ctx.fillText(gameState.msg, W / 2, H - 41);
+    ctx.fillText(gameState.message, WIDTH / 2, HEIGHT - 41);
     ctx.globalAlpha = 1;
   }
 }
 export const HINT_T = 21;
 function drawHint(txt, al) {
   const bw = 640,
-    bx = (W - bw) / 2,
+    bx = (WIDTH - bw) / 2,
     y = 60,
     tx = bx + 62,
     tw = bw - 62 - 22;
   ctx.save();
-  ctx.font = '700 15px ' + FB;
+  ctx.font = '700 15px ' + FONT_BODY;
   let lines = 1,
     line = '';
   for (const w of txt.split(' ')) {
@@ -292,7 +304,7 @@ function drawHint(txt, al) {
   }
   const h = Math.max(58, lines * 20 + 28);
   ctx.globalAlpha = al * 0.96;
-  UI.push({
+  uiHitBoxes.push({
     id: 'hint',
     x: bx,
     y,
@@ -300,21 +312,21 @@ function drawHint(txt, al) {
     h,
   });
   ctx.fillStyle = 'rgba(8,6,14,.45)';
-  rr(bx + 5, y + 6, bw, h, 6);
+  roundRectPath(bx + 5, y + 6, bw, h, 6);
   ctx.fill();
   const g = ctx.createLinearGradient(0, y, 0, y + h);
   g.addColorStop(0, '#EBDAA9');
   g.addColorStop(0.5, '#DCC690');
   g.addColorStop(1, '#C4A96D');
-  rr(bx, y, bw, h, 6);
+  roundRectPath(bx, y, bw, h, 6);
   ctx.fillStyle = g;
   ctx.fill();
   ctx.save();
-  rr(bx, y, bw, h, 6);
+  roundRectPath(bx, y, bw, h, 6);
   ctx.clip();
   ctx.strokeStyle = 'rgba(88,52,22,.42)';
   ctx.lineWidth = 14;
-  rr(bx, y, bw, h, 6);
+  roundRectPath(bx, y, bw, h, 6);
   ctx.stroke();
   ctx.fillStyle = 'rgba(110,70,30,.10)';
   for (let i = 0; i < 7; i++) {
@@ -324,12 +336,12 @@ function drawHint(txt, al) {
   }
   ctx.restore();
   ctx.lineWidth = 4;
-  ctx.strokeStyle = INK;
-  rr(bx, y, bw, h, 6);
+  ctx.strokeStyle = INK_COLOR;
+  roundRectPath(bx, y, bw, h, 6);
   ctx.stroke();
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = '#7B5A24';
-  rr(bx + 7, y + 7, bw - 14, h - 14, 3);
+  roundRectPath(bx + 7, y + 7, bw - 14, h - 14, 3);
   ctx.stroke();
   for (const [cx, cy] of [
     [bx + 7, y + 7],
@@ -355,13 +367,13 @@ function drawHint(txt, al) {
   gl.addColorStop(1, 'rgba(255,214,110,0)');
   ctx.fillStyle = gl;
   ctx.fillRect(fx - 36, fy - 50, 72, 72);
-  ctx.fillStyle = INK;
-  rr(fx - 11, fy + 14, 22, 5, 2);
+  ctx.fillStyle = INK_COLOR;
+  roundRectPath(fx - 11, fy + 14, 22, 5, 2);
   ctx.fill();
   ctx.fillStyle = '#F4EBD0';
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = INK_COLOR;
   ctx.lineWidth = 2;
-  rr(fx - 5, fy - 6, 10, 21, 2);
+  roundRectPath(fx - 5, fy - 6, 10, 21, 2);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = '#F28C28';
@@ -374,92 +386,97 @@ function drawHint(txt, al) {
   ctx.fill();
   ctx.fillStyle = '#2B1D12';
   ctx.textAlign = 'left';
-  ctx.font = '700 15px ' + FB;
-  wrap(txt, tx, y + h / 2 - (lines - 1) * 10 + 5, tw, 20, 15);
+  ctx.font = '700 15px ' + FONT_BODY;
+  drawWrappedText(txt, tx, y + h / 2 - (lines - 1) * 10 + 5, tw, 20, 15);
   ctx.restore();
 }
-export const nmEl = document.createElement('input');
+export const nameInputElement = document.createElement('input');
 {
-  nmEl.id = 'nm';
-  nmEl.type = 'text';
-  nmEl.maxLength = 20;
-  nmEl.autocomplete = 'off';
-  nmEl.spellcheck = false;
-  nmEl.placeholder = 'Ton nom';
-  nmEl.style.cssText =
+  nameInputElement.id = 'nm';
+  nameInputElement.type = 'text';
+  nameInputElement.maxLength = 20;
+  nameInputElement.autocomplete = 'off';
+  nameInputElement.spellcheck = false;
+  nameInputElement.placeholder = 'Ton nom';
+  nameInputElement.style.cssText =
     'position:fixed;display:none;z-index:20;box-sizing:border-box;text-align:center;font:900 26px Nunito,system-ui,sans-serif;color:#1B1612;background:#F6EBCB;border:4px solid #1B1612;border-radius:12px;outline:3px solid #F2C45A;padding:0 10px;user-select:text;-webkit-user-select:text;touch-action:auto';
-  document.body.appendChild(nmEl);
+  document.body.appendChild(nameInputElement);
 }
 export function showNameInput(v) {
-  nmEl.style.display = v ? 'block' : 'none';
+  nameInputElement.style.display = v ? 'block' : 'none';
   if (v) {
-    nmEl.value = '';
+    nameInputElement.value = '';
     setTimeout(() => {
       try {
-        nmEl.focus();
+        nameInputElement.focus();
       } catch (e) {}
     }, 50);
-  } else nmEl.blur();
+  } else nameInputElement.blur();
 }
 export function positionName() {
-  if (nmEl.style.display === 'none') return;
+  if (nameInputElement.style.display === 'none') return;
   const r = canvas.getBoundingClientRect(),
-    k = r.width / W;
-  nmEl.style.width = 440 * k + 'px';
-  nmEl.style.height = 50 * k + 'px';
-  nmEl.style.left = r.left + (W / 2 - 220) * k + 'px';
-  nmEl.style.top = r.top + 236 * k + 'px';
-  nmEl.style.fontSize = 26 * k + 'px';
-  nmEl.style.borderWidth = Math.max(2, 4 * k) + 'px';
+    k = r.width / WIDTH;
+  nameInputElement.style.width = 440 * k + 'px';
+  nameInputElement.style.height = 50 * k + 'px';
+  nameInputElement.style.left = r.left + (WIDTH / 2 - 220) * k + 'px';
+  nameInputElement.style.top = r.top + 236 * k + 'px';
+  nameInputElement.style.fontSize = 26 * k + 'px';
+  nameInputElement.style.borderWidth = Math.max(2, 4 * k) + 'px';
 }
 export function drawOver() {
   ctx.fillStyle = 'rgba(27,22,18,.88)';
-  ctx.fillRect(0, 0, W, H);
-  if (gameState.victory) outlined('VICTOIRE !', W / 2, 112, 66, '#E2A93B');
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  if (gameState.victory) drawOutlinedText('VICTOIRE !', WIDTH / 2, 112, 66, '#E2A93B');
   else {
-    for (let i = 0; i < 3; i++) drawHeart(W / 2 - 52 + i * 52, 56, 40, false);
-    outlined('PLUS DE CŒURS !', W / 2, 128, 52, '#D0402E');
+    for (let i = 0; i < 3; i++) drawHeart(WIDTH / 2 - 52 + i * 52, 56, 40, false);
+    drawOutlinedText('PLUS DE CŒURS !', WIDTH / 2, 128, 52, '#D0402E');
   }
   ctx.fillStyle = '#F6EBCB';
   ctx.textAlign = 'center';
-  ctx.font = '800 20px ' + FB;
+  ctx.font = '800 20px ' + FONT_BODY;
   ctx.fillText(
-    'Salles explorées : ' + gameState.lost + '/' + levels.length + ' · temps ' + fmt(gameState.run),
-    W / 2,
+    'Salles explorées : ' +
+      gameState.exploredAtEnd +
+      '/' +
+      levels.length +
+      ' · temps ' +
+      formatTime(gameState.runTime),
+    WIDTH / 2,
     168,
   );
-  if (gameState.ph === 0) {
-    ctx.fillText('Entre ton nom (20 caractères maximum)', W / 2, 214);
-    ctx.font = '700 15px ' + FB;
+  if (gameState.overPhase === 0) {
+    ctx.fillText('Entre ton nom (20 caractères maximum)', WIDTH / 2, 214);
+    ctx.font = '700 15px ' + FONT_BODY;
     ctx.fillText(
       gameState.victory
         ? 'Le Roi des Échos est vaincu !'
         : 'La partie est terminée : tu recommenceras de zéro.',
-      W / 2,
+      WIDTH / 2,
       324,
     );
-    btn('ok', W / 2 - 110, 370, 220, 52, 'VALIDER', {
+    drawButton('ok', WIDTH / 2 - 110, 370, 220, 52, 'VALIDER', {
       size: 26,
     });
   } else {
     ctx.fillStyle = '#F6EBCB';
-    ctx.font = '800 18px ' + FB;
-    ctx.fillText('Classement', W / 2, 206);
+    ctx.font = '800 18px ' + FONT_BODY;
+    ctx.fillText('Classement', WIDTH / 2, 206);
     const L = scores.over.slice(0, 7);
     for (let i = 0; i < 7; i++) {
       const e = L[i],
         y = 238 + i * 28,
-        me = gameState.lostRank === i + 1;
+        me = gameState.leaderboardRank === i + 1;
       ctx.fillStyle = me ? '#F2C45A' : '#F6EBCB';
-      ctx.font = '900 19px ' + FB;
+      ctx.font = '900 19px ' + FONT_BODY;
       ctx.textAlign = 'left';
-      ctx.fillText(i + 1 + '.', W / 2 - 300, y);
-      ctx.fillText(e ? e.n : '---', W / 2 - 262, y);
+      ctx.fillText(i + 1 + '.', WIDTH / 2 - 300, y);
+      ctx.fillText(e ? e.n : '---', WIDTH / 2 - 262, y);
       ctx.textAlign = 'right';
-      ctx.fillText(e ? (e.v ? 'VICTOIRE' : e.l + ' salles') : '', W / 2 + 210, y);
-      ctx.fillText(e ? fmt(e.t) : '', W / 2 + 300, y);
+      ctx.fillText(e ? (e.v ? 'VICTOIRE' : e.l + ' salles') : '', WIDTH / 2 + 210, y);
+      ctx.fillText(e ? formatTime(e.t) : '', WIDTH / 2 + 300, y);
     }
-    btn('again', W / 2 - 130, 446, 260, 52, 'MENU PRINCIPAL', {
+    drawButton('again', WIDTH / 2 - 130, 446, 260, 52, 'MENU PRINCIPAL', {
       size: 24,
     });
   }

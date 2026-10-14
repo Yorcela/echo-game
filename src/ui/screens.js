@@ -1,29 +1,36 @@
-import { H, W } from '../core/config.js';
+import { HEIGHT, WIDTH } from '../core/config.js';
 import { ctx } from '../core/canvas.js';
-import { TYPES } from '../data/echoes.js';
-import { ORDER, levels } from '../data/levels.js';
-import { GW, HUB, INFO, fmt, gameState, owned } from '../state/state.js';
-import { loadSave, scores } from '../state/save.js';
-import { POS, WORLD } from '../world/world.js';
-import { isBench, load } from '../world/rooms.js';
+import { ECHO_TYPES } from '../data/echoes.js';
+import { BOSS_ORDER, levels } from '../data/levels.js';
+import { MAP_COLS, HUB_ROOM, infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.js';
+import { loadSavedGame, scores } from '../state/save.js';
+import { ROOM_POSITIONS, WORLD } from '../world/world.js';
+import { hasBed, loadRoom } from '../world/rooms.js';
 import { gateOK } from '../game/physics.js';
-import { sfx } from '../audio/audio.js';
-import { FB, INK, UI, btn, outlined, rr } from '../render/primitives.js';
-import { drawBG, drawBGPaper } from '../render/background.js';
+import { playSfx } from '../audio/audio.js';
+import {
+  FONT_BODY,
+  INK_COLOR,
+  uiHitBoxes,
+  drawButton,
+  drawOutlinedText,
+  roundRectPath,
+} from '../render/primitives.js';
+import { drawBackground, drawPaperBackground } from '../render/background.js';
 import { drawHero } from '../render/characters.js';
 import { emblem } from '../render/bosses.js';
 export function drawTitle() {
-  drawBGPaper();
-  UI.length = 0;
+  drawPaperBackground();
+  uiHitBoxes.length = 0;
   ctx.save();
-  ctx.translate(W / 2, 150);
+  ctx.translate(WIDTH / 2, 150);
   ctx.rotate(-0.04);
   ctx.globalAlpha = 0.35;
-  outlined('ECHO', 26, 70, 128, '#E2A93B');
+  drawOutlinedText('ECHO', 26, 70, 128, '#E2A93B');
   ctx.globalAlpha = 0.6;
-  outlined('ECHO', 13, 60, 128, '#E2A93B');
+  drawOutlinedText('ECHO', 13, 60, 128, '#E2A93B');
   ctx.globalAlpha = 1;
-  outlined('ECHO', 0, 50, 128, '#D0402E');
+  drawOutlinedText('ECHO', 0, 50, 128, '#D0402E');
   ctx.restore();
   drawHero(
     {
@@ -40,7 +47,7 @@ export function drawTitle() {
   );
   drawHero(
     {
-      x: W - 172,
+      x: WIDTH - 172,
       y: 218,
       vx: 0,
       vy: 0,
@@ -59,10 +66,10 @@ export function drawTitle() {
       col: '#2F8F8A',
     },
   );
-  ctx.fillStyle = INK;
+  ctx.fillStyle = INK_COLOR;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = '800 17px ' + FB;
+  ctx.font = '800 17px ' + FONT_BODY;
   const n = gameState.cur || 0;
   const arrow = (dir) => (x, y) => {
     ctx.fillStyle = '#fff';
@@ -76,28 +83,29 @@ export function drawTitle() {
     ctx.stroke();
     ctx.fill();
   };
-  ctx.fillStyle = INK;
-  ctx.font = '900 21px ' + FB;
+  ctx.fillStyle = INK_COLOR;
+  ctx.font = '900 21px ' + FONT_BODY;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(
-    levels[n].name + ' · ' + Object.keys(gameState.vis).length + ' / ' + levels.length + ' salles',
-    W / 2,
+    levels[n].name + ' · ' + Object.keys(gameState.visitedRooms).length + ' / ' + levels.length + ' salles',
+    WIDTH / 2,
     324,
   );
-  const prog = gameState.haveT || owned().length || Object.keys(gameState.vis).length > 1;
-  btn('play', W / 2 - 150, 352, 300, 58, prog ? 'CONTINUER' : 'JOUER', {
+  const prog =
+    gameState.hasTimeEcho || ownedEchoes().length || Object.keys(gameState.visitedRooms).length > 1;
+  drawButton('play', WIDTH / 2 - 150, 352, 300, 58, prog ? 'CONTINUER' : 'JOUER', {
     size: 32,
     lip: 12,
     r: 16,
   });
-  const armed = gameState.rst > 0;
-  btn('scores', W / 2 + 60, 436, 170, 38, 'SCORES', {
+  const armed = gameState.resetArmedTimer > 0;
+  drawButton('scores', WIDTH / 2 + 60, 436, 170, 38, 'SCORES', {
     size: 19,
     lip: 8,
     r: 12,
   });
-  btn('reset', W / 2 - 240, 436, 290, 38, armed ? 'SÛR ? TOUCHE ENCORE' : 'NOUVELLE PARTIE', {
+  drawButton('reset', WIDTH / 2 - 240, 436, 290, 38, armed ? 'SÛR ? TOUCHE ENCORE' : 'NOUVELLE PARTIE', {
     size: armed ? 17 : 19,
     lip: 8,
     r: 12,
@@ -105,38 +113,38 @@ export function drawTitle() {
     d: armed ? '#7A1F14' : undefined,
   });
   ctx.textBaseline = 'alphabetic';
-  const o = owned();
-  ctx.font = '700 13px ' + FB;
+  const o = ownedEchoes();
+  ctx.font = '700 13px ' + FONT_BODY;
   ctx.fillStyle = 'rgba(27,22,18,.7)';
   ctx.textAlign = 'center';
   ctx.fillText(
     'Échos gagnés : ' +
-      ((gameState.haveT ? ['Temps'] : []).concat(o.map((i) => TYPES[i].n)).join(' · ') || 'aucun'),
-    W / 2,
-    H - 14,
+      ((gameState.hasTimeEcho ? ['Temps'] : []).concat(o.map((i) => ECHO_TYPES[i].n)).join(' · ') || 'aucun'),
+    WIDTH / 2,
+    HEIGHT - 14,
   );
 }
 export function drawScores() {
-  drawBGPaper();
-  UI.length = 0;
-  outlined('CLASSEMENT', W / 2, 70, 46, '#E2A93B');
-  ctx.fillStyle = INK;
+  drawPaperBackground();
+  uiHitBoxes.length = 0;
+  drawOutlinedText('CLASSEMENT', WIDTH / 2, 70, 46, '#E2A93B');
+  ctx.fillStyle = INK_COLOR;
   ctx.textBaseline = 'alphabetic';
-  ctx.font = '800 15px ' + FB;
+  ctx.font = '800 15px ' + FONT_BODY;
   ctx.textAlign = 'center';
-  ctx.fillText('Seules les parties terminées entrent au classement.', W / 2, 104);
+  ctx.fillText('Seules les parties terminées entrent au classement.', WIDTH / 2, 104);
   for (let i = 0; i < 10; i++) {
     const e = scores.over[i],
       y = 146 + i * 30;
-    ctx.font = '900 20px ' + FB;
+    ctx.font = '900 20px ' + FONT_BODY;
     ctx.textAlign = 'left';
-    ctx.fillText(i + 1 + '.', W / 2 - 330, y);
-    ctx.fillText(e ? e.n : '—', W / 2 - 290, y);
+    ctx.fillText(i + 1 + '.', WIDTH / 2 - 330, y);
+    ctx.fillText(e ? e.n : '—', WIDTH / 2 - 290, y);
     ctx.textAlign = 'right';
-    ctx.fillText(e ? (e.v ? 'VICTOIRE' : e.l + ' salles') : '', W / 2 + 210, y);
-    ctx.fillText(e ? fmt(e.t) : '', W / 2 + 330, y);
+    ctx.fillText(e ? (e.v ? 'VICTOIRE' : e.l + ' salles') : '', WIDTH / 2 + 210, y);
+    ctx.fillText(e ? formatTime(e.t) : '', WIDTH / 2 + 330, y);
   }
-  btn('sback', W / 2 - 90, H - 82, 180, 34, 'RETOUR', {
+  drawButton('sback', WIDTH / 2 - 90, HEIGHT - 82, 180, 34, 'RETOUR', {
     size: 19,
     lip: 7,
     r: 11,
@@ -159,30 +167,30 @@ function trialRoom(r) {
   return r === 0 ? 5 : WORLD.ranks[r - 1] ? WORLD.ranks[r - 1].boss : 5;
 }
 export function drawTrial() {
-  drawBGPaper();
-  UI.length = 0;
-  outlined("SALLE D'ESSAI", W / 2, 66, 46, '#E2A93B');
-  ctx.fillStyle = INK;
+  drawPaperBackground();
+  uiHitBoxes.length = 0;
+  drawOutlinedText("SALLE D'ESSAI", WIDTH / 2, 66, 46, '#E2A93B');
+  ctx.fillStyle = INK_COLOR;
   ctx.textBaseline = 'alphabetic';
-  ctx.font = '800 15px ' + FB;
+  ctx.font = '800 15px ' + FONT_BODY;
   ctx.textAlign = 'center';
   ctx.fillText(
     "Va directement voir un boss, avec les échos qu'il faut. Ta partie n'est pas touchée.",
-    W / 2,
+    WIDTH / 2,
     100,
   );
   for (let r = 0; r < 8; r++) {
     const col = r % 2,
       row = Math.floor(r / 2),
-      x = W / 2 - 300 + col * 310,
+      x = WIDTH / 2 - 300 + col * 310,
       y = 128 + row * 74;
-    btn('tr' + r, x, y, 290, 56, r + 1 + '. ' + TRIAL_NAMES[r].toUpperCase(), {
+    drawButton('tr' + r, x, y, 290, 56, r + 1 + '. ' + TRIAL_NAMES[r].toUpperCase(), {
       size: 19,
       lip: 9,
       r: 14,
     });
   }
-  btn('tback', W / 2 - 90, H - 70, 180, 34, 'RETOUR', {
+  drawButton('tback', WIDTH / 2 - 90, HEIGHT - 70, 180, 34, 'RETOUR', {
     size: 19,
     lip: 7,
     r: 11,
@@ -191,69 +199,73 @@ export function drawTrial() {
 }
 export function startTrial(r) {
   gameState.trial = 1;
-  gameState.have = [0, 0, 0, 0, 0, 0, 0];
-  gameState.haveT = r > 0 ? 1 : 0;
+  gameState.echoesOwned = [0, 0, 0, 0, 0, 0, 0];
+  gameState.hasTimeEcho = r > 0 ? 1 : 0;
   for (let k = 1; k <= r; k++) {
-    const g = ORDER[k - 1];
-    if (g !== 't') gameState.have[g] = 1;
+    const g = BOSS_ORDER[k - 1];
+    if (g !== 't') gameState.echoesOwned[g] = 1;
   }
-  gameState.sel = 0;
+  gameState.selectedEcho = 0;
   for (let k = 0; k < 7; k++)
-    if (gameState.have[k]) {
-      gameState.sel = k;
+    if (gameState.echoesOwned[k]) {
+      gameState.selectedEcho = k;
       break;
     }
   gameState.hp = gameState.hpMax = 3;
-  gameState.sh = 0;
+  gameState.bonusHearts = 0;
   gameState.gauge = 10;
-  gameState.cl = {};
-  gameState.sol = {};
-  gameState.anchAll = {};
-  gameState.run = 0;
-  load(trialRoom(r));
+  gameState.clearedBossRooms = {};
+  gameState.solvedRooms = {};
+  gameState.anchorsByRoom = {};
+  gameState.runTime = 0;
+  loadRoom(trialRoom(r));
   gameState.mode = 'play';
   gameState.fade = 0.4;
-  sfx('tick');
+  playSfx('tick');
 }
 export function endTrial() {
   gameState.trial = 0;
-  gameState.cl = {};
-  loadSave();
-  load(gameState.cur);
+  gameState.clearedBossRooms = {};
+  loadSavedGame();
+  loadRoom(gameState.cur);
   gameState.mode = 'title';
-  sfx('tick');
+  playSfx('tick');
 }
 export function drawMap() {
-  drawBG(0, 0);
-  UI.length = 0;
+  drawBackground(0, 0);
+  uiHitBoxes.length = 0;
   ctx.fillStyle = 'rgba(14,10,22,.80)';
-  ctx.fillRect(0, 0, W, H);
-  outlined('CARTE', W / 2, 52, 44, '#E2A93B');
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  drawOutlinedText('CARTE', WIDTH / 2, 52, 44, '#E2A93B');
   ctx.fillStyle = '#F6EBCB';
-  ctx.font = '800 15px ' + FB;
+  ctx.font = '800 15px ' + FONT_BODY;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(Object.keys(gameState.vis).length + ' / ' + levels.length + ' salles explorées', W / 2, 74);
+  ctx.fillText(
+    Object.keys(gameState.visitedRooms).length + ' / ' + levels.length + ' salles explorées',
+    WIDTH / 2,
+    74,
+  );
   const cw = 58,
     ch = 30,
     sx = 64,
     sy = 38,
-    x0 = (W - (GW * sx - (sx - cw))) / 2,
+    x0 = (WIDTH - (MAP_COLS * sx - (sx - cw))) / 2,
     y0 = 86,
     at = (i) => ({
-      x: x0 + POS[i][0] * sx,
-      y: y0 + POS[i][1] * sy,
+      x: x0 + ROOM_POSITIONS[i][0] * sx,
+      y: y0 + ROOM_POSITIONS[i][1] * sy,
     });
-  const nearV = (i) => gameState.vis[i] || levels[i].links.some((k) => gameState.vis[k.to]);
-  const show = (i) => !!gameState.vis[i] || !!levels[i].boss || nearV(i);
+  const nearV = (i) => gameState.visitedRooms[i] || levels[i].links.some((k) => gameState.visitedRooms[k.to]);
+  const show = (i) => !!gameState.visitedRooms[i] || !!levels[i].boss || nearV(i);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   // liaisons
   for (let i = 0; i < levels.length; i++) {
-    if (!POS[i]) continue;
+    if (!ROOM_POSITIONS[i]) continue;
     for (const k of levels[i].links) {
-      if (k.to < i || !POS[k.to]) continue;
-      if (!(gameState.vis[i] || gameState.vis[k.to])) continue;
+      if (k.to < i || !ROOM_POSITIONS[k.to]) continue;
+      if (!(gameState.visitedRooms[i] || gameState.visitedRooms[k.to])) continue;
       const a = at(i),
         b = at(k.to),
         ax = a.x + cw / 2,
@@ -290,7 +302,7 @@ export function drawMap() {
           ctx.arc(mx, my, 5, 0, 7);
           ctx.fill();
           ctx.lineWidth = 2;
-          ctx.strokeStyle = INK;
+          ctx.strokeStyle = INK_COLOR;
           ctx.stroke();
         }
       }
@@ -298,29 +310,37 @@ export function drawMap() {
   }
   // salles
   for (let i = 0; i < levels.length; i++) {
-    if (!POS[i] || !show(i)) continue;
+    if (!ROOM_POSITIONS[i] || !show(i)) continue;
     const { x, y } = at(i),
-      v = !!gameState.vis[i],
+      v = !!gameState.visitedRooms[i],
       bo = levels[i].boss,
       cur = i === gameState.lvl,
-      done = !!gameState.cl[i];
+      done = !!gameState.clearedBossRooms[i];
     if (!v && !bo) {
       ctx.fillStyle = 'rgba(246,235,203,.14)';
-      rr(x, y, cw, ch, 6);
+      roundRectPath(x, y, cw, ch, 6);
       ctx.fill();
       ctx.fillStyle = 'rgba(246,235,203,.55)';
-      ctx.font = '900 14px ' + FB;
+      ctx.font = '900 14px ' + FONT_BODY;
       ctx.textBaseline = 'middle';
       ctx.fillText('?', x + cw / 2, y + ch / 2 + 1);
       ctx.textBaseline = 'alphabetic';
       continue;
     }
-    ctx.fillStyle = bo ? (done ? '#3E7F7A' : v ? '#B5392A' : '#6B2A2A') : i === HUB ? '#E2B04A' : '#F6EBCB';
-    rr(x, y, cw, ch, 6);
+    ctx.fillStyle = bo
+      ? done
+        ? '#3E7F7A'
+        : v
+          ? '#B5392A'
+          : '#6B2A2A'
+      : i === HUB_ROOM
+        ? '#E2B04A'
+        : '#F6EBCB';
+    roundRectPath(x, y, cw, ch, 6);
     ctx.fill();
     ctx.lineWidth = cur ? 5 : 3;
-    ctx.strokeStyle = cur ? '#F2C45A' : INK;
-    rr(x, y, cw, ch, 6);
+    ctx.strokeStyle = cur ? '#F2C45A' : INK_COLOR;
+    roundRectPath(x, y, cw, ch, 6);
     ctx.stroke();
     if (bo) {
       const B = levels[i].boss;
@@ -339,7 +359,7 @@ export function drawMap() {
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
         do {
-          ctx.font = '900 ' + fs + 'px ' + FB;
+          ctx.font = '900 ' + fs + 'px ' + FONT_BODY;
           fs -= 0.5;
         } while (ctx.measureText(nm).width > cw - 4 && fs > 4.5);
         ctx.fillText(nm, x + cw / 2, y + ch - 3);
@@ -353,9 +373,9 @@ export function drawMap() {
         ctx.lineTo(x + cw - 4, y + 3);
         ctx.stroke();
       }
-    } else if (i === HUB) {
-      ctx.fillStyle = INK;
-      ctx.font = '900 16px ' + FB;
+    } else if (i === HUB_ROOM) {
+      ctx.fillStyle = INK_COLOR;
+      ctx.font = '900 16px ' + FONT_BODY;
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
       ctx.fillText('★', x + cw / 2, y + ch / 2 + 1);
@@ -363,26 +383,26 @@ export function drawMap() {
     }
     if (levels[i].rest && v) {
       // lit
-      ctx.fillStyle = gameState.bu[i] ? '#8A8F98' : '#D0402E';
-      rr(x + cw / 2 - 9, y + ch / 2 - 4, 18, 9, 2);
+      ctx.fillStyle = gameState.usedBeds[i] ? '#8A8F98' : '#D0402E';
+      roundRectPath(x + cw / 2 - 9, y + ch / 2 - 4, 18, 9, 2);
       ctx.fill();
       ctx.fillStyle = '#F6EBCB';
-      rr(x + cw / 2 - 8, y + ch / 2 - 6, 7, 6, 2);
+      roundRectPath(x + cw / 2 - 8, y + ch / 2 - 6, 7, 6, 2);
       ctx.fill();
       ctx.lineWidth = 1.8;
-      ctx.strokeStyle = INK;
-      rr(x + cw / 2 - 9, y + ch / 2 - 4, 18, 9, 2);
+      ctx.strokeStyle = INK_COLOR;
+      roundRectPath(x + cw / 2 - 9, y + ch / 2 - 4, 18, 9, 2);
       ctx.stroke();
     }
-    if (v && isBench(i)) {
+    if (v && hasBed(i)) {
       ctx.fillStyle = '#4DB8B1';
       ctx.beginPath();
       ctx.arc(x + cw - 7, y + 7, 6, 0, 7);
       ctx.fill();
       ctx.lineWidth = 2.2;
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.stroke();
-      UI.push({
+      uiHitBoxes.push({
         id: 'm' + i,
         x: x - 3,
         y: y - 3,
@@ -390,18 +410,18 @@ export function drawMap() {
         h: ch + 6,
       });
     }
-    if (v && !bo && !isBench(i) && levels[i].st) {
+    if (v && !bo && !hasBed(i) && levels[i].st) {
       ctx.fillStyle = '#4DB8B1';
       ctx.beginPath();
       ctx.arc(x + cw - 7, y + 7, 5, 0, 7);
       ctx.fill();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.stroke();
     }
   }
   // le héros sur la salle active : petit saut, halo qui pulse, flèche qui rebondit
-  if (POS[gameState.lvl]) {
+  if (ROOM_POSITIONS[gameState.lvl]) {
     const { x, y } = at(gameState.lvl),
       t = gameState.time,
       cxp = x + cw / 2,
@@ -443,7 +463,7 @@ export function drawMap() {
     const ay = y - hh - 12 + Math.sin(t * 6) * 3;
     ctx.save();
     ctx.fillStyle = '#F2C45A';
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 2.5;
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -456,14 +476,14 @@ export function drawMap() {
     ctx.restore();
   }
   ctx.fillStyle = '#F6EBCB';
-  ctx.font = '700 12px ' + FB;
+  ctx.font = '700 12px ' + FONT_BODY;
   ctx.textAlign = 'center';
   ctx.fillText(
     'rouge : boss · vert-de-gris : vaincu · rond turquoise : statue ou lit = voyage rapide · doré : ici · ? : à découvrir',
-    W / 2,
-    H - 60,
+    WIDTH / 2,
+    HEIGHT - 60,
   );
-  btn('mback', W / 2 - 100, H - 52, 200, 36, 'RETOUR', {
+  drawButton('mback', WIDTH / 2 - 100, HEIGHT - 52, 200, 36, 'RETOUR', {
     size: 20,
     lip: 8,
     r: 12,
@@ -471,53 +491,61 @@ export function drawMap() {
 }
 export function drawSleep() {
   ctx.fillStyle = 'rgba(27,22,18,.62)';
-  ctx.fillRect(0, 0, W, H);
-  outlined('DORMIR ?', W / 2, H / 2 - 96, 56, '#E2A93B');
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  drawOutlinedText('DORMIR ?', WIDTH / 2, HEIGHT / 2 - 96, 56, '#E2A93B');
   ctx.fillStyle = '#F6EBCB';
-  ctx.font = '800 19px ' + FB;
+  ctx.font = '800 19px ' + FONT_BODY;
   ctx.textAlign = 'center';
-  ctx.fillText('Cœurs et Temps entièrement rechargés', W / 2, H / 2 - 48);
-  ctx.fillText('mais +20 secondes ajoutées au chrono', W / 2, H / 2 - 20);
-  btn('yes', W / 2 - 190, H / 2 + 10, 170, 52, 'DORMIR', {
+  ctx.fillText('Cœurs et Temps entièrement rechargés', WIDTH / 2, HEIGHT / 2 - 48);
+  ctx.fillText('mais +20 secondes ajoutées au chrono', WIDTH / 2, HEIGHT / 2 - 20);
+  drawButton('yes', WIDTH / 2 - 190, HEIGHT / 2 + 10, 170, 52, 'DORMIR', {
     size: 24,
     c: '#55C2BA',
     d: '#23807A',
   });
-  btn('no', W / 2 + 20, H / 2 + 10, 170, 52, 'NON', {
+  drawButton('no', WIDTH / 2 + 20, HEIGHT / 2 + 10, 170, 52, 'NON', {
     size: 24,
   });
-  ctx.font = '700 14px ' + FB;
+  ctx.font = '700 14px ' + FONT_BODY;
   ctx.fillStyle = 'rgba(246,235,203,.8)';
-  ctx.fillText('Entrée : dormir · Échap : non', W / 2, H / 2 + 104);
+  ctx.fillText('Entrée : dormir · Échap : non', WIDTH / 2, HEIGHT / 2 + 104);
 }
 export function drawPause() {
   ctx.fillStyle = 'rgba(27,22,18,.62)';
-  ctx.fillRect(0, 0, W, H);
-  outlined('PAUSE', W / 2, H / 2 - 90, 64, '#E2A93B');
-  btn('resume', W / 2 - 140, H / 2 - 58, 280, 56, 'REPRENDRE', {
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  drawOutlinedText('PAUSE', WIDTH / 2, HEIGHT / 2 - 90, 64, '#E2A93B');
+  drawButton('resume', WIDTH / 2 - 140, HEIGHT / 2 - 58, 280, 56, 'REPRENDRE', {
     size: 28,
     lip: 11,
     r: 15,
   });
-  btn('map', W / 2 - 120, H / 2 + 22, 240, 44, 'CARTE', {
+  drawButton('map', WIDTH / 2 - 120, HEIGHT / 2 + 22, 240, 44, 'CARTE', {
     size: 20,
     lip: 9,
     r: 13,
     c: '#55C2BA',
     d: '#23807A',
   });
-  btn('menu', W / 2 - 120, H / 2 + 88, 240, 44, 'MENU PRINCIPAL', {
+  drawButton('menu', WIDTH / 2 - 120, HEIGHT / 2 + 88, 240, 44, 'MENU PRINCIPAL', {
     size: 20,
     lip: 9,
     r: 13,
   });
-  btn('info', W / 2 - 120, H / 2 + 154, 240, 38, INFO ? 'INFOS : OUI (I)' : 'INFOS : NON (I)', {
-    size: 18,
-    lip: 8,
-    r: 12,
-    c: INFO ? '#55C2BA' : '#9A9A9A',
-    d: INFO ? '#23807A' : '#5E5E5E',
-  });
+  drawButton(
+    'info',
+    WIDTH / 2 - 120,
+    HEIGHT / 2 + 154,
+    240,
+    38,
+    infoEnabled ? 'INFOS : OUI (I)' : 'INFOS : NON (I)',
+    {
+      size: 18,
+      lip: 8,
+      r: 12,
+      c: infoEnabled ? '#55C2BA' : '#9A9A9A',
+      d: infoEnabled ? '#23807A' : '#5E5E5E',
+    },
+  );
 }
 
 /* ---------- Entrées ---------- */

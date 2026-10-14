@@ -1,9 +1,9 @@
 import { levels } from '../data/levels.js';
-import { ENTB, EXITB, FL, HLAST, NF, OPP, POS } from './world.js';
+import { ENTB, EXITB, FL, LAST_HANDMADE_ROOM, NO_FLIP, OPPOSITE_SIDE, ROOM_POSITIONS } from './world.js';
 // ---- liens
 function rowsFor(i, s) {
-  if (i <= HLAST) {
-    const es = NF ? 'l' : FL[i] ? 'r' : 'l';
+  if (i <= LAST_HANDMADE_ROOM) {
+    const es = NO_FLIP ? 'l' : FL[i] ? 'r' : 'l';
     const r = (s === es ? ENTB[i] : EXITB[i]) || [1, 13];
     return {
       r0: r[0],
@@ -15,21 +15,21 @@ function rowsFor(i, s) {
     r1: 13,
   };
 }
-export function hEdge(a, b, xa = {}, xb = {}) {
-  const [ax, ay] = POS[a],
-    [bx, by] = POS[b];
+export function horizontalEdge(a, b, xa = {}, xb = {}) {
+  const [ax, ay] = ROOM_POSITIONS[a],
+    [bx, by] = ROOM_POSITIONS[b];
   if (ay !== by || Math.abs(ax - bx) !== 1) throw new Error('lien horizontal impossible ' + a + '-' + b);
   let sa = bx > ax ? 'r' : 'l',
-    sb = OPP[sa];
-  if (NF) {
-    if (a <= HLAST && !xa.sec) sa = xa.fwd ? 'r' : 'l';
-    if (b <= HLAST && !xb.sec) sb = xb.fwd ? 'r' : 'l';
+    sb = OPPOSITE_SIDE[sa];
+  if (NO_FLIP) {
+    if (a <= LAST_HANDMADE_ROOM && !xa.sec) sa = xa.fwd ? 'r' : 'l';
+    if (b <= LAST_HANDMADE_ROOM && !xb.sec) sb = xb.fwd ? 'r' : 'l';
   } else {
     // une salle écrite à la main a son entrée du côté de son retournement
     const chk = (i, s, x) => {
-      if (i <= HLAST && !x.sec && !x.vert) {
+      if (i <= LAST_HANDMADE_ROOM && !x.sec && !x.vert) {
         const es = FL[i] ? 'r' : 'l';
-        const want = x.fwd ? OPP[es] : es;
+        const want = x.fwd ? OPPOSITE_SIDE[es] : es;
         if (s !== want) throw new Error('mauvais côté : salle ' + i + ' lien ' + s + ' attendu ' + want);
       }
     };
@@ -61,9 +61,9 @@ export function hEdge(a, b, xa = {}, xb = {}) {
     ...xb,
   });
 }
-export function vEdge(u, d, o = {}) {
-  const [ux, uy] = POS[u],
-    [dx, dy] = POS[d];
+export function verticalEdge(u, d, o = {}) {
+  const [ux, uy] = ROOM_POSITIONS[u],
+    [dx, dy] = ROOM_POSITIONS[d];
   if (ux !== dx || dy !== uy + 1) throw new Error('lien vertical impossible ' + u + '|' + d);
   const base = {
     c0: o.c0,
@@ -90,7 +90,7 @@ export function vEdge(u, d, o = {}) {
     to: u,
   });
 }
-export const GATE_KIND = {
+export const GATE_REQUIREMENTS = {
   dj: {
     all: [5],
   },
@@ -98,13 +98,13 @@ export const GATE_KIND = {
     all: [4, 5],
   },
 };
-export const edgeCols = (y, kind) => {
+export const edgeColumns = (y, kind) => {
   const A = y % 2 === 0;
   return kind === 'ladder' ? (A ? [5, 5] : [24, 24]) : A ? [4, 6] : [23, 25];
 };
 
 // ---- noms et indications des salles générées
-export const GN = [
+export const CORRIDOR_NAMES = [
   'Galerie',
   'Couloir',
   'Passage',
@@ -116,7 +116,7 @@ export const GN = [
   'Tunnel',
   'Coursive',
 ];
-export const GA = [
+export const CORRIDOR_SUFFIXES = [
   'des Échos',
   'du Tic-Tac',
   'des Rouages',
@@ -138,15 +138,15 @@ export const GA = [
   'des Applaudissements',
   'du Rideau',
 ];
-export const HFREE = [''];
-export const HTIER = {
+export const HINT_FREE = [''];
+export const HINT_BY_TIER = {
   E: '',
   J: '',
   D: '',
   B: '',
   F: '',
 };
-export const HKIND = {
+export const HINT_BY_KIND = {
   ladder:
     "Une échelle ! Maintiens ↑ (ou le joystick vers le haut) pour monter, ↓ pour descendre, Saut pour lâcher l'échelle en sautant (avec ← / → pour sauter de côté).",
   stairs: '',

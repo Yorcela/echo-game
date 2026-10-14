@@ -132,4 +132,4 @@ bossDefs.push({
   em: 'king',
   hint: '',
 });
-export const BH_ = '';
+export const EMPTY_HINT = '';

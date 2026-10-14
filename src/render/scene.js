@@ -1,28 +1,35 @@
 import { runtime } from '../state/runtime.js';
-import { FLOOR, H, T, W } from '../core/config.js';
+import { FLOOR_Y, HEIGHT, TILE, WIDTH } from '../core/config.js';
 import { canvas, ctx } from '../core/canvas.js';
-import { TYPES } from '../data/echoes.js';
+import { ECHO_TYPES } from '../data/echoes.js';
 import { levels } from '../data/levels.js';
-import { fmt, gameState } from '../state/state.js';
+import { formatTime, gameState } from '../state/state.js';
 import { scores } from '../state/save.js';
 import { snapCv } from '../game/rewind.js';
 import { sealed } from '../game/physics.js';
 import { ghost } from '../game/reflets.js';
-import { sprOK } from './sprites.js';
-import { FB, INK, UI, grain, outlined, rr } from './primitives.js';
-import { drawBG, drawFloorFx } from './background.js';
+import { isSpriteReady } from './sprites.js';
+import {
+  FONT_BODY,
+  INK_COLOR,
+  uiHitBoxes,
+  grainTexture,
+  drawOutlinedText,
+  roundRectPath,
+} from './primitives.js';
+import { drawBackground, drawFloorFx } from './background.js';
 import { drawTiles } from './tiles.js';
-import { drawHero, drawWalker, star } from './characters.js';
+import { drawHero, drawWalker, starPath } from './characters.js';
 import { drawBoss, drawTrap } from './bosses.js';
 import { drawAfter } from './boss-witch.js';
 import { drawDoors, drawTunnelBG } from './room-overlays.js';
 import { drawMirrorBG } from './boss-mirror.js';
 import { drawHUD, drawHeart, drawOver } from '../ui/hud.js';
 import { drawMap, drawPause, drawScores, drawSleep, drawTitle, drawTrial } from '../ui/screens.js';
-const tmpCv = document.createElement('canvas');
-tmpCv.width = W;
-tmpCv.height = H;
-const tctx = tmpCv.getContext('2d');
+const scratchCanvas = document.createElement('canvas');
+scratchCanvas.width = WIDTH;
+scratchCanvas.height = HEIGHT;
+const scratchContext = scratchCanvas.getContext('2d');
 export function draw() {
   const boil = Math.floor(gameState.time * 8) % 3;
   ctx.save();
@@ -49,7 +56,7 @@ export function draw() {
     ctx.restore();
     return;
   }
-  drawBG(boil, gameState.lvl);
+  drawBackground(boil, gameState.lvl);
   drawMirrorBG();
   drawTunnelBG();
   drawTiles(boil);
@@ -60,18 +67,18 @@ export function draw() {
       fall = gameState.sealed === 1 ? Math.min(1, (gameState.time - gameState.sealAt) / 0.4) : 1;
     if (gameState.sealed || up < 0.5) {
       const off = gameState.sealed
-          ? -(1 - fall * fall) * (13 * T + 8)
-          : -Math.min(1, up / 0.5) * (13 * T + 8),
-        h = 13 * T,
-        y0 = T + off;
-      for (const x0 of [0, W - T]) {
+          ? -(1 - fall * fall) * (13 * TILE + 8)
+          : -Math.min(1, up / 0.5) * (13 * TILE + 8),
+        h = 13 * TILE,
+        y0 = TILE + off;
+      for (const x0 of [0, WIDTH - TILE]) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x0, T, T, h);
+        ctx.rect(x0, TILE, TILE, h);
         ctx.clip();
         ctx.fillStyle = '#2B2530';
-        ctx.fillRect(x0, y0, T, h);
-        ctx.strokeStyle = INK;
+        ctx.fillRect(x0, y0, TILE, h);
+        ctx.strokeStyle = INK_COLOR;
         ctx.lineWidth = 3;
         ctx.fillStyle = '#8B8497';
         for (let i = 0; i < 4; i++) {
@@ -85,14 +92,14 @@ export function draw() {
         }
         for (let r = 0; r < 7; r++) {
           const by = y0 + 10 + (r * h) / 7;
-          ctx.fillRect(x0, by, T, 5);
-          ctx.strokeRect(x0, by, T, 5);
+          ctx.fillRect(x0, by, TILE, 5);
+          ctx.strokeRect(x0, by, TILE, 5);
         }
         ctx.restore();
       }
     }
   }
-  for (const e of runtime.ents)
+  for (const e of runtime.entities)
     if (e.alive) {
       if (e.k === 'w') drawWalker(e);
       else drawBoss(e);
@@ -100,7 +107,7 @@ export function draw() {
   {
     const g = ghost();
     if (g) {
-      if (sprOK('ghostR')) drawAfter(g);
+      if (isSpriteReady('ghost-afterimage')) drawAfter(g);
       else
         drawHero(g, {
           jean: '#C77B30',
@@ -115,13 +122,13 @@ export function draw() {
   }
   if (runtime.echoClone)
     drawHero(runtime.echoClone, {
-      jean: TYPES[runtime.echoClone.type].c,
+      jean: ECHO_TYPES[runtime.echoClone.type].c,
       cuff: '#F6EBCB',
       tie: '#F6EBCB',
       body: '#F4F1E6',
       alpha: 0.88,
       clone: 1,
-      col: TYPES[runtime.echoClone.type].c,
+      col: ECHO_TYPES[runtime.echoClone.type].c,
     });
   if (runtime.player.dash > 0)
     for (let i = 1; i <= 3; i++)
@@ -160,25 +167,26 @@ export function draw() {
       else if (sealed(k)) {
         ctx.save();
         ctx.fillStyle = 'rgba(208,64,46,.38)';
-        ctx.fillRect(k.c0 * T, k.s === 't' ? 0 : 14 * T, (k.c1 - k.c0 + 1) * T, 10);
-        ctx.fillStyle = INK;
-        for (let x = k.c0 * T; x < (k.c1 + 1) * T; x += 16)
-          ctx.fillRect(x + 2, k.s === 't' ? 0 : 14 * T, 10, 5);
+        ctx.fillRect(k.c0 * TILE, k.s === 't' ? 0 : 14 * TILE, (k.c1 - k.c0 + 1) * TILE, 10);
+        ctx.fillStyle = INK_COLOR;
+        for (let x = k.c0 * TILE; x < (k.c1 + 1) * TILE; x += 16)
+          ctx.fillRect(x + 2, k.s === 't' ? 0 : 14 * TILE, 10, 5);
         ctx.restore();
       }
     }
   for (const k of runtime.level.links)
     if (sealed(k) && (k.s === 'l' || k.s === 'r')) {
-      const x = k.s === 'l' ? 0 : W - 12;
+      const x = k.s === 'l' ? 0 : WIDTH - 12;
       ctx.save();
       ctx.fillStyle = 'rgba(208,64,46,.28)';
-      ctx.fillRect(x, k.r0 * T, 12, (k.r1 - k.r0 + 1) * T);
-      ctx.fillStyle = INK;
-      for (let r = k.r0 * T; r < (k.r1 + 1) * T; r += 16) ctx.fillRect(x + (k.s === 'l' ? 0 : 2), r, 10, 5);
+      ctx.fillRect(x, k.r0 * TILE, 12, (k.r1 - k.r0 + 1) * TILE);
+      ctx.fillStyle = INK_COLOR;
+      for (let r = k.r0 * TILE; r < (k.r1 + 1) * TILE; r += 16)
+        ctx.fillRect(x + (k.s === 'l' ? 0 : 2), r, 10, 5);
       ctx.restore();
     }
   if (runtime.bed && gameState.mode === 'play')
-    UI.push({
+    uiHitBoxes.push({
       id: 'bedz',
       x: runtime.bed.x - 56,
       y: runtime.bed.y - 64,
@@ -188,37 +196,37 @@ export function draw() {
   if (runtime.bed) {
     const bx = runtime.bed.x,
       by = runtime.bed.y,
-      used = gameState.bu[gameState.lvl];
+      used = gameState.usedBeds[gameState.lvl];
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.fillStyle = '#6B4A33';
-    rr(bx - 44, by - 12, 88, 12, 3);
+    roundRectPath(bx - 44, by - 12, 88, 12, 3);
     ctx.fill();
     ctx.stroke();
-    rr(bx - 44, by - 34, 8, 34, 3);
+    roundRectPath(bx - 44, by - 34, 8, 34, 3);
     ctx.fill();
     ctx.stroke();
-    rr(bx + 36, by - 26, 8, 26, 3);
+    roundRectPath(bx + 36, by - 26, 8, 26, 3);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = used ? '#8A8F98' : '#E8E0C8';
-    rr(bx - 38, by - 24, 74, 13, 5);
+    roundRectPath(bx - 38, by - 24, 74, 13, 5);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = used ? '#6E727A' : '#D0402E';
-    rr(bx - 14, by - 27, 50, 16, 5);
+    roundRectPath(bx - 14, by - 27, 50, 16, 5);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = used ? '#B5B9C0' : '#F6EBCB';
-    rr(bx - 36, by - 33, 22, 11, 5);
+    roundRectPath(bx - 36, by - 33, 22, 11, 5);
     ctx.fill();
     ctx.stroke();
     if (!used) {
       const g = 0.5 + 0.5 * Math.sin(gameState.time * 3);
       ctx.fillStyle = 'rgba(242,196,90,' + (0.5 + 0.4 * g) + ')';
-      ctx.font = '900 16px ' + FB;
+      ctx.font = '900 16px ' + FONT_BODY;
       ctx.textAlign = 'center';
       ctx.fillText('z', bx + 30, by - 46 - g * 4);
       ctx.fillText('Z', bx + 42, by - 58 - g * 4);
@@ -232,15 +240,15 @@ export function draw() {
     ctx.beginPath();
     ctx.arc(runtime.statue.x, runtime.statue.y - 30, 34, 0, 7);
     ctx.fill();
-    ctx.fillStyle = INK;
-    rr(runtime.statue.x - 15, runtime.statue.y - 12, 30, 12, 3);
+    ctx.fillStyle = INK_COLOR;
+    roundRectPath(runtime.statue.x - 15, runtime.statue.y - 12, 30, 12, 3);
     ctx.fill();
-    rr(runtime.statue.x - 10, runtime.statue.y - 44, 20, 34, 6);
+    roundRectPath(runtime.statue.x - 10, runtime.statue.y - 44, 20, 34, 6);
     ctx.fill();
     ctx.fillStyle = '#B8AE98';
-    rr(runtime.statue.x - 12, runtime.statue.y - 10, 24, 8, 2);
+    roundRectPath(runtime.statue.x - 12, runtime.statue.y - 10, 24, 8, 2);
     ctx.fill();
-    rr(runtime.statue.x - 7, runtime.statue.y - 41, 14, 30, 5);
+    roundRectPath(runtime.statue.x - 7, runtime.statue.y - 41, 14, 30, 5);
     ctx.fill();
     ctx.fillStyle = '#4DB8B1';
     ctx.beginPath();
@@ -269,7 +277,7 @@ export function draw() {
         drawHeart(h.x, h.y + by, 36, true, true);
       } else drawHeart(h.x, h.y + by, 28, true);
     }
-  if (!(gameState.inv > 0 && Math.floor(gameState.time * 14) % 2))
+  if (!(gameState.invulnerableTimer > 0 && Math.floor(gameState.time * 14) % 2))
     drawHero(
       runtime.player,
       runtime.player.big
@@ -288,7 +296,7 @@ export function draw() {
     ctx.fillStyle = gl;
     ctx.fillRect(s.x - 16, s.y - 16, 32, 32);
     ctx.fillStyle = '#F6FFFE';
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(s.x, s.y, 5.5, 0, 7);
@@ -313,33 +321,33 @@ export function draw() {
   ctx.restore();
   ctx.save();
   ctx.globalAlpha = 0.4;
-  ctx.drawImage(grain, 0, 0, 256, 256, 0, 0, W, H);
+  ctx.drawImage(grainTexture, 0, 0, 256, 256, 0, 0, WIDTH, HEIGHT);
   ctx.restore();
   if (gameState.mode === 'rewind') {
     ctx.fillStyle = 'rgba(46,100,140,.28)';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
     ctx.fillStyle = 'rgba(246,235,203,.10)';
-    for (let y = (gameState.time * 300) % 24; y < H; y += 24) ctx.fillRect(0, y, W, 6);
-    outlined('« RETOUR', W / 2, H / 2 + 8, 40, '#F6EBCB');
+    for (let y = (gameState.time * 300) % 24; y < HEIGHT; y += 24) ctx.fillRect(0, y, WIDTH, 6);
+    drawOutlinedText('« RETOUR', WIDTH / 2, HEIGHT / 2 + 8, 40, '#F6EBCB');
   }
-  UI.length = 0;
+  uiHitBoxes.length = 0;
   drawHUD();
   if (gameState.fade > 0) {
     ctx.fillStyle = 'rgba(27,22,18,' + Math.min(1, gameState.fade / 0.45) + ')';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
   if (gameState.mode === 'pause') drawPause();
   if (gameState.mode === 'sleep') {
-    UI.length = 0;
+    uiHitBoxes.length = 0;
     drawSleep();
   }
-  if (gameState.mode === 'gain' && gameState.gain) {
+  if (gameState.mode === 'gain' && gameState.gainedEcho) {
     ctx.fillStyle = 'rgba(27,22,18,.7)';
-    ctx.fillRect(0, 0, W, H);
-    const g = Math.min(1, gameState.gainT * 2),
-      t = gameState.gainT,
-      cx = W / 2,
-      cy = H / 2 - 60;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    const g = Math.min(1, gameState.gainTimer * 2),
+      t = gameState.gainTimer,
+      cx = WIDTH / 2,
+      cy = HEIGHT / 2 - 60;
     // rayons dorés qui tournent
     ctx.save();
     ctx.translate(cx, cy);
@@ -368,9 +376,9 @@ export function draw() {
       ctx.save();
       ctx.globalAlpha = al;
       ctx.fillStyle = cols[i % 4];
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = INK_COLOR;
       ctx.lineWidth = 2;
-      star(x, y, sz, sz * 0.45, life * 4 + i);
+      starPath(x, y, sz, sz * 0.45, life * 4 + i);
       ctx.fill();
       ctx.stroke();
       ctx.restore();
@@ -384,14 +392,14 @@ export function draw() {
       ctx.save();
       ctx.globalAlpha = 0.35 + 0.5 * k;
       ctx.fillStyle = '#FFF8E1';
-      star(cx + Math.cos(a) * rx, cy + 30 + Math.sin(a) * ry, 4 + k * 5, 1.6, t * 2);
+      starPath(cx + Math.cos(a) * rx, cy + 30 + Math.sin(a) * ry, 4 + k * 5, 1.6, t * 2);
       ctx.fill();
       ctx.restore();
     }
     ctx.globalAlpha = g;
-    ctx.font = '800 18px ' + FB;
+    ctx.font = '800 18px ' + FONT_BODY;
     ctx.textAlign = 'left';
-    const words = gameState.gain[1].split(' '),
+    const words = gameState.gainedEcho[1].split(' '),
       tw = 700,
       lines = [];
     let ln = '';
@@ -404,74 +412,74 @@ export function draw() {
     }
     lines.push(ln);
     const bh = lines.length * 24 + 22,
-      ty = H / 2 - 6;
-    outlined('ÉCHO GAGNÉ !', W / 2, H / 2 - 128, 52, '#E2A93B');
-    outlined(gameState.gain[0], W / 2, H / 2 - 68, 38, '#F6EBCB');
+      ty = HEIGHT / 2 - 6;
+    drawOutlinedText('ÉCHO GAGNÉ !', WIDTH / 2, HEIGHT / 2 - 128, 52, '#E2A93B');
+    drawOutlinedText(gameState.gainedEcho[0], WIDTH / 2, HEIGHT / 2 - 68, 38, '#F6EBCB');
     ctx.fillStyle = 'rgba(20,15,12,.72)';
-    rr(W / 2 - tw / 2 - 20, ty - 8, tw + 40, bh, 12);
+    roundRectPath(WIDTH / 2 - tw / 2 - 20, ty - 8, tw + 40, bh, 12);
     ctx.fill();
     ctx.fillStyle = '#F6EBCB';
     ctx.textAlign = 'center';
-    ctx.font = '800 18px ' + FB;
-    lines.forEach((l, i) => ctx.fillText(l, W / 2, ty + 18 + i * 24));
-    if (gameState.gainT > 0.8) ctx.fillText("Touche l'écran pour continuer", W / 2, ty + bh + 28);
+    ctx.font = '800 18px ' + FONT_BODY;
+    lines.forEach((l, i) => ctx.fillText(l, WIDTH / 2, ty + 18 + i * 24));
+    if (gameState.gainTimer > 0.8) ctx.fillText("Touche l'écran pour continuer", WIDTH / 2, ty + bh + 28);
     ctx.globalAlpha = 1;
   }
   if (gameState.mode === 'over') drawOver();
-  if (gameState.slide > 0) {
-    const t = gameState.slide / 0.4,
+  if (gameState.slideTimer > 0) {
+    const t = gameState.slideTimer / 0.4,
       e = t * t * (3 - 2 * t);
-    tctx.clearRect(0, 0, W, H);
-    tctx.drawImage(canvas, 0, 0);
+    scratchContext.clearRect(0, 0, WIDTH, HEIGHT);
+    scratchContext.drawImage(canvas, 0, 0);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = INK;
-    ctx.fillRect(0, 0, W, H);
-    ctx.drawImage(snapCv, -gameState.sdir * W * (1 - e), -gameState.sv * H * (1 - e));
-    ctx.drawImage(tmpCv, gameState.sdir * W * e, gameState.sv * H * e);
+    ctx.fillStyle = INK_COLOR;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.drawImage(snapCv, -gameState.slideDirX * WIDTH * (1 - e), -gameState.slideDirY * HEIGHT * (1 - e));
+    ctx.drawImage(scratchCanvas, gameState.slideDirX * WIDTH * e, gameState.slideDirY * HEIGHT * e);
   }
   if (gameState.mode === 'win') {
     ctx.fillStyle = 'rgba(27,22,18,.45)';
-    ctx.fillRect(0, 0, W, H);
-    outlined('NIVEAU RÉUSSI !', W / 2, H / 2, 60, '#E2A93B');
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    drawOutlinedText('NIVEAU RÉUSSI !', WIDTH / 2, HEIGHT / 2, 60, '#E2A93B');
     ctx.fillStyle = '#F6EBCB';
-    ctx.font = '800 18px ' + FB;
+    ctx.font = '800 18px ' + FONT_BODY;
     ctx.textAlign = 'center';
-    outlined('⏱ ' + fmt(gameState.lt), W / 2, H / 2 + 52, 34, '#F6EBCB');
-    if (gameState.newRec)
-      outlined(
-        gameState.newRec === 1 ? 'PREMIER TEMPS !' : 'NOUVEAU RECORD !',
-        W / 2,
-        H / 2 + 92,
+    drawOutlinedText('⏱ ' + formatTime(gameState.lt), WIDTH / 2, HEIGHT / 2 + 52, 34, '#F6EBCB');
+    if (gameState.newRecordKind)
+      drawOutlinedText(
+        gameState.newRecordKind === 1 ? 'PREMIER TEMPS !' : 'NOUVEAU RECORD !',
+        WIDTH / 2,
+        HEIGHT / 2 + 92,
         26,
         '#4DB8B1',
       );
     else if (scores.best[gameState.lvl] !== undefined) {
-      ctx.font = '800 16px ' + FB;
-      ctx.fillText('record : ' + fmt(scores.best[gameState.lvl]), W / 2, H / 2 + 86);
+      ctx.font = '800 16px ' + FONT_BODY;
+      ctx.fillText('record : ' + formatTime(scores.best[gameState.lvl]), WIDTH / 2, HEIGHT / 2 + 86);
     }
-    ctx.font = '800 16px ' + FB;
+    ctx.font = '800 16px ' + FONT_BODY;
     ctx.fillText(
       gameState.lvl + 1 >= levels.length ? 'Tu as fini la démo' : "Touche l'écran pour continuer",
-      W / 2,
-      H / 2 + 120,
+      WIDTH / 2,
+      HEIGHT / 2 + 120,
     );
   }
   if (gameState.mode === 'end') {
     ctx.fillStyle = 'rgba(27,22,18,.8)';
-    ctx.fillRect(0, 0, W, H);
-    outlined('VICTOIRE !', W / 2, H / 2 - 10, 72, '#E2A93B');
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    drawOutlinedText('VICTOIRE !', WIDTH / 2, HEIGHT / 2 - 10, 72, '#E2A93B');
     ctx.fillStyle = '#F6EBCB';
-    ctx.font = '800 20px ' + FB;
+    ctx.font = '800 20px ' + FONT_BODY;
     ctx.textAlign = 'center';
     ctx.fillText(
       'Le Roi des Échos est vaincu · temps total ' +
-        fmt(gameState.endInfo ? gameState.endInfo.t : gameState.run) +
-        (gameState.endInfo && gameState.endInfo.rank
-          ? ' (n°' + gameState.endInfo.rank + ' au classement)'
+        formatTime(gameState.endResult ? gameState.endResult.t : gameState.runTime) +
+        (gameState.endResult && gameState.endResult.rank
+          ? ' (n°' + gameState.endResult.rank + ' au classement)'
           : ''),
-      W / 2,
-      H / 2 + 40,
+      WIDTH / 2,
+      HEIGHT / 2 + 40,
     );
-    ctx.fillText("Touche l'écran pour revenir au menu", W / 2, H / 2 + 74);
+    ctx.fillText("Touche l'écran pour revenir au menu", WIDTH / 2, HEIGHT / 2 + 74);
   }
 }
