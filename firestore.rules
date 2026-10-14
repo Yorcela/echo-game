@@ -9,9 +9,10 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid
         && d.keys().hasOnly(['n', 'l', 't', 'v', 'rankKey'])
         && d.n is string && d.n.size() >= 1 && d.n.size() <= 20
-        && d.l is int && d.l >= 0 && d.l <= 100
+        && d.l is int && d.l >= 1 && d.l <= 100
         && (d.t is int || d.t is float) && d.t >= 30 && d.t < 100000
-        && d.v is int && (d.v == 0 || d.v == 1)
+        // une victoire exige un parcours plausible : au moins 20 salles explorées et 3 minutes
+        && d.v is int && (d.v == 0 || (d.v == 1 && d.l >= 20 && d.t >= 180))
         && d.rankKey is number
         && math.abs(d.rankKey - ((d.v == 1 ? 0 : 1000000000 + (1000 - d.l) * 100000) + d.t)) < 0.01;
     }

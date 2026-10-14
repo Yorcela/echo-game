@@ -59,7 +59,9 @@ Le jeu enregistre le meilleur score de chaque joueur dans Firestore (offre gratu
 - **Identité** : authentification anonyme Firebase (aucun compte à créer) ; un document `scores/<uid>` par joueur, mis à jour uniquement si le score s'améliore.
 - **Écran** : « SCORES » → onglets *Mes scores* (local) / *Mondial*. Hors ligne ou en cas d'erreur, le classement local reste disponible et la partie n'est jamais bloquée.
 - **Sécurité** : les règles [`firestore.rules`](firestore.rules) valident côté serveur le type et les bornes des champs, le nom (1 à 20 caractères), la cohérence de la clé de tri, l'unicité par joueur et l'amélioration obligatoire d'un score existant ; suppression interdite, lecture limitée à 50 lignes. Les règles publiées dans la console Firebase doivent rester identiques à ce fichier.
-- **Limite** : le jeu tourne dans le navigateur, un joueur motivé peut donc envoyer un score plausible mais faux ; les règles écartent les valeurs impossibles et le spam, pas la triche soignée.
+- **Clé d'API restreinte par référent** : dans Google Cloud Console (Identifiants → « Browser key »), restrictions « Sites Web » : `https://yorcela.github.io/*` et `http://localhost:5173/*`. Un autre site web qui utiliserait la clé est refusé par Google. Si tu héberges le jeu ailleurs, ajoute ton domaine à cette liste.
+- **Plausibilité** : une victoire exige au moins 20 salles explorées et 3 minutes de jeu ; temps minimal de 30 s dans tous les cas.
+- **Limite** : le jeu tourne dans le navigateur, un joueur motivé peut donc envoyer un score plausible mais faux ; les règles écartent les valeurs impossibles et le spam, pas la triche soignée. Le contrôle par référent n'arrête pas un script qui falsifie l'en-tête `Referer` (il protège contre la réutilisation de la clé depuis d'autres sites).
 - **Configuration** : `src/config/firebase.js` (clés publiques par conception). Vider `apiKey` désactive le mondial.
 - **Réutiliser un autre projet Firebase** : créer un projet, activer Firestore (mode production) et l'authentification anonyme, publier `firestore.rules`, puis remplacer la configuration.
 
