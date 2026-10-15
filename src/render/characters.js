@@ -784,7 +784,88 @@ function drawRebel(entity, t) {
   ctx.closePath();
   ctx.fill();
 }
+/** Fantôme en sprites : jupons qui ondulent, bras-tuyaux découpés en tranches qui serpentent, bouche qui s'ouvre de temps en temps. */
+function drawSpookSprite(e) {
+  const keys = [
+    'spook-body',
+    'spook-mouth-open',
+    'spook-mouth-closed',
+    'spook-arm',
+    'spook-hand',
+    'spook-skirt-a',
+    'spook-skirt-b',
+  ];
+  if (!keys.every(isSpriteReady)) return false;
+  const A = e.ph,
+    w = Math.sin(A * 1.5),
+    S = 40 / 518; // 40 px de haut en jeu pour 518 px de planche
+  ctx.globalAlpha = 0.94;
+  const gl = ctx.createRadialGradient(0, -18, 2, 0, -18, 26);
+  gl.addColorStop(0, 'rgba(190,150,255,.45)');
+  gl.addColorStop(1, 'rgba(190,150,255,0)');
+  ctx.fillStyle = gl;
+  ctx.beginPath();
+  ctx.arc(0, -18, 26, 0, 7);
+  ctx.fill();
+  ctx.save();
+  ctx.scale(S, S);
+  // (cx, by) = point bas-centre de l'image
+  const put = (k, cx, by, sc, rot) => {
+    const i = SPRITES[k];
+    ctx.save();
+    ctx.translate(cx, by);
+    if (rot) ctx.rotate(rot);
+    ctx.scale(sc, sc);
+    ctx.drawImage(i, -i.naturalWidth / 2, -i.naturalHeight);
+    ctx.restore();
+  };
+  put('spook-skirt-b', w * 16, 6, 0.95, 0);
+  put('spook-body', 0, 0, 1, w * 0.015);
+  put('spook-skirt-a', -w * 14, 10, 0.8, 0);
+  // bouche : cousue la plupart du temps, ouverte un instant
+  put(Math.sin(A * 0.7) > 0.8 ? 'spook-mouth-open' : 'spook-mouth-closed', 0, -268, 0.5, 0);
+  // bras : une tranche par colonne, décalée verticalement par une onde qui part de l'épaule
+  const arm = SPRITES['spook-arm'],
+    hand = SPRITES['spook-hand'],
+    AS = 0.32,
+    N = 16,
+    sw = arm.naturalWidth / N,
+    AMP = 22;
+  for (const side of [-1, 1]) {
+    const ph = A * 1.6 + (side > 0 ? 1.3 : 0);
+    ctx.save();
+    ctx.translate(side * 105, -250);
+    ctx.scale(side, 1);
+    ctx.rotate(0.35 + Math.sin(ph * 0.5) * 0.12);
+    for (let n = 0; n < N; n++) {
+      const u = (n + 0.5) / N,
+        dy = Math.sin(ph - u * 6) * AMP * u;
+      ctx.drawImage(
+        arm,
+        n * sw,
+        0,
+        sw + 1,
+        arm.naturalHeight,
+        n * sw * AS,
+        dy - (arm.naturalHeight * AS) / 2,
+        (sw + 1) * AS,
+        arm.naturalHeight * AS,
+      );
+    }
+    // main au bout du tuyau, inclinée selon la tangente de l'onde
+    const th = ph - 6,
+      slope = (AMP * (Math.sin(th) - 6 * Math.cos(th))) / (arm.naturalWidth * AS);
+    ctx.translate(arm.naturalWidth * AS, Math.sin(th) * AMP);
+    ctx.rotate(Math.atan(slope) * 0.6);
+    ctx.scale(0.4, 0.4);
+    ctx.drawImage(hand, -hand.naturalWidth * 0.12, -hand.naturalHeight * 0.3);
+    ctx.restore();
+  }
+  ctx.restore();
+  return true;
+}
 function drawSpook(e, t) {
+  if (drawSpookSprite(e)) return;
   const A = e.ph,
     w = Math.sin(A * 1.5);
   ctx.globalAlpha = 0.94;

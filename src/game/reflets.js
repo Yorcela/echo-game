@@ -296,12 +296,17 @@ export function updateEntities(dt) {
         entity.ph += dt * 3;
         entity.x += entity.dir * entity.spd * dt;
         entity.y = entity.y0 + Math.sin(entity.ph) * 4;
-        const cc = Math.floor((entity.x + (entity.dir > 0 ? entity.w + 2 : -2)) / TILE);
-        if (solid(cc, Math.floor((entity.y + entity.h / 2) / TILE)) || Math.abs(entity.x - entity.x0) > 110)
-          entity.dir = -entity.dir;
+        // le fantôme traverse le décor (plateformes, piques, trous) et patrouille dans toute la salle
+        if (entity.x < TILE) entity.dir = 1;
+        else if (entity.x + entity.w > TILE * 29) entity.dir = -1;
       } else {
-        const cc = Math.floor((entity.x + (entity.dir > 0 ? entity.w + 2 : -2)) / TILE);
+        const cc = Math.floor((entity.x + (entity.dir > 0 ? entity.w + 2 : -2)) / TILE),
+          r0 = Math.floor(entity.y / TILE),
+          r1 = Math.floor((entity.y + entity.h - 2) / TILE);
+        let spike = false;
+        for (let r = r0; r <= r1; r++) if (runtime.grid[r] && runtime.grid[r][cc] === '^') spike = true;
         if (
+          spike ||
           solid(cc, Math.floor((entity.y + entity.h - 2) / TILE)) ||
           !solid(cc, Math.floor((entity.y + entity.h + 4) / TILE))
         )
