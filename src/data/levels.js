@@ -812,6 +812,63 @@ namedRooms.das2 = {
 namedRooms.rev = [namedRooms.pont1, namedRooms.pont2, namedRooms.pont3, namedRooms.pont4, namedRooms.rem1];
 for (const r of namedRooms.rev) r.rev = 1;
 
+// Salles d'eau : on ne les traverse qu'en nageant (écho de la Nage, gagné sur la Pieuvre). Les cases '"' sont de l'eau.
+// Les berges sont à mi-hauteur de la salle (rangée 8) et le plafond est effacé : le bassin est profond, avec de la place pour nager.
+const waterRoom = (f) =>
+  buildRoomRows((s, h, v) => {
+    for (let c = 0; c < 30; c++) s(0, c, '.'); // plafond non visible
+    for (const [a, b] of [
+      [1, 5],
+      [24, 28],
+    ])
+      for (let r = 8; r <= 13; r++) h(r, a, b);
+    s(7, 2, 'P');
+    s(7, 28, 'E');
+    f(s, h, v);
+  });
+namedRooms.sw1 = {
+  shore: 7, // les portes sont au niveau des berges (au-dessus de l'eau) : rangées 1 à 7
+  name: 'Les basses eaux',
+  need: [7],
+  hint: '',
+  rows: waterRoom((s, h) => {
+    for (let r = 8; r <= 15; r++) h(r, 6, 23, '"');
+    s(7, 26, '+');
+    s(11, 11, '`');
+    s(13, 18, '`');
+  }),
+};
+namedRooms.sw2 = {
+  shore: 7, // les portes sont au niveau des berges (au-dessus de l'eau) : rangées 1 à 7
+  name: 'Sous le mur',
+  need: [7],
+  hint: '',
+  rows: waterRoom((s, h, v) => {
+    for (let r = 8; r <= 15; r++) h(r, 6, 23, '"');
+    // un mur du plafond jusqu'au milieu du bassin : on passe en plongeant
+    v(15, 0, 12);
+    s(7, 26, '+');
+    s(10, 9, '`');
+    s(12, 20, '`');
+  }),
+};
+namedRooms.sw3 = {
+  shore: 7, // les portes sont au niveau des berges (au-dessus de l'eau) : rangées 1 à 7
+  name: 'Le récif',
+  need: [7],
+  hint: '',
+  rows: waterRoom((s, h) => {
+    for (let r = 8; r <= 15; r++) h(r, 6, 23, '"');
+    // des piques au fond : on coule si on lâche ; des blocs immergés à contourner
+    h(15, 8, 21, '^');
+    h(11, 9, 11);
+    h(9, 14, 16);
+    h(11, 19, 21);
+    s(7, 26, '+');
+    s(13, 12, '`');
+    s(10, 17, '`');
+  }),
+};
 // ---- arènes des boss : on les place où on veut (l'ordre de progression est tiré à chaque partie)
 namedRooms.arC = {
   name: bossDefs[4].n,
@@ -843,6 +900,36 @@ namedRooms.arR = {
     }
   }),
 };
+// arène de la Pieuvre : un bassin, 9 plateformes [rangée, colonne début, colonne fin], la pieuvre au milieu
+export const OCTOPUS_PLATFORMS = [
+  [13, 1, 4],
+  [11, 6, 9],
+  [8, 2, 5],
+  [6, 8, 11],
+  [4, 12, 17],
+  [6, 18, 21],
+  [8, 24, 27],
+  [11, 20, 23],
+  [13, 25, 28],
+];
+export const OCTOPUS_ARENA = {
+  name: bossDefs[9].n,
+  boss: bossDefs[9],
+  water: 14, // rangée où commence l'eau
+  platforms: OCTOPUS_PLATFORMS,
+  hint: '',
+  rows: buildRoomRows((s, h, v) => {
+    // bassin : plus de sol, l'eau remplit les rangées 14 et 15 (le fond reste en rangée 16)
+    for (const r of [14, 15]) h(r, 1, 28, '"');
+    for (const [r, c0, c1] of OCTOPUS_PLATFORMS) h(r, c0, c1);
+    s(12, 2, 'P');
+    s(13, 14, '@');
+    s(12, 28, 'E');
+    // deux piranhas dans le bassin (dangereux seulement quand on y nage)
+    s(14, 8, '`');
+    s(15, 21, '`');
+  }),
+};
 export const BOSS_ARENAS = {
   t: L[3],
   0: namedRooms.arR,
@@ -852,16 +939,32 @@ export const BOSS_ARENAS = {
   4: L[12],
   6: namedRooms.arT,
   5: namedRooms.arW,
+  7: OCTOPUS_ARENA,
 };
 for (const g in BOSS_ARENAS) {
   const l = BOSS_ARENAS[g];
   l.hint = l.boss.hint;
   l.gain = g === 't' ? 't' : +g;
 }
-// ordre de progression (imposé) : Temps, Jumeau, Éclair (dash), Envol (double saut), Colosse, Miroir, Tir, Rémanence
-export const BOSS_ORDER = ['t', 2, 4, 5, 3, 0, 6, 1];
+// ordre de progression (imposé) : Temps, Jumeau, Pieuvre (nage), Éclair (dash), Envol (double saut), Colosse, Miroir, Tir, Rémanence
+export const BOSS_ORDER = ['t', 2, 7, 4, 5, 3, 0, 6, 1];
 // salles d'approche : besoin = échos qu'elles obligent à utiliser (0 Miroir, 1 Rémanence, 2 Jumeau, 3 Colosse, 4 Éclair, 5 Envol, 6 Tir) ; d = difficulté
 export const APPROACH_ROOM_POOL = [
+  {
+    r: namedRooms.sw1,
+    need: [7],
+    d: 1,
+  },
+  {
+    r: namedRooms.sw2,
+    need: [7],
+    d: 2,
+  },
+  {
+    r: namedRooms.sw3,
+    need: [7],
+    d: 3,
+  },
   {
     r: namedRooms.jum1,
     need: [2],

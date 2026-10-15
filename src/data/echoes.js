@@ -1,4 +1,8 @@
 export const ECHO_GAIN_TEXTS = {
+  7: [
+    'Nage',
+    "La Pieuvre est vaincue : tu sais nager ! Dans l'eau, ← → avancent, ↑ (ou Saut) fait remonter, ↓ plonge. L'eau ne te blesse plus ; saute depuis la surface pour en sortir.",
+  ],
   t: [
     'Écho du Temps',
     "Appuie sur R : retour de 5 s ; deux fois de suite (R R) ou T : 10 s. Le Temps ne se recharge plus tout seul : seuls les lits des salles de repos le remplissent. Un coup mortel l'utilise automatiquement (5 s) pour t'épargner.",

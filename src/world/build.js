@@ -1,6 +1,7 @@
-import { roomNumberOf } from '../data/room-numbers.js';
+import { cellNumber, roomNumberOf } from '../data/room-numbers.js';
 import {
   BOSS_ARENAS,
+  OCTOPUS_ARENA,
   kingRoom,
   namedRooms,
   BOSS_ORDER,
@@ -17,6 +18,9 @@ import {
   ROOM_ENEMIES,
   FL,
   GENERATED_CELLS,
+  GENERATED_LINKS,
+  AQUATIC_WING,
+  AQUATIC_SLOT,
   LAST_HANDMADE_ROOM,
   NO_FLIP,
   ROOM_PATCHES,
@@ -42,11 +46,25 @@ import {
   verticalEdge,
 } from './edges.js';
 
-// salles dont tout le sol est englué ou verglacé (cases 8,7 et 9,7 : salles n° 299 et 300)
-const FLOOR_MATERIAL_AT_CELL = { '8,7': 'ice', '9,7': 'glue' };
+// salles dont tout le sol est englué ou verglacé (cases colonne,ligne : 9,3 / 8,2 / 9,7)
+const FLOOR_MATERIAL_AT_CELL = { '9,3': 'ice', '8,2': 'glue', '9,7': 'glue' };
+// mécanisme imposé à une case de la carte (« colonne,ligne ») : salle 316 = une araignée
+const MECHANISM_AT_CELL = { '9,7': 'spider' };
 // mécanisme (ennemis, piège ou énigme) d'une salle générée : environ 7 salles sur 10, selon la graine du monde
-const MECHANISMS_FREE_ROOM = ['switch', 'guards', 'swarm', 'guards', 'spikes', 'ice', 'glue', 'switch', 'guards'];
-const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'guards', 'spikes', 'ice', 'guards', 'glue'];
+// (la glace et la toile au sol ne viennent plus d'ici : voir assignFloorMaterials)
+const MECHANISMS_FREE_ROOM = [
+  'switch',
+  'guards',
+  'swarm',
+  'web',
+  'spikes',
+  'guards',
+  'swarm',
+  'switch',
+  'guards',
+  'web',
+];
+const MECHANISMS_TIER_ROOM = ['guards', 'swarm', 'web', 'spikes', 'spikes', 'guards', 'swarm', 'web'];
 function mechanismFor(key, tier, rest, vertical, worldSeed) {
   if (rest) return undefined;
   let h = 2166136261;
@@ -56,6 +74,152 @@ function mechanismFor(key, tier, rest, vertical, worldSeed) {
   const list = tier === 'F' ? MECHANISMS_FREE_ROOM : MECHANISMS_TIER_ROOM;
   const mech = list[(h >>> 8) % list.length];
   return mech === 'switch' && vertical ? 'guards' : mech;
+}
+const ICE_ROOM_SHARE = 0.1;
+const WEB_ROOM_SHARE = 0.15;
+const FLOOR_ENEMY_MIN = 1;
+const FLOOR_ENEMY_MAX = 3;
+/** Recouvre le sol libre de glace (tout) ou de toile (sauf près des fossés, des piques et des obstacles : on n'y saute pas). */
+function coverRoomFloor(l, material) {
+  const rows = l.rows.map((r) => r.split(''));
+  const ch = material === 'ice' ? '_' : ',';
+  // glace : tout le sol libre ; toile : seulement là où l'on peut encore sauter
+  const ok = (c) => rows[13][c] === '.' && rows[14][c] === '#' && (material === 'ice' || rows[12][c] === '.');
+  const blocked = (c) => {
+    for (let k = c - 5; k <= c + 5; k++) if (k >= 0 && k < 30 && rows[14][k] !== '#') return true;
+    for (let k = c - 2; k <= c + 2; k++)
+      if (k >= 0 && k < 30 && (!['.', ',', '_', 'P', 'E'].includes(rows[13][k]) || rows[12][k] !== '.'))
+        return true;
+    return false;
+  };
+  for (let c = 1; c < 29; c++) if (ok(c) && (material === 'ice' || !blocked(c))) rows[13][c] = ch;
+  l.rows = rows.map((r) => r.join(''));
+}
+/** Retire tous les ennemis de la salle (crabes, colosses, fantômes, araignées) : seuls restent les pingouins. */
+function stripEnemies(l) {
+  l.rows = l.rows.map((r) => r.replace(/[*+!?;]/g, '.'));
+}
+/** Pose une paire de piques sur le sol libre (deux cases de plain-pied, à l'écart du reste). */
+function addFloorSpikes(l, rnd) {
+  const rows = l.rows.map((r) => r.split(''));
+  const okc = (c) => ['.', '_', ','].includes(rows[13][c]) && rows[12][c] === '.' && rows[14][c] === '#';
+  const spots = [];
+  for (let c = 4; c < 25; c++)
+    if ([-1, 0, 1, 2].every((d) => okc(c + d) && rows[13][c + d] !== ':' && rows[13][c + d] !== ';'))
+      spots.push(c);
+  if (!spots.length) return;
+  const c = spots[Math.floor(rnd() * spots.length)];
+  rows[13][c] = rows[13][c + 1] = '^';
+  l.rows = rows.map((r) => r.join(''));
+}
+/** Pose `n` ennemis de la matière (':' pingouin, ';' araignée) sur des cases de sol espacées. */
+function addFloorEnemies(l, char, n, rnd) {
+  const rows = l.rows.map((r) => r.split(''));
+  const have = rows[13].filter((q) => q === char).length;
+  const spots = [];
+  for (let c = 3; c < 27; c++) {
+    const near = rows[13].slice(c - 1, c + 2);
+    if (
+      ['.', '_', ','].includes(rows[13][c]) &&
+      rows[12][c] === '.' &&
+      rows[14][c] === '#' &&
+      !near.some((q) => !['.', '_', ','].includes(q))
+    )
+      spots.push(c);
+  }
+  let placed = have;
+  while (placed < n && spots.length) {
+    const c = spots.splice(Math.floor(rnd() * spots.length), 1)[0];
+    rows[13][c] = char;
+    placed++;
+    for (let k = spots.length - 1; k >= 0; k--) if (Math.abs(spots[k] - c) < 4) spots.splice(k, 1);
+  }
+  l.rows = rows.map((r) => r.join(''));
+}
+// salles (par numéro) qui reçoivent une mare : un petit bassin de 4 cases creusé dans le sol, avec un piranha
+const POOL_ROOM_NUMBERS = [20, 2, 63, 10, 85];
+/** Creuse une mare (4 cases de large, 2 de profondeur) dans une portion plate du sol, loin des puits, des pointes et des ennemis. */
+function addPool(l) {
+  const rows = l.rows.map((r) => r.split(''));
+  const shaft = new Set();
+  for (const k of l.links)
+    if (k.s === 't' || k.s === 'b') for (let c = k.c0 - 2; c <= k.c1 + 2; c++) shaft.add(c);
+  // portion de sol plate : d'abord avec une marge d'une case de chaque côté et de l'air au-dessus, puis sans exigence
+  const solid = (c) => c >= 1 && c < 29 && rows[14][c] === '#' && rows[15][c] === '#' && !shaft.has(c);
+  const free = (c) => ['.', '_', ','].includes(rows[13][c]);
+  const tiers = [
+    (c) => solid(c) && free(c) && rows[12][c] === '.',
+    (c) => solid(c) && free(c),
+    (c) => solid(c) && rows[13][c] !== '^' && rows[13][c] !== 'P' && rows[13][c] !== 'E',
+  ];
+  let best = -1;
+  for (const ok of tiers) {
+    for (let c = 4; c <= 24; c++) {
+      const span = ok === tiers[0] ? [-1, 0, 1, 2, 3, 4] : [0, 1, 2, 3];
+      if (!span.every((d) => ok(c + d))) continue;
+      if (best < 0 || Math.abs(c + 2 - 14) < Math.abs(best + 2 - 14)) best = c;
+    }
+    if (best >= 0) break;
+  }
+  if (best < 0) return false;
+  for (let d = 0; d < 4; d++) rows[14][best + d] = rows[15][best + d] = '"';
+  rows[14][best + 1] = '`'; // un piranha
+  l.rows = rows.map((r) => r.join(''));
+  return true;
+}
+function addPools() {
+  levels.forEach((l, i) => {
+    if (!l.rows || l.boss || l.rest || i === HUB_ROOM || !l.pos) return;
+    if (POOL_ROOM_NUMBERS.includes(cellNumber(l.pos))) addPool(l);
+  });
+}
+/**
+ * 10 % des salles ont un sol de glace (salle entièrement gelée), 15 % un sol de toile d'araignée ; chacune reçoit
+ * 1 à 3 pingouins (glace) ou araignées (toile). Les salles déjà ainsi (299, 300, 316, patinoire) comptent dans le quota.
+ */
+function assignFloorMaterials(seed) {
+  const rnd = seededRandom((seed ^ 0x9e3779b1) >>> 0);
+  const material = (l) => (l.rows[13].includes('_') ? 'ice' : l.rows[13].includes(',') ? 'web' : null);
+  const eligible = [],
+    have = { ice: [], web: [] };
+  levels.forEach((l, i) => {
+    if (!l.rows || l.boss || l.rest || i === HUB_ROOM) return;
+    const m = material(l);
+    if (m) have[m].push(l);
+    else if (i > LAST_HANDMADE_ROOM || l.gen) eligible.push(l);
+  });
+  for (let k = eligible.length - 1; k > 0; k--) {
+    const j = Math.floor(rnd() * (k + 1));
+    [eligible[k], eligible[j]] = [eligible[j], eligible[k]];
+  }
+  for (const [m, share] of [
+    ['ice', ICE_ROOM_SHARE],
+    ['web', WEB_ROOM_SHARE],
+  ]) {
+    const want = Math.round(levels.length * share);
+    while (have[m].length < want && eligible.length) {
+      const l = eligible.pop(),
+        before = l.rows;
+      if (m === 'ice') stripEnemies(l);
+      coverRoomFloor(l, m);
+      // sol trop encombré (rien n'a pu être recouvert) : on passe à la salle suivante
+      if (material(l) === m) have[m].push(l);
+      else l.rows = before;
+    }
+    // une salle qui a déjà un peu de matière (patinoire écrite à la main) est gelée en entier
+    // une salle de glace n'a que des pingouins comme ennemis
+    for (const l of have[m])
+      if (m === 'ice') {
+        stripEnemies(l);
+        coverRoomFloor(l, 'ice');
+      }
+    // salle gelée : au moins une paire de stalagmites (piques) sur le sol
+    if (m === 'ice') for (const l of have[m]) if (!l.rows[13].includes('^')) addFloorSpikes(l, rnd);
+    for (const l of have[m]) {
+      const n = FLOOR_ENEMY_MIN + Math.floor(rnd() * (FLOOR_ENEMY_MAX - FLOOR_ENEMY_MIN + 1));
+      addFloorEnemies(l, m === 'ice' ? ':' : ';', n, rnd);
+    }
+  }
 }
 // choix des 4 salles d'approche d'une aile : elles n'exigent que des échos déjà possédés (O), dont le dernier gagné (newest)
 function chooseApproachRoom(r, O, newest, used, rnd) {
@@ -160,6 +324,8 @@ function prepareHandmadeRoom(l, i) {
     if (l.plug) l.plug.cells = l.plug.cells.map(([r, c]) => [r, 29 - c]);
   }
   if (sw % 2 && l.hint) l.hint = swapLeftRightText(l.hint);
+  // salle d'eau : entrée et sortie au niveau de la berge (la porte n'ouvre pas dans les murs de la berge)
+  if (l.shore) for (const k of l.links) if (k.s === 'l' || k.s === 'r') k.r1 = Math.min(k.r1, l.shore);
   for (const k of l.links)
     if (k.s === 'l' || k.s === 'r') {
       const col = k.s === 'l' ? 0 : 29;
@@ -222,13 +388,15 @@ export function buildWorld(seed) {
   const used = new Set(),
     O = new Set(),
     plan = [];
-  for (let r = 1; r <= 7; r++) {
+  let handSlot = 0;
+  for (let r = 1; r < BOSS_ORDER.length; r++) {
     const gain = BOSS_ORDER[r],
-      slot = WING_SLOTS[perm[r - 1]],
+      aquatic = gain === 7, // l'aile de la Pieuvre est fixe : ses salles sont générées sur la carte
+      slot = aquatic ? AQUATIC_SLOT : WING_SLOTS[perm[handSlot++]],
       newest = BOSS_ORDER[r - 1];
     if (r >= 2) O.add(newest);
-    const ap = chooseApproachRoom(r, O, newest, used, rnd);
-    H[slot.b] = mk(BOSS_ARENAS[gain]);
+    const ap = aquatic ? [] : chooseApproachRoom(r, O, newest, used, rnd);
+    if (!aquatic) H[slot.b] = mk(BOSS_ARENAS[gain]);
     ap.forEach((p, j) => {
       const i = slot.ap[j];
       H[i] = p.gen
@@ -244,7 +412,7 @@ export function buildWorld(seed) {
       H[i].need = p.need.slice();
       H[i].zoneG = gain;
     });
-    H[slot.b].zoneG = gain;
+    if (!aquatic) H[slot.b].zoneG = gain;
     plan.push({
       r,
       gain,
@@ -257,7 +425,7 @@ export function buildWorld(seed) {
               t: 1,
             }
           : undefined,
-      ap: ap.map((p) => (p.r ? p.r.name : '(couloir ' + p.gen + ')')),
+      ap: aquatic ? ['(salles générées)'] : ap.map((p) => (p.r ? p.r.name : '(couloir ' + p.gen + ')')),
     });
   }
   for (let i = 0; i <= LAST_HANDMADE_ROOM; i++) {
@@ -359,6 +527,7 @@ export function buildWorld(seed) {
       {},
     );
     for (const p of plan) {
+      if (p.slot.aquatic) continue; // liens générés avec la grille
       const ch = [...p.slot.ap, p.slot.b];
       horizontalEdge(
         p.slot.from,
@@ -378,62 +547,13 @@ export function buildWorld(seed) {
           {},
         );
     }
-    horizontalEdge(roomAtCell(6, 9), roomAtCell(7, 9));
-    horizontalEdge(roomAtCell(7, 9), roomAtCell(8, 9));
-    for (let x = 0; x < 12; x++) {
-      horizontalEdge(roomAtCell(x, 0), roomAtCell(x + 1, 0));
-      horizontalEdge(roomAtCell(x, 8), roomAtCell(x + 1, 8));
-    }
-    for (const [a, b] of [
-      [
-        [0, 2],
-        [1, 2],
-      ],
-      [
-        [11, 2],
-        [12, 2],
-      ],
-      [
-        [11, 4],
-        [12, 4],
-      ],
-      [
-        [11, 6],
-        [12, 6],
-      ],
-      [
-        [0, 6],
-        [1, 6],
-      ],
-      [
-        [1, 6],
-        [2, 6],
-      ],
-      [
-        [5, 7],
-        [6, 7],
-      ],
-    ])
-      horizontalEdge(roomAtCell(...a), roomAtCell(...b));
-    const SPINE = ['gap', 'ladder', 'stairs', 'stairs', 'ladder', 'stairs', 'ladder', 'stairs', 'stairs'];
-    const vs = (x, y, kind) => {
-      const u = roomAtCell(x, y),
-        d = roomAtCell(x, y + 1);
-      if (u === undefined || d === undefined) throw new Error('puits ' + x + ',' + y);
+    // salles générées : voisines d'une même ligne reliées, puits (escaliers / échelles) entre les lignes
+    for (const [a, b] of GENERATED_LINKS.horizontal) horizontalEdge(a, b);
+    for (const [u, d, kind, y] of GENERATED_LINKS.vertical) {
       const c = edgeColumns(y, kind);
-      // pas de trappe verrouillée : c'est la géométrie du puits (plates-formes trop hautes ou trop espacées)
-      // qui exige le double saut ou le dash
-      verticalEdge(u, d, {
-        c0: c[0],
-        c1: c[1],
-        kind,
-      });
-    };
-    SPINE.forEach((k, y) => vs(6, y, k));
-    ['stairs', 'ladder', 'stairs', 'ladder', 'dj', 'stairs', 'ladder', 'stairs'].forEach((k, y) =>
-      vs(0, y, k),
-    );
-    ['ladder', 'stairs', 'dj', 'stairs', 'gap', 'ladder', 'stairs', 'stairs'].forEach((k, y) => vs(12, y, k));
+      // pas de trappe verrouillée : c'est la géométrie du puits qui décide
+      verticalEdge(u, d, { c0: c[0], c1: c[1], kind });
+    }
     for (const [k, b] of Object.entries(REST_ROOM_AT)) {
       if (b < 0) continue;
       const [x, y] = k.split(',').map(Number);
@@ -522,13 +642,15 @@ export function buildWorld(seed) {
       seed: sd,
       floor: FLOOR_MATERIAL_AT_CELL[key],
       crabs: l.rest ? 0 : l.tier === 'F' || l.tier === 'E' ? 1 + ((42 + o.k) % 2) : 0,
-      mech: mechanismFor(
-        'c' + key,
-        l.tier,
-        l.rest,
-        l.links.some((q) => q.s === 't' || q.s === 'b'),
-        seed,
-      ),
+      mech:
+        MECHANISM_AT_CELL[key] ||
+        mechanismFor(
+          'c' + key,
+          l.tier,
+          l.rest,
+          l.links.some((q) => q.s === 't' || q.s === 'b'),
+          seed,
+        ),
     };
     const g = generateRoom(sp);
     l.rows = g.rows;
@@ -547,6 +669,19 @@ export function buildWorld(seed) {
     l.name = nm;
     l.hint = hint;
   });
+  // arène de la Pieuvre : remplace la salle générée de la case du boss aquatique (cul-de-sac relié à sa voisine de gauche)
+  {
+    const i = roomAtCell(AQUATIC_WING.col, AQUATIC_WING.row),
+      l = {
+        ...OCTOPUS_ARENA,
+        rows: OCTOPUS_ARENA.rows.slice(),
+        links: levels[i].links,
+        pos: ROOM_POSITIONS[i],
+      };
+    levels[i] = l;
+    prepareHandmadeRoom(l, i);
+    l.tier = 'F';
+  }
   // salles d'approche remplies par le générateur (couloirs à obstacle de palier)
   levels.forEach((l, i) => {
     if (i > LAST_HANDMADE_ROOM || !l.genFill) return;
@@ -615,6 +750,8 @@ export function buildWorld(seed) {
       const o = levels[k.to].links.find((q) => q.to === i);
       if (!o) throw new Error('lien sans retour ' + i + '>' + k.to);
     }
+  assignFloorMaterials(seed);
+  addPools();
   // numéro stable de chaque salle (voir data/room-numbers.js)
   levels.forEach((l, i) => {
     l.number = roomNumberOf(l, ROOM_POSITIONS[i]);

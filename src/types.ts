@@ -77,6 +77,8 @@ export interface GameState {
   /** échos possédés (index 0..6) et écho du Temps */
   echoesOwned: number[];
   hasTimeEcho: number;
+  /** sait nager (gagné en battant la Pieuvre) */
+  hasSwim: number;
   selectedEcho: number;
   echoCooldown: number;
   history: any[];

@@ -3,6 +3,8 @@ import { HUB_ROOM, SAVEKEY, gameState } from './state.ts';
 import { buildWorld } from '../world/build.js';
 import { loadRoom, pickBlueHeartSpots } from '../world/rooms.js';
 import { showNameInput } from '../ui/hud.js';
+// version de la disposition de la carte : une sauvegarde d'une autre disposition (numéros de salles différents) est ignorée
+const LAYOUT_VERSION = 3;
 export const scores = {
   best: {},
   runs: [],
@@ -31,6 +33,7 @@ export function saveGame() {
       JSON.stringify({
         h: gameState.echoesOwned,
         t: gameState.hasTimeEcho,
+        sw: gameState.hasSwim,
         r: gameState.runTime,
         hp: gameState.hp,
         sh: gameState.shieldHearts,
@@ -42,6 +45,7 @@ export function saveGame() {
         bu: gameState.usedBeds,
         bl: gameState.blueHeartSpots,
         sd: gameState.seed,
+        lv: LAYOUT_VERSION,
         hc: gameState.collectedHearts,
         cur: gameState.currentRoom,
         ck: gameState.checkpointRoom,
@@ -59,10 +63,11 @@ export function loadSavedGame() {
   let ok = false;
   try {
     const d = JSON.parse(localStorage.getItem(SAVEKEY) || 'null');
-    if (d && d.bl) {
+    if (d && d.bl && d.lv === LAYOUT_VERSION) {
       ok = true;
       gameState.echoesOwned = (d.h || gameState.echoesOwned).concat([0, 0, 0, 0, 0, 0, 0]).slice(0, 7);
       gameState.hasTimeEcho = d.t | 0;
+      gameState.hasSwim = d.sw | 0;
       gameState.runTime = +d.r || 0;
       gameState.hpMax = 3;
       gameState.hp = d.hp > 0 ? Math.min(gameState.hpMax, +d.hp) : gameState.hpMax;
@@ -116,6 +121,7 @@ export function resetAll() {
   gameState.currentRoom = HUB_ROOM;
   gameState.echoesOwned = [0, 0, 0, 0, 0, 0, 0];
   gameState.hasTimeEcho = 0;
+  gameState.hasSwim = 0;
   gameState.selectedEcho = 0;
   gameState.resetArmedTimer = 0;
   gameState.name = '';

@@ -17,6 +17,7 @@ import {
   updatePlates,
 } from './physics.js';
 import { cycle, setSize, useEcho } from './echoes.js';
+import { prepareWater, updateWater } from './water.js';
 import { bossHit, doHit, fire, hitCheck, stomp, updateShots } from './combat.js';
 import { bossAI } from './boss-ai.js';
 import { ghost, hitSrc, hitSrcOf, updateEntities } from './reflets.js';
@@ -116,7 +117,9 @@ export function step(dt) {
   }
   const pg = runtime.player.g,
     pvy = runtime.player.vy;
+  prepareWater();
   moveBody(runtime.player, inp, dt);
+  updateWater();
   if (runtime.player.jumped) {
     playSfx('jump');
     runtime.player.jumped = 0;
@@ -149,8 +152,11 @@ export function step(dt) {
     // le clone blessé (monstre ou terrain) fait souffrir l'original
     let cd = 0,
       cdie = false;
-    if (hurt(runtime.echoClone) || runtime.echoClone.y > HEIGHT + 40) {
+    if (hurt(runtime.echoClone)) {
       cd = 0.5;
+      cdie = true;
+    } else if (runtime.echoClone.y > HEIGHT + 40) {
+      // chute dans le vide : le clone disparaît, sans blesser l'original
       cdie = true;
     } else if (runtime.echoClone.inv <= 0) {
       const hs = hitSrcOf(runtime.echoClone);
@@ -232,15 +238,15 @@ export function step(dt) {
       saveGame();
       playSfx('win');
     }
-  // immobilité : +¼ de cœur toutes les 5 s ; la jauge du Temps ne se recharge que cœurs pleins
+  // immobilité : +½ cœur toutes les 10 s ; la jauge du Temps ne se recharge que cœurs pleins
   {
     const still =
       runtime.player.g && !input.l && !input.r && Math.abs(runtime.player.vx) < 8 && !runtime.player.big_;
     if (still && gameState.hp < gameState.hpMax - 1e-6) {
       gameState.idleTime += dt;
-      if (gameState.idleTime >= 5) {
+      if (gameState.idleTime >= 10) {
         gameState.idleTime = 0;
-        gameState.hp = Math.min(gameState.hpMax, gameState.hp + 0.25);
+        gameState.hp = Math.min(gameState.hpMax, gameState.hp + 0.5);
         playSfx('tick');
       }
     } else gameState.idleTime = 0;
@@ -275,14 +281,18 @@ export function step(dt) {
   }
   stomp();
   updateShots(dt);
+  // mémorise les ennemis tués : ils ne reviennent pas tant qu'on reste dans la salle
+  if (runtime.deadWalkers)
+    for (const e of runtime.entities) if (e.k === 'w' && !e.alive && e.key) runtime.deadWalkers.add(e.key);
   if (runtime.player.y > HEIGHT + 40) {
     hurtPlayer(0.5, true, 0);
     return;
   }
   if (gameState.invulnerableTimer <= 0) {
     if (runtime.player.dash <= 0 && hurt(runtime.player)) {
-      hurtPlayer(0.5, true, 0);
-      return;
+      // piques : on perd des points de vie et on rebondit, sans redémarrer la salle
+      hurtPlayer(0.5, false, runtime.player.x + runtime.player.w / 2 + (runtime.player.face || 1) * 12);
+      if (gameState.mode !== 'play') return;
     }
     const hs = hitSrc();
     if (hs) {

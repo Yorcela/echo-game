@@ -10,6 +10,7 @@ import { drawColossus, drawEnvol } from './boss-wing-giant.js';
 import { drawBeam, drawBoom, drawNuke, drawPuff, drawReflet } from './boss-mirror.js';
 import { BOLT_OK, drawOrb, drawTelegraph, drawWitch } from './boss-witch.js';
 import { drawBolt } from './boss-bolt.js';
+import { drawOctopus } from './boss-octopus.js';
 function drawBoss0(entity) {
   if (runtime.level.boss.kind === 'bolt' && BOLT_OK()) {
     drawBolt(entity);
@@ -677,6 +678,10 @@ export function drawBoss(entity) {
     return;
   }
   const B = runtime.level.boss;
+  if (B.kind === 'octopus') {
+    drawOctopus(entity);
+    return;
+  }
   if ((B.em === 'wing' || (B.king && entity.fly)) && entity.alive && !isSpriteReady('wing-body'))
     wingsAt(
       entity.x + entity.w / 2,

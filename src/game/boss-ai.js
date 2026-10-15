@@ -5,6 +5,7 @@ import { hurtPlayer } from './rewind.js';
 import { collide, moveBody, overlaps } from './physics.js';
 import { colossusAI } from './colossus.js';
 import { mirrorBossAI } from './reflets.js';
+import { octopusAI } from './octopus.js';
 import { playSfx } from '../audio/audio.js';
 // un bond sous une plateforme le sonnerait aussitôt : on simule la trajectoire
 function isHopBlocked(entity, pcx, cx) {
@@ -339,6 +340,10 @@ function bossAIInner(entity, dt) {
     entity.t -= dt * (entity.wf - 1);
   }
   entity.inv = Math.max(0, entity.inv - dt);
+  if (K === 'octopus') {
+    octopusAI(entity, dt);
+    return;
+  }
   if (K === 'giant') {
     colossusAI(entity, dt);
     return;

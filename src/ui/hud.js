@@ -2,7 +2,7 @@ import { runtime } from '../state/runtime.ts';
 import { HEIGHT, WIDTH } from '../core/config.ts';
 import { canvas, ctx } from '../core/canvas.ts';
 import { ECHO_TYPES } from '../data/echoes.js';
-import { levels } from '../data/levels.js';
+import { BOSS_ORDER, levels } from '../data/levels.js';
 import { infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.ts';
 import { scores } from '../state/save.js';
 import {
@@ -15,7 +15,7 @@ import {
   roundRectPath,
   drawWrappedText,
 } from '../render/primitives.js';
-// cœur partiellement rempli (fraction f de 0 à 1, par quarts)
+// cœur partiellement rempli (fraction f de 0 à 1, par demis)
 function drawHeartF(x, y, s, f, blue) {
   if (f >= 0.999) {
     drawHeart(x, y, s, true, blue);
@@ -68,6 +68,111 @@ export function drawHeart(x, y, s, full, blue) {
     ctx.beginPath();
     ctx.ellipse(x - s * 0.27, y - s * 0.2, s * 0.11, s * 0.07, -0.6, 0, 7);
     ctx.fill();
+  }
+  ctx.restore();
+}
+const POWER_COLORS = {
+  t: '#E2A93B',
+  0: '#2F8F8A',
+  1: '#E2A93B',
+  2: '#7A5BA6',
+  3: '#7B4A2E',
+  4: '#3C7FC0',
+  5: '#D96C9E',
+  6: '#7A3C8F',
+  7: '#4FA8E0',
+};
+/** Petite icône de pouvoir (t = Temps, 0..6 = échos, 7 = Nage) dans une pastille de côté `size` centrée en (cx, cy). */
+function drawPowerIcon(p, cx, cy, size, selected = false) {
+  const h = size / 2;
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  roundRectPath(cx - h, cy - h, size, size, 7);
+  ctx.fillStyle = selected ? POWER_COLORS[p] : '#F6EBCB';
+  ctx.fill();
+  ctx.lineWidth = selected ? 3.5 : 2.5;
+  ctx.strokeStyle = INK_COLOR;
+  ctx.stroke();
+  ctx.strokeStyle = selected ? '#F6EBCB' : POWER_COLORS[p];
+  ctx.fillStyle = selected ? '#F6EBCB' : POWER_COLORS[p];
+  ctx.lineWidth = 2.2;
+  ctx.translate(cx, cy);
+  const r = h - 5;
+  ctx.beginPath();
+  if (p === 't') {
+    // horloge
+    ctx.arc(0, 0, r, 0, 7);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -r + 2);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(r - 3, 2);
+    ctx.stroke();
+  } else if (p === 0) {
+    // miroir : deux demi-disques face à face
+    ctx.arc(-1.5, 0, r, Math.PI / 2, -Math.PI / 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(1.5, 0, r, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke();
+  } else if (p === 1) {
+    // rémanence : silhouette et sa traînée
+    ctx.arc(2, -1, r - 2, 0, 7);
+    ctx.fill();
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    ctx.arc(-3, -1, r - 2, 0, 7);
+    ctx.fill();
+  } else if (p === 2) {
+    // jumeau : deux têtes
+    ctx.arc(-3.5, -1, 3.5, 0, 7);
+    ctx.arc(3.5, -1, 3.5, 0, 7);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-7, 6);
+    ctx.lineTo(7, 6);
+    ctx.stroke();
+  } else if (p === 3) {
+    // colosse : poing massif
+    roundRectPath(-r, -r + 1, 2 * r, 2 * r - 2, 4);
+    ctx.fill();
+  } else if (p === 4) {
+    // éclair
+    ctx.moveTo(2, -r);
+    ctx.lineTo(-4, 1);
+    ctx.lineTo(0, 1);
+    ctx.lineTo(-2, r);
+    ctx.lineTo(5, -2);
+    ctx.lineTo(1, -2);
+    ctx.closePath();
+    ctx.fill();
+  } else if (p === 5) {
+    // double saut : deux chevrons vers le haut
+    ctx.moveTo(-r + 1, 0);
+    ctx.lineTo(0, -r + 1);
+    ctx.lineTo(r - 1, 0);
+    ctx.moveTo(-r + 1, r - 1);
+    ctx.lineTo(0, 1);
+    ctx.lineTo(r - 1, r - 1);
+    ctx.stroke();
+  } else if (p === 6) {
+    // tir : projectile et sa traînée
+    ctx.arc(3, 0, 3.2, 0, 7);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r + 1, -3);
+    ctx.lineTo(-2, -3);
+    ctx.moveTo(-r + 1, 3);
+    ctx.lineTo(-2, 3);
+    ctx.stroke();
+  } else {
+    // nage : vagues
+    for (const dy of [-4, 3]) {
+      ctx.moveTo(-r, dy);
+      ctx.quadraticCurveTo(-r / 2, dy - 4, 0, dy);
+      ctx.quadraticCurveTo(r / 2, dy + 4, r, dy);
+    }
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -171,24 +276,21 @@ export function drawHUD() {
     for (let j = 0; j < nb; j++)
       drawHeartF(hx + (gameState.hpMax + j) * 31, 31, 29, Math.min(1, gameState.shieldHearts - j), true);
   }
-  // échos possédés : petites pastilles en haut à droite
+  // pouvoirs débloqués : leurs icônes en haut à droite, dans l'ordre où on les gagne (l'écho choisi est mis en avant)
   const o = IS_TOUCH_DEVICE ? [] : ownedEchoes();
-  let x = WIDTH - 16;
-  ctx.globalAlpha = 0.9;
-  for (let i = o.length - 1; i >= 0; i--) {
-    const t = o[i],
-      sel = gameState.selectedEcho === t;
-    x -= sel ? 34 : 28;
-    roundRectPath(x, 14, sel ? 30 : 24, sel ? 30 : 24, 7);
-    ctx.fillStyle = sel ? ECHO_TYPES[t].c : 'rgba(246,235,203,.75)';
-    ctx.fill();
-    ctx.lineWidth = sel ? 3.5 : 2.5;
-    ctx.strokeStyle = INK_COLOR;
-    ctx.stroke();
-    ctx.fillStyle = INK_COLOR;
-    ctx.font = '800 ' + (sel ? 13 : 11) + 'px ' + FONT_BODY;
-    ctx.textAlign = 'center';
-    ctx.fillText(String(t + 1), x + (sel ? 15 : 12), sel ? 34 : 30);
+  {
+    const has = (p) =>
+      p === 't' ? !!gameState.hasTimeEcho : p === 7 ? !!gameState.hasSwim : !!gameState.echoesOwned[p];
+    const list = BOSS_ORDER.filter(has);
+    let x = WIDTH - 16;
+    ctx.globalAlpha = 0.95;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const p = list[i],
+        sel = p === gameState.selectedEcho && typeof p === 'number' && p <= 4,
+        size = sel ? 30 : 26;
+      x -= size + 4;
+      drawPowerIcon(p, x + size / 2 + 2, 14 + size / 2, size, sel);
+    }
   }
   if (o.length && gameState.echoesOwned[gameState.selectedEcho]) {
     ctx.font = '800 11px ' + FONT_BODY;

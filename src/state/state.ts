@@ -1,7 +1,7 @@
 import type { GameState } from '../types.ts';
 import { runtime } from './runtime.ts';
 /* ---------- État ---------- */
-export const MAP_COLS = 13,
+export const MAP_COLS = 10,
   MAP_ROWS = 10,
   HUB_ROOM = 43,
   SAVEKEY = 'echo-4';
@@ -50,6 +50,7 @@ export const gameState: GameState = {
   loadedRoom: HUB_ROOM,
   echoesOwned: [0, 0, 0, 0, 0, 0, 0],
   hasTimeEcho: 0,
+  hasSwim: 0,
   history: [],
   gauge: 10,
   echoCooldown: 0,
@@ -86,6 +87,27 @@ export const enemyTypes: Record<string, { w: number; h: number; spd: number; hp:
     h: 34,
     spd: 70 * 1.5,
     hp: 99,
+  },
+  // pingouin : glisse sur le ventre, se propulse avec ses bras puis ralentit
+  p: {
+    w: 46,
+    h: 22,
+    spd: 170,
+    hp: 1,
+  },
+  // piranha : nage dans l'eau à la poursuite du héros ou de ses clones ; seul un dash l'élimine
+  f: {
+    w: 40,
+    h: 24,
+    spd: 120,
+    hp: 1,
+  },
+  // arachnide : rampe sur les murs et plafonds, descend une toile qui blesse
+  a: {
+    w: 26,
+    h: 22,
+    spd: 88,
+    hp: 1,
   },
 };
 runtime.crumbleTiles = [];

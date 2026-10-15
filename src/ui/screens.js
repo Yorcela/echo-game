@@ -7,6 +7,8 @@ import { MAP_COLS, HUB_ROOM, infoEnabled, formatTime, gameState, ownedEchoes } f
 import { isOnlineEnabled, worldBoard } from '../online/leaderboard.js';
 import { loadSavedGame, scores } from '../state/save.js';
 import { ROOM_POSITIONS, WORLD } from '../world/world.js';
+import { formatRoomNumber } from '../data/room-numbers.js';
+import { TEST_MODE } from '../game/test-mode.js';
 import { hasBed, loadRoom } from '../world/rooms.js';
 import { gateOK } from '../game/physics.js';
 import { playSfx } from '../audio/audio.js';
@@ -21,6 +23,8 @@ import {
 import { drawBackground, drawPaperBackground } from '../render/background.js';
 import { drawHero } from '../render/characters.js';
 import { SPRITES, isSpriteReady } from '../render/sprites.js';
+// le héros du titre (≈ 232 px de haut) est centré verticalement : pieds à mi-hauteur + moitié de sa taille
+const FEET_Y = HEIGHT / 2 + 116;
 export function drawTitle() {
   drawPaperBackground();
   uiHitBoxes.length = 0;
@@ -34,29 +38,30 @@ export function drawTitle() {
   ctx.globalAlpha = 1;
   drawOutlinedText('ECHO', 0, 50, 128, '#D0402E');
   ctx.restore();
+  // le héros et son clone, 5 fois plus grands (même ligne de sol qu'avant : pieds en y = 246)
   drawHero(
     {
-      x: 150,
-      y: 218,
+      x: 36,
+      y: FEET_Y - 28 * 5,
       vx: 0,
       vy: 0,
       face: 1,
       g: true,
-      w: 22,
-      h: 28,
+      w: 22 * 5,
+      h: 28 * 5,
     },
     {},
   );
   drawHero(
     {
-      x: WIDTH - 172,
-      y: 218,
+      x: WIDTH - 36 - 22 * 5,
+      y: FEET_Y - 28 * 5,
       vx: 0,
       vy: 0,
       face: -1,
       g: true,
-      w: 22,
-      h: 28,
+      w: 22 * 5,
+      h: 28 * 5,
     },
     {
       jean: '#2F8F8A',
@@ -124,6 +129,7 @@ const PORTRAIT_Y = 487;
 function isBossDefeated(echo) {
   if (echo === 'king') return scores.runs.length > 0;
   if (echo === 'time') return !!gameState.hasTimeEcho;
+  if (echo === 7) return !!gameState.hasSwim;
   return !!gameState.echoesOwned[echo];
 }
 
@@ -276,12 +282,13 @@ export function drawScores() {
 const TRIAL_NAMES = [
   'Le Gardien du Temps',
   'Les Jumeaux',
+  'La Pieuvre',
+  "L'Éclair",
   "L'Envol",
   'Le Colosse',
   'Le Reflet',
   'La Sorcière',
   'La Mémoire',
-  "L'Éclair",
 ];
 function trialRoom(r) {
   return r === 0 ? 5 : WORLD.ranks[r - 1] ? WORLD.ranks[r - 1].boss : 5;
@@ -299,12 +306,12 @@ export function drawTrial() {
     WIDTH / 2,
     100,
   );
-  for (let r = 0; r < 8; r++) {
+  for (let r = 0; r < TRIAL_NAMES.length; r++) {
     const col = r % 2,
       row = Math.floor(r / 2),
       x = WIDTH / 2 - 300 + col * 310,
-      y = 128 + row * 74;
-    drawButton('tr' + r, x, y, 290, 56, r + 1 + '. ' + TRIAL_NAMES[r].toUpperCase(), {
+      y = 122 + row * 64;
+    drawButton('tr' + r, x, y, 290, 52, r + 1 + '. ' + TRIAL_NAMES[r].toUpperCase(), {
       size: 19,
       lip: 9,
       r: 14,
@@ -321,9 +328,11 @@ export function startTrial(r) {
   gameState.trial = 1;
   gameState.echoesOwned = [0, 0, 0, 0, 0, 0, 0];
   gameState.hasTimeEcho = r > 0 ? 1 : 0;
+  gameState.hasSwim = 0;
   for (let k = 1; k <= r; k++) {
     const g = BOSS_ORDER[k - 1];
-    if (g !== 't') gameState.echoesOwned[g] = 1;
+    if (g === 7) gameState.hasSwim = 1;
+    else if (g !== 't') gameState.echoesOwned[g] = 1;
   }
   gameState.selectedEcho = 0;
   for (let k = 0; k < 7; k++)
@@ -361,18 +370,19 @@ function drawRoomNumber(number, x, y, known) {
   ctx.lineJoin = 'round';
   ctx.lineWidth = 3;
   ctx.strokeStyle = known ? 'rgba(246,235,203,.95)' : 'rgba(14,10,22,.8)';
-  ctx.strokeText(String(number), x + 3, y + 2);
+  ctx.strokeText(formatRoomNumber(number), x + 3, y + 2);
   ctx.fillStyle = known ? INK_COLOR : 'rgba(246,235,203,.75)';
-  ctx.fillText(String(number), x + 3, y + 2);
+  ctx.fillText(formatRoomNumber(number), x + 3, y + 2);
   ctx.restore();
 }
 
+const DEBUG_MODE = TEST_MODE;
 export function drawMap() {
   drawBackground(0, 0);
   uiHitBoxes.length = 0;
   ctx.fillStyle = 'rgba(14,10,22,.80)';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  drawOutlinedText('CARTE', WIDTH / 2, 52, 44, '#E2A93B');
+  drawOutlinedText(DEBUG_MODE ? 'CARTE · MODE TEST' : 'CARTE', WIDTH / 2, 52, 44, '#E2A93B');
   ctx.fillStyle = '#F6EBCB';
   ctx.font = '800 15px ' + FONT_BODY;
   ctx.textAlign = 'center';
@@ -383,13 +393,13 @@ export function drawMap() {
       ' / ' +
       levels.length +
       ' salles explorées' +
-      (here && here.number !== undefined ? ' · tu es en salle n° ' + here.number : ''),
+      (here && here.number !== undefined ? ' · tu es en salle n° ' + formatRoomNumber(here.number) : ''),
     WIDTH / 2,
     74,
   );
-  const cw = 58,
+  const cw = 74,
     ch = 30,
-    sx = 64,
+    sx = 82,
     sy = 38,
     x0 = (WIDTH - (MAP_COLS * sx - (sx - cw))) / 2,
     y0 = 86,
@@ -397,8 +407,10 @@ export function drawMap() {
       x: x0 + ROOM_POSITIONS[i][0] * sx,
       y: y0 + ROOM_POSITIONS[i][1] * sy,
     });
-  const nearV = (i) => gameState.visitedRooms[i] || levels[i].links.some((k) => gameState.visitedRooms[k.to]);
-  const show = (i) => !!gameState.visitedRooms[i] || !!levels[i].boss || nearV(i);
+  // mode test : toutes les salles sont visibles et cliquables pour s'y téléporter
+  const seen = (i) => DEBUG_MODE || !!gameState.visitedRooms[i];
+  const nearV = (i) => seen(i) || levels[i].links.some((k) => seen(k.to));
+  const show = (i) => seen(i) || !!levels[i].boss || nearV(i);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   // liaisons
@@ -406,7 +418,7 @@ export function drawMap() {
     if (!ROOM_POSITIONS[i]) continue;
     for (const k of levels[i].links) {
       if (k.to < i || !ROOM_POSITIONS[k.to]) continue;
-      if (!(gameState.visitedRooms[i] || gameState.visitedRooms[k.to])) continue;
+      if (!(seen(i) || seen(k.to))) continue;
       const a = at(i),
         b = at(k.to),
         ax = a.x + cw / 2,
@@ -453,7 +465,7 @@ export function drawMap() {
   for (let i = 0; i < levels.length; i++) {
     if (!ROOM_POSITIONS[i] || !show(i)) continue;
     const { x, y } = at(i),
-      v = !!gameState.visitedRooms[i],
+      v = seen(i),
       bo = levels[i].boss,
       cur = i === gameState.loadedRoom,
       done = !!gameState.clearedBossRooms[i];
@@ -496,6 +508,69 @@ export function drawMap() {
       ctx.textBaseline = 'alphabetic';
     }
     drawRoomNumber(levels[i].number, x, y, true);
+    // eau : une goutte en bas à droite quand la salle contient de l'eau
+    if (v && levels[i].rows && levels[i].rows.some((row) => row.includes('"'))) {
+      const dx = x + cw - 15,
+        dy = y + ch - 15;
+      ctx.beginPath();
+      ctx.moveTo(dx + 5, dy - 1);
+      ctx.bezierCurveTo(dx + 5, dy + 4, dx + 10, dy + 5, dx + 10, dy + 9);
+      ctx.bezierCurveTo(dx + 10, dy + 13, dx + 0, dy + 13, dx + 0, dy + 9);
+      ctx.bezierCurveTo(dx + 0, dy + 5, dx + 5, dy + 4, dx + 5, dy - 1);
+      ctx.closePath();
+      ctx.fillStyle = '#4FA8E0';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = INK_COLOR;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.beginPath();
+      ctx.arc(dx + 3.2, dy + 8, 1.4, 0, 7);
+      ctx.fill();
+    }
+    // matière du sol : glace ou toile d'araignée
+    const floorRow = !bo && levels[i].rows && levels[i].rows[13];
+    if (v && floorRow && (floorRow.includes('_') || floorRow.includes(','))) {
+      const ice = floorRow.includes('_'),
+        ix = x + 5,
+        iy = y + ch - 15;
+      ctx.lineJoin = 'round';
+      if (ice) {
+        ctx.fillStyle = '#9FD8EA';
+        roundRectPath(ix, iy + 2, 14, 8, 3);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = INK_COLOR;
+        ctx.stroke();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(ix + 3, iy + 5);
+        ctx.lineTo(ix + 8, iy + 5);
+        ctx.stroke();
+      } else {
+        const cx = ix + 7,
+          cy = iy + 6;
+        const web = (col, lw) => {
+          ctx.strokeStyle = col;
+          ctx.lineWidth = lw;
+          ctx.beginPath();
+          for (let a = 0; a < 4; a++) {
+            const ang = (a * Math.PI) / 4;
+            ctx.moveTo(cx - Math.cos(ang) * 7, cy - Math.sin(ang) * 7);
+            ctx.lineTo(cx + Math.cos(ang) * 7, cy + Math.sin(ang) * 7);
+          }
+          for (const rr of [3, 6]) {
+            ctx.moveTo(cx + rr, cy);
+            ctx.arc(cx, cy, rr, 0, 7);
+          }
+          ctx.stroke();
+        };
+        web(INK_COLOR, 3);
+        web('#fff', 1.2);
+      }
+    }
     if (levels[i].rest && v) {
       // lit
       ctx.fillStyle = gameState.usedBeds[i] ? '#8A8F98' : '#D0402E';
@@ -517,6 +592,15 @@ export function drawMap() {
       ctx.lineWidth = 2.2;
       ctx.strokeStyle = INK_COLOR;
       ctx.stroke();
+      uiHitBoxes.push({
+        id: 'm' + i,
+        x: x - 3,
+        y: y - 3,
+        w: cw + 6,
+        h: ch + 6,
+      });
+    }
+    if (DEBUG_MODE && !(v && hasBed(i))) {
       uiHitBoxes.push({
         id: 'm' + i,
         x: x - 3,

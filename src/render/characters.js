@@ -4,6 +4,9 @@ import { ctx } from '../core/canvas.ts';
 import { gameState } from '../state/state.ts';
 import { SPRITES, isSpriteReady } from './sprites.js';
 import { INK_COLOR, roundRectPath } from './primitives.js';
+import { drawHeroSprites, heroSpritesReady, outfitOf } from './hero-sprites.js';
+import { inWater } from '../game/physics.js';
+import { PENGUIN_TOP_SPEED, PENGUIN_WINDUP_TIME } from '../game/penguins.js';
 /* le héros : petit fantôme en salopette de jean (cartoon 1930) */
 export function drawHero(b, o = {}) {
   const k = b.h / HERO_BASE_H,
@@ -114,197 +117,245 @@ export function drawHero(b, o = {}) {
     ax: lx[i],
     ay: (run || !air) && !up ? L[i][1] : L[i][1],
   }));
-  for (const g of legs) {
-    ctx.lineWidth = lw + 6.2;
+  const outfit = outfitOf(b, o);
+  if (heroSpritesReady(outfit)) {
+    drawHeroSprites({
+      outfit,
+      b,
+      t,
+      ph,
+      cq,
+      run,
+      air,
+      up,
+      lad,
+      hit,
+      swim: !!b.swim && inWater(b),
+      hurt: gameState.invulnerableTimer > 0 && b === runtime.player && gameState.invulnerableTimer > 1.1,
+    });
+  } else {
+    for (const g of legs) {
+      ctx.lineWidth = lw + 6.2;
+      ctx.beginPath();
+      ctx.moveTo(g.hx, -12);
+      ctx.lineTo(g.ax, g.ay - 3);
+      ctx.stroke();
+      ctx.strokeStyle = jean;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(g.hx, -12);
+      ctx.lineTo(g.ax, g.ay - 3);
+      ctx.stroke();
+      ctx.strokeStyle = INK_COLOR;
+      ctx.fillStyle = cuff;
+      ctx.beginPath();
+      ctx.ellipse(g.ax, g.ay - 3.4, 3.9, 2.1, 0, 0, 7);
+      ctx.fill();
+      ctx.lineWidth = lw * 0.7;
+      ctx.stroke();
+      ctx.fillStyle = '#1B1612';
+      ctx.beginPath();
+      ctx.ellipse(g.ax + 1.8, g.ay - 0.6, 5.2, 2.7, 0, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.beginPath();
+      ctx.ellipse(g.ax + 2.6, g.ay - 1.6, 1.8, 0.8, 0, 0, 7);
+      ctx.fill();
+    }
+    /* bras du fond */
+    const arm = (side, front) => {
+      const sh = [side * 8.5, -18];
+      let hx, hy;
+      if (lad) {
+        const a = Math.sin(cq + (side > 0 ? 0 : Math.PI));
+        hx = side * 7.8;
+        hy = -30 - a * 6.5;
+      } else if (up) {
+        hx = side * 11;
+        hy = -28;
+      } else if (air) {
+        hx = side * 14.5;
+        hy = -19.5 + Math.sin(t * 12 + side) * 1.2;
+      } else if (run) {
+        const a = Math.sin(ph + (side > 0 ? 0 : Math.PI)) * 0.95;
+        hx = side * 5 + a * 10;
+        hy = -14 + Math.abs(a) * -2;
+      } else if (side > 0 && t % 6 < 1.1) {
+        hx = 13 + Math.sin(t * 16) * 2;
+        hy = -29;
+      } else {
+        hx = side * 12.5;
+        hy = -12.5 + Math.sin(t * 3 + side) * 0.5;
+      }
+      if (hit) {
+        hx = side * -8;
+        hy = -14;
+      }
+      ctx.lineWidth = lw + 1.4;
+      ctx.beginPath();
+      ctx.moveTo(sh[0], sh[1]);
+      ctx.quadraticCurveTo((sh[0] + hx) / 2 + side * 2, (sh[1] + hy) / 2 + 2, hx, hy);
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(hx, hy, 3.4, 0, 7);
+      ctx.fill();
+      ctx.lineWidth = lw * 0.8;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hx - 1, hy + 0.6);
+      ctx.lineTo(hx + 1.4, hy + 2);
+      ctx.stroke();
+    };
+    arm(-1);
+    /* corps de fantôme */
     ctx.beginPath();
-    ctx.moveTo(g.hx, -12);
-    ctx.lineTo(g.ax, g.ay - 3);
+    ctx.moveTo(-10.5, -12);
+    ctx.lineTo(-10.5, -26);
+    ctx.arc(0, -26, 10.5, Math.PI, 0);
+    ctx.lineTo(10.5, -12);
+    ctx.quadraticCurveTo(0, -9, -10.5, -12);
+    ctx.closePath();
+    ctx.fillStyle = body;
+    ctx.fill();
+    ctx.lineWidth = lw;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(120,110,90,.16)';
+    ctx.beginPath();
+    ctx.ellipse(6, -22, 3, 9, 0, 0, 7);
+    ctx.fill();
+    /* salopette */
+    ctx.beginPath();
+    ctx.moveTo(-10, -19);
+    ctx.lineTo(10, -19);
+    ctx.lineTo(10.5, -12);
+    ctx.quadraticCurveTo(0, -9, -10.5, -12);
+    ctx.closePath();
+    ctx.fillStyle = jean;
+    ctx.fill();
+    ctx.lineWidth = lw;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fillRect(-8, -17.5, 3, 5);
+    ctx.beginPath();
+    ctx.moveTo(-6.5, -19);
+    ctx.lineTo(-8.2, -25.5);
+    ctx.moveTo(6.5, -19);
+    ctx.lineTo(8.2, -25.5);
+    ctx.lineWidth = 2.6;
     ctx.stroke();
     ctx.strokeStyle = jean;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(g.hx, -12);
-    ctx.lineTo(g.ax, g.ay - 3);
+    ctx.moveTo(-6.5, -19);
+    ctx.lineTo(-8.2, -25.5);
+    ctx.moveTo(6.5, -19);
+    ctx.lineTo(8.2, -25.5);
     ctx.stroke();
     ctx.strokeStyle = INK_COLOR;
-    ctx.fillStyle = cuff;
-    ctx.beginPath();
-    ctx.ellipse(g.ax, g.ay - 3.4, 3.9, 2.1, 0, 0, 7);
-    ctx.fill();
-    ctx.lineWidth = lw * 0.7;
-    ctx.stroke();
-    ctx.fillStyle = '#1B1612';
-    ctx.beginPath();
-    ctx.ellipse(g.ax + 1.8, g.ay - 0.6, 5.2, 2.7, 0, 0, 7);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.beginPath();
-    ctx.ellipse(g.ax + 2.6, g.ay - 1.6, 1.8, 0.8, 0, 0, 7);
-    ctx.fill();
-  }
-  /* bras du fond */
-  const arm = (side, front) => {
-    const sh = [side * 8.5, -18];
-    let hx, hy;
-    if (lad) {
-      const a = Math.sin(cq + (side > 0 ? 0 : Math.PI));
-      hx = side * 7.8;
-      hy = -30 - a * 6.5;
-    } else if (up) {
-      hx = side * 11;
-      hy = -28;
-    } else if (air) {
-      hx = side * 14.5;
-      hy = -19.5 + Math.sin(t * 12 + side) * 1.2;
-    } else if (run) {
-      const a = Math.sin(ph + (side > 0 ? 0 : Math.PI)) * 0.95;
-      hx = side * 5 + a * 10;
-      hy = -14 + Math.abs(a) * -2;
-    } else if (side > 0 && t % 6 < 1.1) {
-      hx = 13 + Math.sin(t * 16) * 2;
-      hy = -29;
-    } else {
-      hx = side * 12.5;
-      hy = -12.5 + Math.sin(t * 3 + side) * 0.5;
-    }
-    if (hit) {
-      hx = side * -8;
-      hy = -14;
-    }
-    ctx.lineWidth = lw + 1.4;
-    ctx.beginPath();
-    ctx.moveTo(sh[0], sh[1]);
-    ctx.quadraticCurveTo((sh[0] + hx) / 2 + side * 2, (sh[1] + hy) / 2 + 2, hx, hy);
-    ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(hx, hy, 3.4, 0, 7);
-    ctx.fill();
-    ctx.lineWidth = lw * 0.8;
-    ctx.stroke();
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(hx - 1, hy + 0.6);
-    ctx.lineTo(hx + 1.4, hy + 2);
-    ctx.stroke();
-  };
-  arm(-1);
-  /* corps de fantôme */
-  ctx.beginPath();
-  ctx.moveTo(-10.5, -12);
-  ctx.lineTo(-10.5, -26);
-  ctx.arc(0, -26, 10.5, Math.PI, 0);
-  ctx.lineTo(10.5, -12);
-  ctx.quadraticCurveTo(0, -9, -10.5, -12);
-  ctx.closePath();
-  ctx.fillStyle = body;
-  ctx.fill();
-  ctx.lineWidth = lw;
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(120,110,90,.16)';
-  ctx.beginPath();
-  ctx.ellipse(6, -22, 3, 9, 0, 0, 7);
-  ctx.fill();
-  /* salopette */
-  ctx.beginPath();
-  ctx.moveTo(-10, -19);
-  ctx.lineTo(10, -19);
-  ctx.lineTo(10.5, -12);
-  ctx.quadraticCurveTo(0, -9, -10.5, -12);
-  ctx.closePath();
-  ctx.fillStyle = jean;
-  ctx.fill();
-  ctx.lineWidth = lw;
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,.18)';
-  ctx.fillRect(-8, -17.5, 3, 5);
-  ctx.beginPath();
-  ctx.moveTo(-6.5, -19);
-  ctx.lineTo(-8.2, -25.5);
-  ctx.moveTo(6.5, -19);
-  ctx.lineTo(8.2, -25.5);
-  ctx.lineWidth = 2.6;
-  ctx.stroke();
-  ctx.strokeStyle = jean;
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(-6.5, -19);
-  ctx.lineTo(-8.2, -25.5);
-  ctx.moveTo(6.5, -19);
-  ctx.lineTo(8.2, -25.5);
-  ctx.stroke();
-  ctx.strokeStyle = INK_COLOR;
-  ctx.fillStyle = '#F2D27A';
-  for (const bx of [-6.5, 6.5]) {
-    ctx.beginPath();
-    ctx.arc(bx, -19, 1.3, 0, 7);
-    ctx.fill();
-  }
-  ctx.lineWidth = 1.1;
-  roundRectPath(-3.2, -17, 6.4, 3.6, 1);
-  ctx.stroke();
-  /* visage */
-  const lk = Math.max(-1, Math.min(1, b.vx / 220)) * 1.3,
-    ly = lad ? -0.9 : Math.max(-1, Math.min(1.4, b.vy / 380)),
-    blink = t % 3.4 < 0.12;
-  for (const ex of [-3.6, 4]) {
-    const X = ex + 1.2;
-    if (blink) {
-      ctx.lineWidth = 1.6;
+    ctx.fillStyle = '#F2D27A';
+    for (const bx of [-6.5, 6.5]) {
       ctx.beginPath();
-      ctx.moveTo(X - 2, -28);
-      ctx.lineTo(X + 2, -28);
-      ctx.stroke();
-      continue;
+      ctx.arc(bx, -19, 1.3, 0, 7);
+      ctx.fill();
     }
-    ctx.fillStyle = '#1B1612';
+    ctx.lineWidth = 1.1;
+    roundRectPath(-3.2, -17, 6.4, 3.6, 1);
+    ctx.stroke();
+    /* visage */
+    const lk = Math.max(-1, Math.min(1, b.vx / 220)) * 1.3,
+      ly = lad ? -0.9 : Math.max(-1, Math.min(1.4, b.vy / 380)),
+      blink = t % 3.4 < 0.12;
+    for (const ex of [-3.6, 4]) {
+      const X = ex + 1.2;
+      if (blink) {
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(X - 2, -28);
+        ctx.lineTo(X + 2, -28);
+        ctx.stroke();
+        continue;
+      }
+      ctx.fillStyle = '#1B1612';
+      ctx.beginPath();
+      ctx.ellipse(X + lk * 0.5, -28 + ly * 0.5, 2.5, 3.7, 0, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(X + lk * 0.5 - 0.7, -29.4 + ly * 0.5, 0.95, 0, 7);
+      ctx.fill();
+    }
+    ctx.strokeStyle = INK_COLOR;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.ellipse(X + lk * 0.5, -28 + ly * 0.5, 2.5, 3.7, 0, 0, 7);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
+    ctx.moveTo(1.2, -23.6);
+    ctx.quadraticCurveTo(-3, -21, -7, -23.8);
+    ctx.moveTo(1.2, -23.6);
+    ctx.quadraticCurveTo(5.5, -21, 9, -23.8);
+    ctx.stroke();
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.arc(X + lk * 0.5 - 0.7, -29.4 + ly * 0.5, 0.95, 0, 7);
+    ctx.moveTo(-7, -23.8);
+    ctx.quadraticCurveTo(-8.6, -25.2, -7.2, -26);
+    ctx.moveTo(9, -23.8);
+    ctx.quadraticCurveTo(10.6, -25.2, 9.2, -26);
+    ctx.stroke();
+    if (o.diving) {
+      // masque de plongée et tuba : sangle, verre translucide, tuyau qui monte au-dessus de la tête
+      ctx.save();
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = INK_COLOR;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-8.5, -28);
+      ctx.lineTo(-3.4, -28);
+      ctx.stroke();
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(7.6, -26.4);
+      ctx.quadraticCurveTo(13.5, -31, 12.2, -43);
+      ctx.stroke();
+      ctx.strokeStyle = '#F2A93B';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(7.6, -26.4);
+      ctx.quadraticCurveTo(13.5, -31, 12.2, -43);
+      ctx.stroke();
+      roundRectPath(-4.6, -32.4, 13.2, 8.6, 3.4);
+      ctx.fillStyle = 'rgba(150,222,248,.7)';
+      ctx.fill();
+      ctx.strokeStyle = INK_COLOR;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(0, -35.6);
+    ctx.quadraticCurveTo(-2.5, -40, -5, -38.5);
+    ctx.stroke();
+    /* nœud papillon */
+    ctx.fillStyle = tie;
+    ctx.lineWidth = lw * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(1.2, -19.2);
+    ctx.lineTo(-4.8, -21.6);
+    ctx.lineTo(-4.8, -16.8);
+    ctx.closePath();
+    ctx.moveTo(1.2, -19.2);
+    ctx.lineTo(7.2, -21.6);
+    ctx.lineTo(7.2, -16.8);
+    ctx.closePath();
     ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(1.2, -19.2, 1.4, 0, 7);
+    ctx.fill();
+    ctx.stroke();
+    arm(1);
   }
-  ctx.strokeStyle = INK_COLOR;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(1.2, -23.6);
-  ctx.quadraticCurveTo(-3, -21, -7, -23.8);
-  ctx.moveTo(1.2, -23.6);
-  ctx.quadraticCurveTo(5.5, -21, 9, -23.8);
-  ctx.stroke();
-  ctx.lineWidth = 1.4;
-  ctx.beginPath();
-  ctx.moveTo(-7, -23.8);
-  ctx.quadraticCurveTo(-8.6, -25.2, -7.2, -26);
-  ctx.moveTo(9, -23.8);
-  ctx.quadraticCurveTo(10.6, -25.2, 9.2, -26);
-  ctx.stroke();
-  ctx.lineWidth = 1.8;
-  ctx.beginPath();
-  ctx.moveTo(0, -35.6);
-  ctx.quadraticCurveTo(-2.5, -40, -5, -38.5);
-  ctx.stroke();
-  /* nœud papillon */
-  ctx.fillStyle = tie;
-  ctx.lineWidth = lw * 0.7;
-  ctx.beginPath();
-  ctx.moveTo(1.2, -19.2);
-  ctx.lineTo(-4.8, -21.6);
-  ctx.lineTo(-4.8, -16.8);
-  ctx.closePath();
-  ctx.moveTo(1.2, -19.2);
-  ctx.lineTo(7.2, -21.6);
-  ctx.lineTo(7.2, -16.8);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(1.2, -19.2, 1.4, 0, 7);
-  ctx.fill();
-  ctx.stroke();
-  arm(1);
   ctx.restore();
   if (o.clone) {
     ctx.save();
@@ -398,7 +449,136 @@ export function starPath(cx, cy, R, r, rot) {
   }
   ctx.closePath();
 }
+/** Arachnide en sprites : posée sur son mur (le sprite pivote avec le cap), pattes qui cyclent, toile qui descend du plafond. */
+function drawSpider(e) {
+  const keys = [
+    'spider-head',
+    'spider-abdomen',
+    'spider-fang',
+    'spider-thread',
+    'spider-leg-1',
+    'spider-leg-2',
+    'spider-leg-3',
+  ];
+  if (!keys.every(isSpriteReady) || e.sx === undefined) return;
+  if (e.wlen > 1) {
+    const th = SPRITES['spider-thread'];
+    ctx.drawImage(th, e.sx - 2, e.y + e.h - 2, 4, e.wlen + 2);
+  }
+  ctx.save();
+  ctx.translate(e.sx, e.sy);
+  ctx.rotate(e.ang);
+  ctx.scale(e.flip || 1, 1);
+  const S = (k, sc) => [SPRITES[k], SPRITES[k].naturalWidth * sc, SPRITES[k].naturalHeight * sc];
+  // hanche de chaque pose (fraction du sprite) : pattes qui montent, avancent, se posent
+  const anchors = [
+    [0.13, 0.86],
+    [0.09, 0.68],
+    [0.09, 0.16],
+  ];
+  const seq = [0, 1, 2, 1];
+  [-12, -5, 3, 10].forEach((hx, i) => {
+    const pose = seq[(Math.floor((e.wp / (Math.PI * 2) + i * 0.25) * 4) % 4) & 3],
+      [im, w, h] = S('spider-leg-' + (pose + 1), 0.085);
+    ctx.save();
+    ctx.translate(hx, 0);
+    if (hx < 0) ctx.scale(-1, 1);
+    ctx.drawImage(im, -anchors[pose][0] * w, -h, w, h);
+    ctx.restore();
+  });
+  const bob = e.wst === 0 ? Math.sin(e.wp * 2) * 0.6 : 0;
+  {
+    const [im, w, h] = S('spider-abdomen', 0.06);
+    ctx.drawImage(im, -8 - w / 2, -7 - h + bob, w, h);
+  }
+  {
+    const [im, w, h] = S('spider-head', 0.058);
+    ctx.drawImage(im, 9 - w / 2, -7 - h + bob, w, h);
+  }
+  {
+    const [im, w, h] = S('spider-fang', 0.045);
+    ctx.drawImage(im, 15 - w / 2, -13 + bob, w, h);
+  }
+  ctx.restore();
+}
+/** Pingouin : corps et deux bras séparés. Bras repliés en arrière (élan), balayés vers l'arrière pour pousser, traînants pendant la glisse. */
+function drawPenguin(e) {
+  const keys = ['penguin-body', 'penguin-arm-far', 'penguin-arm-near'];
+  if (!keys.every(isSpriteReady)) return;
+  const body = SPRITES['penguin-body'],
+    far = SPRITES['penguin-arm-far'],
+    near = SPRITES['penguin-arm-near'],
+    h = 23,
+    S = h / body.naturalHeight,
+    w = body.naturalWidth * S;
+  const ease = (u) => 1 - (1 - u) * (1 - u);
+  let a, bend;
+  if (e.pst === 'rest') {
+    const u = Math.min(1, 1 - e.pt / PENGUIN_WINDUP_TIME);
+    a = 0.1 - 0.65 * ease(u); // bras levés et pliés vers l'arrière
+    bend = 1 - 0.2 * ease(u);
+  } else if (e.pst === 'push') {
+    const u = Math.min(1, Math.abs(e.vx) / PENGUIN_TOP_SPEED);
+    a = -0.55 + 1.4 * ease(u); // balayage vers l'arrière, la glace sous les gants
+    bend = 0.8 + 0.2 * ease(u);
+  } else {
+    a = 0.3 + 0.55 * Math.min(1, Math.abs(e.vx) / PENGUIN_TOP_SPEED);
+    bend = 1;
+  }
+  const push = e.pst === 'push',
+    k = push ? 1.06 : e.pst === 'rest' ? 0.98 : 1.02;
+  ctx.save();
+  ctx.rotate(push ? -0.05 : 0);
+  ctx.scale(k, 1 / k);
+  ctx.translate(-w / 2 - 2, -h);
+  ctx.scale(S, S);
+  const arm = (im, ox, oy, px, py, ang) => {
+    ctx.save();
+    ctx.translate(ox + px, oy + py);
+    ctx.rotate(ang);
+    ctx.scale(bend, 1);
+    ctx.drawImage(im, -px, -py);
+    ctx.restore();
+  };
+  arm(far, 702, 255, 6, 30, a * 0.85 - 0.05);
+  ctx.drawImage(body, 0, 0);
+  arm(near, 652, 312, 6, 25, a);
+  ctx.restore();
+}
+/** Piranha : sprite entier, centré sur la case ; ondule légèrement en nageant. */
+function drawPiranha(e) {
+  if (!isSpriteReady('piranha')) return;
+  const im = SPRITES['piranha'],
+    h = 32,
+    w = (h * im.naturalWidth) / im.naturalHeight,
+    wob = Math.sin((e.ph || 0) * 9) * 0.07;
+  ctx.save();
+  ctx.translate(0, -e.h / 2);
+  ctx.rotate(wob);
+  ctx.drawImage(im, -w / 2, -h / 2, w, h);
+  ctx.restore();
+  // bulles (coordonnées du monde) : ramenées au repère du piranha, qui est déjà retourné selon son sens
+  if (e.bub && e.bub.length) {
+    const cx = e.x + e.w / 2,
+      by = e.y + e.h;
+    ctx.save();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = 'rgba(235,250,255,.95)';
+    ctx.fillStyle = 'rgba(190,230,250,.45)';
+    for (const b of e.bub) {
+      ctx.beginPath();
+      ctx.arc((b.x - cx) * e.dir, b.y - by, b.r, 0, 7);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
 export function drawWalker(entity) {
+  if (entity.t === 'a') {
+    drawSpider(entity);
+    return;
+  }
   const cx = entity.x + entity.w / 2,
     by = entity.y + entity.h,
     t = gameState.time;
@@ -413,6 +593,8 @@ export function drawWalker(entity) {
   }
   if (entity.t === 'c') drawCrab(entity, t);
   else if (entity.t === 'r') drawRebel(entity, t);
+  else if (entity.t === 'p') drawPenguin(entity);
+  else if (entity.t === 'f') drawPiranha(entity);
   else drawSpook(entity, t);
   ctx.restore();
 }

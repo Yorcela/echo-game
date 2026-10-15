@@ -171,22 +171,55 @@ function ladderStep(body, inp, dt) {
   }
   return false;
 }
-// matières posées sur le sol (dans la rangée où l'on marche) : colle = lent, glace = glisse
+// matières posées sur le sol (dans la rangée où l'on marche) : toile d'araignée (GLUE_TILE) = freine, glace = glisse
 export const GLUE_TILE = ',';
 export const ICE_TILE = '_';
-const GLUE_SPEED_FACTOR = 0.45;
+const GLUE_SPEED_FACTOR = 0.5; // toile d'araignée : on avance à moitié vitesse
 const ICE_SPEED_FACTOR = 1.25;
 // la glace s'emballe vite mais freine très mal : on glisse
 const ICE_ACCELERATION = 800;
 const ICE_BRAKING = 330;
 const ICE_AIR_BRAKING = 40; // l'élan pris sur la glace se garde pendant le saut
-/** Matière sous les pieds du corps (GLUE_TILE, ICE_TILE ou null). */
+/** Matière sous les pieds du corps (GLUE_TILE = toile, ICE_TILE ou null). */
 function groundSurface(body) {
   const r = Math.floor((body.y + body.h - 1) / TILE),
     c = Math.floor((body.x + body.w / 2) / TILE);
   if (r < 0 || r >= 17 || c < 0 || c >= 30) return null;
   const ch = runtime.grid[r][c];
   return ch === GLUE_TILE || ch === ICE_TILE ? ch : null;
+}
+// eau : cases '"' (non solides). Sans la nage on s'y blesse (voir water.js) ; avec, on y nage.
+export const WATER_TILE = '"';
+/** Le centre du corps est-il dans l'eau ? */
+export function inWater(body, dy = 0) {
+  const c = Math.floor((body.x + body.w / 2) / TILE),
+    r = Math.floor((body.y + body.h / 2 + dy) / TILE);
+  return r >= 0 && r < 17 && c >= 0 && c < 30 && runtime.grid[r][c] === WATER_TILE;
+}
+const SWIM_SPEED_FACTOR = 0.62;
+const SWIM_RISE = 150;
+const SWIM_DIVE = 150;
+const SWIM_SINK = 40;
+function swimStep(body, inp, dt) {
+  body.lock = Math.max(0, (body.lock || 0) - dt);
+  const tvx = (inp.r - inp.l) * (body.spd || MOVE_SPEED) * SWIM_SPEED_FACTOR;
+  const a = 1500 * dt;
+  if (!(body.lock > 0)) {
+    body.vx = body.vx < tvx ? Math.min(tvx, body.vx + a) : Math.max(tvx, body.vx - a);
+    if (tvx) body.face = Math.sign(tvx);
+  }
+  // brasse : haut (flèche ou saut) remonte, bas plonge, sinon on coule doucement
+  const tvy = inp.u || inp.jh ? -SWIM_RISE : inp.d ? SWIM_DIVE : SWIM_SINK;
+  body.vy += (tvy - body.vy) * Math.min(1, dt * 7);
+  // à la surface, un saut fait jaillir hors de l'eau
+  if (inp.jp && !inWater(body, -TILE * 0.9)) {
+    body.vy = -JUMP_SPEED * 0.85;
+    body.jumped = 1;
+  }
+  body.g = false;
+  body.co = 0.1;
+  body.dj = 1;
+  body.lad = 0;
 }
 function moveBodyCore(body, inp, dt) {
   const SP = body.spd || MOVE_SPEED;
@@ -196,6 +229,8 @@ function moveBodyCore(body, inp, dt) {
     body.vx = body.dd * 820;
     if (body.dash <= 0) body.vx = body.dd * MOVE_SPEED;
     body.lad = 0;
+  } else if (body.swim && inWater(body)) {
+    swimStep(body, inp, dt);
   } else if (body === runtime.player && !body.big && ladderStep(body, inp, dt)) {
     // déplacement sur l'échelle déjà traité par ladderStep
   } else {
@@ -205,7 +240,7 @@ function moveBodyCore(body, inp, dt) {
       body.ws = ws;
       body.wc = 0.1;
     } else body.wc = Math.max(0, (body.wc || 0) - dt);
-    // matière du sol : la colle freine, la glace fait glisser (et accélère) ; l'élan de la glace se garde en l'air
+    // matière du sol : la toile freine, la glace fait glisser (et accélère) ; l'élan de la glace se garde en l'air
     const surface = body.g ? groundSurface(body) : null;
     if (surface === ICE_TILE) body.iceMomentum = 0.9;
     else if (body.g) body.iceMomentum = 0;
@@ -230,7 +265,8 @@ function moveBodyCore(body, inp, dt) {
     }
     body.jb = inp.jp ? 0.12 : Math.max(0, body.jb - dt);
     body.co = body.g ? 0.1 : Math.max(0, body.co - dt);
-    if (body.jb > 0 && body.co > 0) {
+    // pris dans la toile d'araignée, on ne peut pas sauter
+    if (body.jb > 0 && body.co > 0 && surface !== GLUE_TILE) {
       body.vy = -JUMP_SPEED;
       body.jb = 0;
       body.co = 0;

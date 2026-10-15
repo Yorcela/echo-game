@@ -6,7 +6,8 @@ import { gameState, showMessage } from '../state/state.ts';
 import { saveGame } from '../state/save.js';
 import { isKingReady } from '../world/world.js';
 import { winRoom } from './rewind.js';
-import { collide, isDoor, overlaps, unsealRoom } from './physics.js';
+import { collide, inWater, isDoor, overlaps, unsealRoom } from './physics.js';
+import { octopusPunch } from './octopus.js';
 import { startColossusDeath } from './colossus.js';
 import { playSfx } from '../audio/audio.js';
 import { bossAI } from './boss-ai.js';
@@ -271,7 +272,7 @@ export function stomp() {
       }
     }
   for (const entity of runtime.entities) {
-    if (!entity.alive || entity.k !== 'w' || entity.t !== 'c') continue;
+    if (!entity.alive || entity.k !== 'w' || (entity.t !== 'c' && entity.t !== 'p')) continue;
     if (
       overlaps(runtime.player, entity, 2) &&
       runtime.player.y + runtime.player.h < entity.y + entity.h * 0.7
@@ -287,6 +288,8 @@ export function stomp() {
 }
 export function doHit(body = runtime.player) {
   if ((body.hcd || 0) > 0 || (body.hit || 0) > 0 || body.dash > 0) return false;
+  // dans l'eau on ne peut pas frapper : seul le dash (contre les piranhas)
+  if (inWater(body)) return false;
   body.hit = 0.2;
   body.hcd = 0.45;
   body.vx += body.face * 200;
@@ -319,6 +322,21 @@ export function hitCheck(body = runtime.player) {
       } else if (ch === '&' && !body.big && body === runtime.player && gameState.messageTimer <= 0)
         showMessage('Trop solide… il faudrait être plus gros');
     }
+  if (runtime.level.boss && runtime.level.boss.kind === 'octopus') {
+    const o = runtime.entities.find((q) => q.k === 'b' && q.alive);
+    if (o && octopusPunch(o, box)) {
+      o.hp -= body.big ? 2 : 1;
+      playSfx('hit');
+      gameState.shake = 0.3;
+      if (o.hp <= 0) {
+        o.alive = 0;
+        unsealRoom();
+        gameState.clearedBossRooms[gameState.loadedRoom] = 1;
+        startGain();
+      }
+      return;
+    }
+  }
   for (const entity of runtime.entities) {
     if (!entity.alive || entity.k === 's' || !overlaps(box, entity)) continue;
     if (entity.k === 'w') {
@@ -326,7 +344,19 @@ export function hitCheck(body = runtime.player) {
         if (entity.inv <= 0) {
           entity.inv = 0.6;
           playSfx('clang');
-          showMessage("Intouchable ! Saute par-dessus, ou fonce à travers avec l'Éclair", 2.6);
+          showMessage('Intouchable ! Saute par-dessus', 2.6);
+        }
+      } else if (entity.t === 'f') {
+        if (entity.inv <= 0) {
+          entity.inv = 0.6;
+          playSfx('clang');
+          showMessage("Le piranha esquive les coups : seul un dash l'élimine !", 2.4);
+        }
+      } else if (entity.t === 'p') {
+        if (entity.inv <= 0) {
+          entity.inv = 0.6;
+          playSfx('clang');
+          showMessage('Le pingouin encaisse les coups : saute-lui dessus !', 2.4);
         }
       } else if (entity.t === 'r') {
         if (entity.inv <= 0) {
@@ -370,6 +400,8 @@ export function startGain() {
     });
   if (g === 't') {
     gameState.hasTimeEcho = 1;
+  } else if (g === 7) {
+    gameState.hasSwim = 1;
   } else if (g !== undefined) {
     gameState.echoesOwned[g] = 1;
     if (g < 5) gameState.selectedEcho = g;

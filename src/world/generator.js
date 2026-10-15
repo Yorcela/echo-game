@@ -238,14 +238,28 @@ function placeMechanism(grid, mech, zones, rnd) {
     zones.push([c - 1, c + 1]);
     return true;
   };
-  if (mech === 'spikes') {
+  const spider = () => {
+    const c = findFreeStart(grid, zones, 1, rnd, 7, 22);
+    if (c < 0) return false;
+    grid[13][c] = ';';
+    zones.push([c - 1, c + 1]);
+    return true;
+  };
+  const penguin = () => {
+    const c = findFreeStart(grid, zones, 1, rnd, 8, 21);
+    if (c < 0) return false;
+    grid[13][c] = ':';
+    zones.push([c - 2, c + 2]);
+    return true;
+  };
+  if (mech === 'spikes' || mech === 'rink') {
     const c = findFreeStart(grid, zones, 2, rnd);
     if (c >= 0) {
       grid[13][c] = grid[13][c + 1] = '^';
       zones.push([c - 2, c + 3]);
       placed++;
     }
-    if (crab()) placed++;
+    if (mech === 'rink' ? penguin() : crab()) placed++;
   } else if (mech === 'guards') {
     const c = findFreeStart(grid, zones, 1, rnd, 9, 20);
     if (c >= 0) {
@@ -264,7 +278,7 @@ function placeMechanism(grid, mech, zones, rnd) {
     }
     if (crab()) placed++;
   } else if (mech === 'glue' || mech === 'ice') {
-    // nappe de colle (ralentit) ou de glace (glisse) sur le sol, et un crabe qui y subit la même matière
+    // nappe de toile d'araignée (freine) ou de glace (glisse) sur le sol : un arachnide sur la toile, un pingouin sur la glace
     const len = mech === 'glue' ? 6 : 7;
     const c = findFreeStart(grid, zones, len, rnd);
     if (c >= 0) {
@@ -280,9 +294,12 @@ function placeMechanism(grid, mech, zones, rnd) {
         }
       }
     }
-    if (crab()) placed++;
+    if (mech === 'glue' ? spider() : penguin()) placed++;
   } else if (mech === 'swarm') {
     for (let i = 0; i < 3; i++) if (crab()) placed++;
+  } else if (mech === 'web' || mech === 'spider') {
+    // arachnides qui longent murs et plafond et font descendre leur toile (« spider » : une seule)
+    for (let i = 0; i < (mech === 'web' ? 2 : 1); i++) if (spider()) placed++;
   }
   return placed;
 }
@@ -360,9 +377,9 @@ export function generateRoom(sp) {
     }
   }
   // ennemis et pièges supplémentaires (générateur indépendant : les salles sans mécanisme restent identiques)
-  // un sol de glace est semé de pointes (on glisse dessus), un sol de colle de crabes (ralentis eux aussi)
+  // un sol de glace est semé de pointes (on glisse dessus), un sol de toile d'araignée d'arachnides (qui s'y déplacent normalement)
   const mech =
-    sp.mech && sp.mech !== 'switch' ? sp.mech : sp.floor ? (sp.floor === 'ice' ? 'spikes' : 'swarm') : null;
+    sp.mech && sp.mech !== 'switch' ? sp.mech : sp.floor ? (sp.floor === 'ice' ? 'rink' : 'web') : null;
   if (!sp.rest && mech) {
     placeMechanism(g, mech, used.slice(), seededRandom(((sp.seed | 0) ^ 0x5bd1e995) >>> 0));
   }
@@ -383,7 +400,7 @@ export function generateRoom(sp) {
 }
 
 /**
- * Recouvre le sol libre de glace (`ice`) ou de colle (`glue`). La colle épargne les abords des fossés
+ * Recouvre le sol libre de glace (`ice`) ou de toile d'araignée (`glue`). La toile épargne les abords des fossés
  * pour garder un élan correct (saut + dash), la glace s'étend partout : elle ne fait que donner de la vitesse.
  */
 function coverFloor(grid, material) {

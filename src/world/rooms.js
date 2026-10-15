@@ -51,6 +51,9 @@ export function pickBlueHeartSpots(seed) {
 export const hasBed = (i) => !!levels[i].bench;
 export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
   const seen = !!gameState.visitedRooms[i];
+  // les ennemis tués restent morts tant qu'on ne quitte pas la salle (rechargement, retour arrière, dégât de piège)
+  if (gameState.loadedRoom !== i || from === 'X') runtime.deadWalkers = new Set();
+  runtime.deadWalkers = runtime.deadWalkers || new Set();
   gameState.visitedRooms[i] = 1;
   gameState.currentRoom = i;
   gameState.entry = from;
@@ -93,7 +96,8 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
           x: c * TILE + (TILE - PLAYER_W) / 2,
           y: (r + 1) * TILE - PLAYER_H,
         };
-        runtime.grid[r][c] = '.';
+        // salle gelée : la case de départ est de la glace aussi
+        runtime.grid[r][c] = r === 13 && runtime.grid[13].includes('_') ? '_' : '.';
       } else if (ch === '=') {
         runtime.bed = {
           x: c * TILE + TILE / 2,
@@ -116,14 +120,37 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
           t: 0,
           was: 0,
         });
-      } else if (ch === '*' || ch === '+' || ch === '!' || ch === '?') {
-        const t = ch === '!' ? 'r' : ch === '?' ? 'g' : 'c',
+      } else if (
+        ch === '*' ||
+        ch === '+' ||
+        ch === '!' ||
+        ch === '?' ||
+        ch === ';' ||
+        ch === ':' ||
+        ch === '`'
+      ) {
+        const t =
+            ch === '!'
+              ? 'r'
+              : ch === '?'
+                ? 'g'
+                : ch === ';'
+                  ? 'a'
+                  : ch === ':'
+                    ? 'p'
+                    : ch === '`'
+                      ? 'f'
+                      : 'c',
           D = enemyTypes[t];
+        if (runtime.deadWalkers.has(t + ':' + c + ':' + r)) {
+          runtime.grid[r][c] = '.';
+          continue;
+        }
         runtime.entities.push({
           k: 'w',
           t,
           x: c * TILE + (TILE - D.w) / 2,
-          y: (r + 1) * TILE - D.h - (t === 'g' ? 8 : 0),
+          y: t === 'f' ? r * TILE + (TILE - D.h) / 2 : (r + 1) * TILE - D.h - (t === 'g' ? 8 : 0),
           x0: c * TILE + (TILE - D.w) / 2,
           y0: (r + 1) * TILE - D.h - 8,
           vx: 0,
@@ -140,8 +167,12 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
           alive: 1,
           dir: 1,
           ph: c * 1.7,
+          key: t + ':' + c + ':' + r,
         });
-        runtime.grid[r][c] = '.';
+        // pingouin / araignée posés sur la glace / la toile : la case garde sa matière
+        const row = runtime.grid[r],
+          mat = ch === ':' ? '_' : ch === ';' ? ',' : null;
+        row[c] = ch === '`' ? '"' : mat && r === 13 && row.includes(mat) ? mat : '.';
       } else if (ch === '@' || ch === '$') {
         const B = runtime.level.boss,
           bw = B.w || 42,

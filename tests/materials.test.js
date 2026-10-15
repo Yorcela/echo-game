@@ -1,4 +1,4 @@
-// Matières du sol : la colle ralentit, la glace accélère et fait glisser (héros comme ennemis).
+// Matières du sol : la toile ralentit, la glace accélère et fait glisser (héros comme ennemis).
 import { describe, it, expect, beforeAll } from 'vitest';
 import { installStubs, seedRandom } from './helpers/dom-stub.js';
 
@@ -35,10 +35,50 @@ describe('matières du sol', () => {
   }
   const prefix = (ch, n) => '.'.repeat(1) + ch.repeat(n) + '.'.repeat(30 - 1 - n);
 
-  it('la colle ralentit nettement la marche', () => {
+  it('la toile ralentit la marche (de moitié)', () => {
     const normal = run(EMPTY, 40);
     const glue = run(prefix(',', 25), 40);
-    expect(glue).toBeLessThan(normal * 0.6);
+    expect(glue).toBeLessThan(normal * 0.7);
+    expect(glue).toBeGreaterThan(normal * 0.35);
+  });
+
+  it("on ne peut pas sauter depuis la toile d'araignée", () => {
+    T.LV[1].rows = flatRoom(prefix(',', 28));
+    T.load(1);
+    T.S.mode = 'play';
+    for (let f = 0; f < 10; f++) T.step(1 / 60); // se pose sur la toile
+    const y0 = T.P.y;
+    T.I.jp = 1;
+    T.I.jh = 1;
+    let minY = y0;
+    for (let f = 0; f < 20; f++) {
+      T.step(1 / 60);
+      minY = Math.min(minY, T.P.y);
+    }
+    T.I.jp = 0;
+    T.I.jh = 0;
+    expect(y0 - minY).toBeLessThan(2);
+  });
+
+  it('10 % des salles ont de la glace au sol, 15 % de la toile, avec 1 à 3 pingouins / araignées', () => {
+    for (const seed of [11, 5, 23]) {
+      T.buildWorld(seed);
+      const ice = T.LV.filter((l) => l.rows && !l.boss && l.rows[13].includes('_')),
+        web = T.LV.filter((l) => l.rows && !l.boss && l.rows[13].includes(','));
+      expect(ice.length).toBe(Math.round(T.LV.length * 0.1));
+      expect(web.length).toBe(Math.round(T.LV.length * 0.15));
+      const count = (l, ch) => l.rows[13].split(ch).length - 1;
+      for (const l of ice) {
+        expect(count(l, ':')).toBeGreaterThanOrEqual(1);
+        expect(count(l, ':')).toBeLessThanOrEqual(3);
+        // salle entièrement gelée
+        for (let c = 1; c < 29; c++) expect(l.rows[13][c] === '.' && l.rows[14][c] === '#').toBe(false);
+      }
+      for (const l of web) {
+        expect(count(l, ';')).toBeGreaterThanOrEqual(1);
+        expect(count(l, ';')).toBeLessThanOrEqual(3);
+      }
+    }
   });
 
   it('la glace fait aller plus vite et glisser après le relâchement', () => {

@@ -132,4 +132,20 @@ bossDefs.push({
   em: 'king',
   hint: '',
 });
+// La Pieuvre : boss de l'aile aquatique (à venir) ; on la bat en frappant ses tentacules posées sur les plateformes
+bossDefs.push({
+  n: 'La Pieuvre',
+  hp: 10,
+  kind: 'octopus',
+  w: 128,
+  h: 110,
+  sprH: 120,
+  spd: 0,
+  tele: 1,
+  stun: 0,
+  idle: 1,
+  c: '#C04A6C',
+  em: 'octopus',
+  hint: '',
+});
 export const EMPTY_HINT = '';

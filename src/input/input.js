@@ -19,6 +19,7 @@ import { ensureAudio, playSfx } from '../audio/audio.js';
 import { hitTestUI } from '../render/primitives.js';
 import { HINT_T, nameInputElement, showNameInput } from '../ui/hud.js';
 import { endTrial, startTrial } from '../ui/screens.js';
+import { TEST_MODE, grantTestPowers } from '../game/test-mode.js';
 /* ---------- Entrées ---------- */
 const KEYS = {
   ArrowLeft: 'l',
@@ -164,6 +165,7 @@ export function advance(fx, fy) {
     else if (hit && /^m\d+$/.test(hit)) {
       const i = +hit.slice(1);
       gameState.fade = 0.45;
+      if (TEST_MODE) grantTestPowers(i);
       loadRoom(i, 'p');
       playSfx('tick');
     }

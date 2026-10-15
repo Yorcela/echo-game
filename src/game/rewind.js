@@ -158,7 +158,7 @@ export function gameOver() {
   showNameInput(true);
 }
 
-// dégâts : amt en cœurs (¼ crabe, ½ colosse/rebelle/pics/chute, ¾ fantôme, 1 boss). haz = pics ou chute : on repart en arrière.
+// dégâts : amt en cœurs, toujours par demis (½ crabe/colosse/pics/chute, 1 fantôme/boss). haz = pics ou chute : on repart en arrière.
 const ECHO_NAMES = ['Miroir', 'Rémanence', 'Jumeau', 'Colosse', 'Éclair', 'Double saut', 'Tir'];
 export function gateMessage(k) {
   const g = k.gate;
@@ -203,7 +203,7 @@ export function hurtPlayer(amt, haz, sx) {
     gameState.shieldHearts -= t;
     a -= t;
   }
-  gameState.hp = Math.max(0.01, gameState.hp - a);
+  gameState.hp = Math.max(0.01, Math.round((gameState.hp - a) * 2) / 2 || 0.01);
   saveGame();
   gameState.invulnerableTimer = 1.4;
   if (haz) {

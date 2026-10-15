@@ -146,37 +146,77 @@ describe('design du monde', () => {
       }
     });
 
-    it('un numéro suit la salle, pas sa place : le même nom donne le même numéro sur toutes les graines', () => {
-      const byName = new Map();
+    it('les numéros vont de 1 à 100, tous présents, et suivent la case : identiques sur toutes les graines', () => {
+      const byCell = new Map();
       for (const seed of SEEDS) {
-        for (const l of worlds[seed].levels) {
-          if (l.gen || l.hub) continue;
-          const key = (l.boss ? 'arène ' : '') + l.name;
-          if (byName.has(key))
-            expect(l.number, `« ${key} » change de numéro selon la graine`).toBe(byName.get(key));
-          else byName.set(key, l.number);
+        const w = worlds[seed].levels;
+        expect(w.map((l) => l.number).sort((a, b) => a - b)).toEqual(
+          Array.from({ length: 100 }, (_, k) => k + 1),
+        );
+        for (const l of w) {
+          const key = l.pos + '';
+          if (byCell.has(key)) expect(l.number, `case ${key}`).toBe(byCell.get(key));
+          else byCell.set(key, l.number);
         }
       }
-      expect(byName.size).toBeGreaterThan(20);
-      // repères figés : ne doivent jamais bouger
-      expect(byName.get('Premiers pas')).toBe(1);
-      expect(byName.get('Derrière la porte')).toBe(10);
-      expect(byName.get('Le fossé')).toBe(20);
-      expect(byName.get('arène Le Gardien du Temps')).toBe(90);
     });
 
-    it('les salles générées sont numérotées par leur case (200 + 13 × ligne + colonne), le Hall est 0', () => {
+    it('deux cases voisines (ligne ou colonne) ne portent jamais des numéros qui se suivent', () => {
       const w = worlds[SEEDS[0]].levels;
-      expect(w[T.HUB].number).toBe(0);
-      for (const l of w) {
-        if (!l.gen) continue;
-        expect(l.number).toBe(200 + l.pos[1] * 13 + l.pos[0]);
+      const at = new Map(w.map((l) => [l.pos + '', l.number]));
+      let consecutive = 0;
+      for (let y = 0; y < 10; y++)
+        for (let x = 0; x < 9; x++)
+          if (Math.abs(at.get(x + ',' + y) - at.get(x + 1 + ',' + y)) === 1) consecutive++;
+      expect(consecutive).toBeLessThan(4);
+    });
+  });
+
+  describe('carte 10 × 10', () => {
+    it('une salle par case de la grille, 100 salles', () => {
+      for (const seed of SEEDS) {
+        const w = worlds[seed].levels;
+        expect(w).toHaveLength(100);
+        const cells = new Set(w.map((l) => l.pos + ''));
+        expect(cells.size).toBe(100);
+        for (const l of w) {
+          expect(l.pos[0]).toBeGreaterThanOrEqual(0);
+          expect(l.pos[0]).toBeLessThan(10);
+          expect(l.pos[1]).toBeGreaterThanOrEqual(0);
+          expect(l.pos[1]).toBeLessThan(10);
+        }
+      }
+    });
+
+    it('un boss par ligne et par colonne : hall (Roi), Gardien, 7 ailes et la Pieuvre, chacun sur sa ligne et sa colonne', () => {
+      for (const seed of SEEDS) {
+        const w = worlds[seed].levels;
+        const bosses = w.filter((l) => l.boss || l.hub).map((l) => l.pos);
+        expect(bosses).toHaveLength(10);
+        expect(new Set(bosses.map((p) => p[1])).size).toBe(10);
+        expect(new Set(bosses.map((p) => p[0])).size).toBe(10);
+        const octo = w.find((l) => l.boss && l.boss.kind === 'octopus');
+        expect(octo.pos).toEqual([5, 4]);
+      }
+    });
+
+    it("toutes les salles sont atteignables depuis le hall (la salle de repos du Gardien l'est par l'échelle du boss)", () => {
+      for (const seed of SEEDS) {
+        const w = worlds[seed].levels;
+        const seen = new Set([T.HUB]);
+        const queue = [T.HUB];
+        while (queue.length) {
+          const u = queue.shift();
+          for (const k of w[u].links) if (!seen.has(k.to)) (seen.add(k.to), queue.push(k.to));
+        }
+        const missing = w.map((_, i) => i).filter((i) => !seen.has(i));
+        expect(missing, 'salles inaccessibles (graine ' + seed + ')').toEqual([]);
       }
     });
   });
 
-  it('le dash (Éclair, écho 4) est le 3e pouvoir à obtenir', () => {
-    expect(T.ORDER.slice(0, 3)).toEqual(['t', 2, 4]);
+  it('la nage (Pieuvre, 7) est le 3e pouvoir à obtenir, le dash (Éclair, écho 4) le 4e, avant le double saut', () => {
+    expect(T.ORDER.slice(0, 4)).toEqual(['t', 2, 7, 4]);
     expect(T.ORDER.indexOf(5)).toBeGreaterThan(T.ORDER.indexOf(4));
   });
 
@@ -195,7 +235,7 @@ describe('design du monde', () => {
   it("chaque aile n'exige que des pouvoirs déjà gagnés et bloque physiquement sur le dernier obtenu", () => {
     for (const seed of SEEDS) {
       worlds[seed].ranks.forEach((rk) => {
-        if (rk.r === 1) return;
+        if (rk.r === 1 || rk.gain === 7) return; // l'aile aquatique est fixe : salles générées ouvertes
         const owned = new Set(T.ORDER.slice(1, rk.r)); // pouvoirs gagnés avant cette aile
         const newest = T.ORDER[rk.r - 1];
         const needs = rk.ap.map((i) => worlds[seed].levels[i].need || []);

@@ -6,7 +6,7 @@ import { levels } from '../data/levels.js';
 import { formatTime, gameState } from '../state/state.ts';
 import { scores } from '../state/save.js';
 import { snapCv } from '../game/rewind.js';
-import { sealed } from '../game/physics.js';
+import { inWater, sealed } from '../game/physics.js';
 import { ghost } from '../game/reflets.js';
 import { isSpriteReady } from './sprites.js';
 import {
@@ -18,7 +18,7 @@ import {
   roundRectPath,
 } from './primitives.js';
 import { drawBackground, drawFloorFx } from './background.js';
-import { drawTiles } from './tiles.js';
+import { drawWaterTiles, drawTiles } from './tiles.js';
 import { drawHero, drawWalker, starPath } from './characters.js';
 import { drawBoss, drawTrap } from './bosses.js';
 import { drawAfter } from './boss-witch.js';
@@ -278,16 +278,16 @@ export function draw() {
       } else drawHeart(h.x, h.y + by, 28, true);
     }
   if (!(gameState.invulnerableTimer > 0 && Math.floor(gameState.time * 14) % 2))
-    drawHero(
-      runtime.player,
-      runtime.player.big
+    drawHero(runtime.player, {
+      ...(runtime.player.big
         ? {
             jean: '#8A4E30',
             cuff: '#D9A878',
             tie: '#F2C45A',
           }
-        : {},
-    );
+        : {}),
+      diving: !!gameState.hasSwim && inWater(runtime.player),
+    });
   for (const s of runtime.shots) {
     ctx.save();
     const gl = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, 16);
@@ -318,6 +318,7 @@ export function draw() {
         ctx.stroke();
       }
     }
+  drawWaterTiles();
   ctx.restore();
   ctx.save();
   ctx.globalAlpha = 0.4;

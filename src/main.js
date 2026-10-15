@@ -70,6 +70,9 @@ if (import.meta.env.MODE === 'test') {
     get plates() {
       return runtime.plates;
     },
+    get G() {
+      return runtime.grid;
+    },
     snap: takeSnapshot,
     restore: restoreSnapshot,
     get SH() {

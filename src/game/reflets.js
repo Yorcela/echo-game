@@ -3,6 +3,9 @@ import { FLOOR_Y, LETHAL_BOSS_STATES, TILE, WIDTH } from '../core/config.ts';
 import { gameState, showMessage } from '../state/state.ts';
 import { collide, moveBody, overlaps, solid } from './physics.js';
 import { bossAI } from './boss-ai.js';
+import { updateSpider, webRect } from './spiders.js';
+import { updatePenguin } from './penguins.js';
+import { updatePiranha } from './piranhas.js';
 import { playSfx } from '../audio/audio.js';
 /* ---------- Les Reflets : le Soleil (gauche) et la Lune (droite), exactement en miroir ---------- */
 export const BEAM_H = FLOOR_Y - 32,
@@ -292,7 +295,17 @@ export function updateEntities(dt) {
     if (!entity.alive) continue;
     if (entity.k === 'w') {
       entity.inv = Math.max(0, entity.inv - dt);
-      if (entity.t === 'g') {
+      // un dash qui traverse un crabe l'écrase (sans blesser le héros) ; les autres mobs, eux, blessent
+      if (entity.t === 'c' && runtime.player.dash > 0 && overlaps(runtime.player, entity, 2)) {
+        entity.alive = 0;
+        playSfx('hit');
+        gameState.shake = Math.max(gameState.shake, 0.12);
+        continue;
+      }
+      if (entity.t === 'a') updateSpider(entity, dt);
+      else if (entity.t === 'p') updatePenguin(entity, dt);
+      else if (entity.t === 'f') updatePiranha(entity, dt);
+      else if (entity.t === 'g') {
         entity.ph += dt * 3;
         entity.x += entity.dir * entity.spd * dt;
         entity.y = entity.y0 + Math.sin(entity.ph) * 4;
@@ -305,12 +318,13 @@ export function updateEntities(dt) {
           r1 = Math.floor((entity.y + entity.h - 2) / TILE);
         let spike = false;
         for (let r = r0; r <= r1; r++) if (runtime.grid[r] && runtime.grid[r][cc] === '^') spike = true;
-        if (
-          spike ||
-          solid(cc, Math.floor((entity.y + entity.h - 2) / TILE)) ||
-          !solid(cc, Math.floor((entity.y + entity.h + 4) / TILE))
-        )
+        // obstacle à n'importe quelle hauteur du corps (un colosse de 46 px est plus haut qu'une case), piques ou vide devant
+        let wall = false;
+        for (let r = r0; r <= r1; r++) if (solid(cc, r)) wall = true;
+        if (spike || wall || !solid(cc, Math.floor((entity.y + entity.h + 4) / TILE)))
           entity.dir = -entity.dir;
+        // bloqué quand même (poussé, coincé) : demi-tour après un court instant sans avancer
+        const x0 = entity.x;
         moveBody(
           entity,
           {
@@ -321,6 +335,12 @@ export function updateEntities(dt) {
           },
           dt,
         );
+        entity.stuck =
+          Math.abs(entity.x - x0) < 0.05 * dt * 60 && entity.inv <= 0 ? (entity.stuck || 0) + dt : 0;
+        if (entity.stuck > 0.3) {
+          entity.dir = -entity.dir;
+          entity.stuck = 0;
+        }
       }
     } else if (entity.k === 's' && (entity.beam || entity.orb || entity.boom || entity.puff || entity.nuke))
       reflEnt(entity, dt);
@@ -373,8 +393,7 @@ export function ghost() {
 const damageOf = (entity) => {
   const gi = runtime.level.boss && runtime.level.boss.kind === 'giant';
   if (entity.fist) return 1;
-  if (entity.k === 'w')
-    return entity.t === 'c' ? 0.25 : entity.t === 'g' ? 0.75 : entity.t === 'r' ? 0.5 : 0.25;
+  if (entity.k === 'w') return entity.t === 'g' ? 1 : 0.5; // les cœurs se perdent par demis : crabe ½, colosse ½, fantôme 1
   return gi ? 0.5 : 1;
 };
 export const hitSrcOf = (body) => {
@@ -417,10 +436,11 @@ export const hitSrcOf = (body) => {
   for (const entity of runtime.entities)
     if (
       entity.alive &&
-      ((entity.k === 'w' && !(entity.t === 'g' && body.dash > 0)) ||
+      ((entity.k === 'w' && !((entity.t === 'c' || entity.t === 'f') && body.dash > 0)) ||
         (entity.k === 's' && !entity.orb && !entity.puff) ||
         LETHAL_BOSS_STATES[entity.st]) &&
-      overlaps(body, entity, entity.k === 'b' ? 8 : 3)
+      (overlaps(body, entity, entity.k === 'b' ? 8 : 3) ||
+        (webRect(entity) && overlaps(body, webRect(entity), 1)))
     )
       return {
         a: damageOf(entity),
@@ -432,7 +452,7 @@ export const hitSrc = () => {
   const g = ghost();
   if (g && g.mv && overlaps(runtime.player, g, 9))
     return {
-      a: 0.75,
+      a: 1,
       x: g.x,
     };
   if (
@@ -446,7 +466,7 @@ export const hitSrc = () => {
     })
   )
     return {
-      a: 0.75,
+      a: 1,
       x: g.x,
     };
   return hitSrcOf(runtime.player);
