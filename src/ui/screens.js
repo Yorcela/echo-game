@@ -377,6 +377,50 @@ function drawRoomNumber(number, x, y, known) {
 }
 
 const DEBUG_MODE = TEST_MODE;
+// police en pixels 3×5 (chiffres, signe moins, lettres de « SEED ») : dessinée case par case
+const PIXEL_GLYPHS = {
+  0: ['111', '101', '101', '101', '111'],
+  1: ['010', '110', '010', '010', '111'],
+  2: ['111', '001', '111', '100', '111'],
+  3: ['111', '001', '111', '001', '111'],
+  4: ['101', '101', '111', '001', '001'],
+  5: ['111', '100', '111', '001', '111'],
+  6: ['111', '100', '111', '101', '111'],
+  7: ['111', '001', '010', '010', '010'],
+  8: ['111', '101', '111', '101', '111'],
+  9: ['111', '101', '111', '001', '111'],
+  '-': ['000', '000', '111', '000', '000'],
+  S: ['111', '100', '111', '001', '111'],
+  E: ['111', '100', '111', '100', '111'],
+  D: ['110', '101', '101', '101', '110'],
+  ' ': ['000', '000', '000', '000', '000'],
+};
+function drawPixelText(text, x, y, px, color, outline) {
+  let cx = x;
+  for (const ch of text) {
+    const g = PIXEL_GLYPHS[ch] || PIXEL_GLYPHS[' '];
+    for (let r = 0; r < 5; r++)
+      for (let c = 0; c < 3; c++)
+        if (g[r][c] === '1') {
+          if (outline) {
+            ctx.fillStyle = outline;
+            ctx.fillRect(cx + c * px - 1, y + r * px - 1, px + 2, px + 2);
+          }
+        }
+    for (let r = 0; r < 5; r++)
+      for (let c = 0; c < 3; c++)
+        if (g[r][c] === '1') {
+          ctx.fillStyle = color;
+          ctx.fillRect(cx + c * px, y + r * px, px, px);
+        }
+    cx += 4 * px;
+  }
+  return cx - x;
+}
+let seedCopiedAt = -1e9;
+export function markSeedCopied() {
+  seedCopiedAt = performance.now();
+}
 export function drawMap() {
   drawBackground(0, 0);
   uiHitBoxes.length = 0;
@@ -619,6 +663,20 @@ export function drawMap() {
       ctx.stroke();
     }
   }
+  // graine du monde (pour retrouver sa carte ou la partager), en police pixelisée
+  {
+    const w = drawPixelText('SEED ' + gameState.seed, 18, HEIGHT - 20, 3, '#F6EBCB', 'rgba(14,10,22,.9)');
+    // cliquable : copie la graine
+    uiHitBoxes.push({ id: 'seedcopy', x: 12, y: HEIGHT - 26, w: w + 12, h: 26 });
+    if (performance.now() - seedCopiedAt < 1800) {
+      ctx.save();
+      ctx.font = '800 14px ' + FONT_BODY;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#7BE0A0';
+      ctx.fillText('✓ copiée', 18 + w + 10, HEIGHT - 8);
+      ctx.restore();
+    }
+  }
   // le héros sur la salle active : petit saut, halo qui pulse, flèche qui rebondit
   if (ROOM_POSITIONS[gameState.loadedRoom]) {
     const { x, y } = at(gameState.loadedRoom),
@@ -642,12 +700,13 @@ export function drawMap() {
     ctx.ellipse(cxp, y + ch - 3, 10 - hop * 3, 3, 0, 0, 7);
     ctx.fill();
     ctx.restore();
-    const hh = 30,
+    // le héros (dessiné ≈ 1,66 × sa hauteur de corps) tient dans la case : ≈ 27 px de haut pour une case de 30
+    const hh = 16,
       hw = (hh * 22) / 28;
     drawHero(
       {
         x: cxp - hw / 2,
-        y: y + ch - 3 - hh - hop * 11,
+        y: y + ch - 3 - hh - hop * 2,
         w: hw,
         h: hh,
         vx: 0,
@@ -659,7 +718,7 @@ export function drawMap() {
       },
       {},
     );
-    const ay = y - hh - 12 + Math.sin(t * 6) * 3;
+    const ay = y - 14 + Math.sin(t * 6) * 3;
     ctx.save();
     ctx.fillStyle = '#F2C45A';
     ctx.strokeStyle = INK_COLOR;

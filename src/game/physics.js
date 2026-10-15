@@ -89,6 +89,8 @@ export function solid(c, r) {
     ch === '%' ||
     ch === '&' ||
     ch === '~' ||
+    // pont à chrono : solide tant qu'une des plaques b / c est enfoncée (ou son compte à rebours court)
+    (ch === '<' && !!(runtime.openDoors && (runtime.openDoors.b || runtime.openDoors.c))) ||
     (isDoor(ch) && !runtime.openDoors[ch.toLowerCase()])
   );
 }

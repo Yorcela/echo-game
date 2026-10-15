@@ -200,6 +200,9 @@ function assignFloorMaterials(seed) {
     while (have[m].length < want && eligible.length) {
       const l = eligible.pop(),
         before = l.rows;
+      // on ne saute pas sur la toile : jamais dans un puits (escalade), ni dans une salle déjà creusée d'une mare
+      if (m === 'web' && l.links.some((k) => k.s === 't' || k.s === 'b')) continue;
+      if (m === 'web' && l.rows.join('').includes('"')) continue;
       if (m === 'ice') stripEnemies(l);
       coverRoomFloor(l, m);
       // sol trop encombré (rien n'a pu être recouvert) : on passe à la salle suivante
@@ -640,7 +643,11 @@ export function buildWorld(seed) {
       tier: l.tier,
       rest: l.rest,
       seed: sd,
-      floor: FLOOR_MATERIAL_AT_CELL[key],
+      // pas de toile dans un puits : on ne saute pas dessus
+      floor:
+        FLOOR_MATERIAL_AT_CELL[key] === 'glue' && l.links.some((q) => q.s === 't' || q.s === 'b')
+          ? undefined
+          : FLOOR_MATERIAL_AT_CELL[key],
       crabs: l.rest ? 0 : l.tier === 'F' || l.tier === 'E' ? 1 + ((42 + o.k) % 2) : 0,
       mech:
         MECHANISM_AT_CELL[key] ||
@@ -750,8 +757,8 @@ export function buildWorld(seed) {
       const o = levels[k.to].links.find((q) => q.to === i);
       if (!o) throw new Error('lien sans retour ' + i + '>' + k.to);
     }
-  assignFloorMaterials(seed);
   addPools();
+  assignFloorMaterials(seed);
   // numéro stable de chaque salle (voir data/room-numbers.js)
   levels.forEach((l, i) => {
     l.number = roomNumberOf(l, ROOM_POSITIONS[i]);

@@ -214,18 +214,16 @@ function findFreeStart(grid, zones, width, rnd, lo = 8, hi = 21) {
 }
 
 /**
- * Énigme « interrupteur » : une porte X ferme le couloir ; un bouton permanent (ancre 1) est posé en hauteur
- * de chaque côté, au bout de deux marches de 2 cases (un saut normal suffit). Une fois activé, il reste ouvert.
+ * Énigme « pont à chrono » : un fossé trop large pour être sauté (7 cases), une plaque de chaque côté. Marcher sur
+ * une plaque fait apparaître un pont (cases '<') pendant quelques secondes (la plaque affiche son compte à rebours) :
+ * assez pour traverser. Aucun pouvoir ni clone nécessaire.
  */
 function placeSwitchDoor(grid, m) {
-  placeColumn(grid, m, 1, 13, 'X');
-  for (const s of [-1, 1]) {
-    // marche basse (2 cases au-dessus du sol), marche haute (2 de plus) portant le bouton
-    placePlatform(grid, 12, s < 0 ? m - 9 : m + 8, s < 0 ? m - 8 : m + 9);
-    placePlatform(grid, 10, s < 0 ? m - 6 : m + 4, s < 0 ? m - 4 : m + 6);
-    grid[9][s < 0 ? m - 5 : m + 5] = '1';
-  }
-  return [m - 10, m + 10];
+  placePit(grid, m - 3, m + 3);
+  for (let c = m - 3; c <= m + 3; c++) grid[14][c] = '<';
+  grid[13][m - 6] = 'b';
+  grid[13][m + 6] = 'c';
+  return [m - 9, m + 9];
 }
 
 /** Ajoute ennemis et pièges simples dans les plages libres. Renvoie le nombre d'éléments posés. */

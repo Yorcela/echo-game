@@ -10,6 +10,7 @@ const SOLID = (ch, doorsOpen) =>
   ch === '%' ||
   ch === '&' ||
   ch === '~' ||
+  ch === '<' || // pont à chrono : une plaque au sol l'active, on le suppose actif
   (ch >= 'A' && ch <= 'Z' && ch !== 'E' && ch !== 'P' && !doorsOpen.has(ch));
 const PASSABLE = (rows, c, r, open) => r >= 0 && r < 17 && c >= 0 && c < 30 && !SOLID(rows[r][c], open);
 const STANDABLE = (rows, c, r, open) =>

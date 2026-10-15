@@ -211,6 +211,29 @@ export function drawTiles(boil) {
         ctx.moveTo(x + sh + 22, y + 2);
         ctx.lineTo(x + sh + 19, y + 10);
         ctx.stroke();
+      } else if (ch === '<') {
+        // pont à chrono : planches pleines quand il est ouvert, simple tracé pointillé sinon
+        const open = !!(runtime.openDoors && (runtime.openDoors.b || runtime.openDoors.c));
+        if (open) {
+          ctx.fillStyle = '#B8854A';
+          ctx.fillRect(x, y, TILE, 12);
+          ctx.fillStyle = '#D9A867';
+          ctx.fillRect(x, y, TILE, 4);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = INK_COLOR;
+          ctx.strokeRect(x + 1, y + 1, TILE - 2, 10);
+          ctx.beginPath();
+          ctx.moveTo(x + 16, y + 1);
+          ctx.lineTo(x + 16, y + 11);
+          ctx.stroke();
+        } else {
+          ctx.save();
+          ctx.setLineDash([5, 6]);
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = 'rgba(246,235,203,.5)';
+          ctx.strokeRect(x + 2, y + 2, TILE - 4, 10);
+          ctx.restore();
+        }
       } else if (ch === '1' || ch === '2' || ch === '3') {
         const on = gameState.roomAnchors[ch],
           h = on ? 4 : 10;

@@ -76,6 +76,8 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
       for (let c = 0; c < 30; c++) {
         const ch = runtime.grid[r][c];
         if (pl.has(r * 30 + c)) continue;
+        // salle résolue : le pont à chrono devient un pont permanent
+        if (ch === '<') runtime.grid[r][c] = '#';
         if (
           (ch >= 'A' && ch <= 'Z' && ch !== 'E' && ch !== 'P') ||
           (ch >= 'a' && ch <= 'z') ||
