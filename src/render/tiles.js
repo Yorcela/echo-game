@@ -213,7 +213,7 @@ export function drawTiles(boil) {
         ctx.stroke();
       } else if (ch === '<') {
         // pont à chrono : planches pleines quand il est ouvert, simple tracé pointillé sinon
-        const open = !!(runtime.openDoors && (runtime.openDoors.b || runtime.openDoors.c));
+        const open = !!(runtime.openDoors && (runtime.openDoors.v || runtime.openDoors.w));
         if (open) {
           ctx.fillStyle = '#B8854A';
           ctx.fillRect(x, y, TILE, 12);
@@ -347,7 +347,7 @@ export function drawTiles(boil) {
         y + TILE - 14,
         13,
         -Math.PI / 2,
-        -Math.PI / 2 + (p.t / PLATE_HOLD_TIME) * Math.PI * 2,
+        -Math.PI / 2 + (p.t / (p.hold || PLATE_HOLD_TIME)) * Math.PI * 2,
       );
       ctx.strokeStyle = '#2F8F8A';
       ctx.lineWidth = 4;

@@ -200,7 +200,7 @@ export function updateShots(dt) {
       }
       if (ch >= 'a' && ch <= 'z') {
         const p = runtime.plates.find((p) => p.c === c && p.r === r);
-        if (p) p.t = PLATE_HOLD_TIME;
+        if (p) p.t = p.hold || PLATE_HOLD_TIME;
       }
       if (ch === '1' || ch === '2' || ch === '3') {
         if (!gameState.roomAnchors[ch]) {

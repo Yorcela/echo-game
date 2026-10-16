@@ -2,7 +2,7 @@
 // Les boutons rejouent les touches du clavier (événements synthétiques) : même logique, menus compris.
 //
 //   Stick gauche / croix : bouger (haut = grimper / nager vers le haut, bas = descendre / plonger)
-//   A (Xbox) · ✕ (PS) · B (Switch) : sauter / valider dans les menus
+//   A (Xbox) · ✕ (PS) · B (Switch) : sauter / valider dans les menus ; près d'un lit utile : dormir (pas de saut)
 //   X (Xbox) · □ (PS) · Y (Switch) : coup
 //   Y (Xbox) · △ (PS) · X (Switch) : tir          (aussi RT)
 //   B (Xbox) · ○ (PS) · A (Switch) : écho · retour dans les menus
@@ -17,6 +17,7 @@ import { advance } from './input.js';
 const STICK = 0.5;
 const KEY = {
   jump: { code: 'Space', key: ' ' },
+  enter: { code: 'Enter', key: 'Enter' },
   hit: { code: 'KeyA', key: 'a' },
   shoot: { code: 'KeyX', key: 'x' },
   echo: { code: 'KeyZ', key: 'z' },
@@ -37,7 +38,14 @@ const tap = (k) => {
 // bouton standard → action (appelée sur le front montant)
 const BUTTONS = {
   0: () => {
-    if (!menuConfirm()) tap(KEY.jump);
+    if (menuConfirm()) return;
+    // à côté d'un lit utile (blessé ou Temps entamé) : A dort au lieu de sauter
+    if (gameState.mode === 'play' && gameState.isNearBed) {
+      noJumpUntilRelease = true;
+      tap(KEY.enter);
+      return;
+    }
+    tap(KEY.jump);
   },
   1: () => tap(gameState.mode === 'play' ? KEY.echo : KEY.esc),
   2: () => tap(KEY.hit),
@@ -137,6 +145,7 @@ let prev = [];
 let held = { left: false, right: false, down: false, jump: false };
 let wasConnected = false;
 let prevUp = false;
+let noJumpUntilRelease = false;
 const setHeld = (name, on) => {
   if (held[name] === on) return;
   held[name] = on;
@@ -181,7 +190,8 @@ export function pollGamepad() {
     prev[+i] = on;
   }
   // saut maintenu (hauteur de saut variable) : le bouton A reste enfoncé
-  setHeld('jump', b(0) && gameState.mode === 'play');
+  if (!b(0)) noJumpUntilRelease = false;
+  setHeld('jump', b(0) && gameState.mode === 'play' && !noJumpUntilRelease);
   const ax = pad.axes[0] || 0,
     ay = pad.axes[1] || 0;
   const left = ax < -STICK || b(14),

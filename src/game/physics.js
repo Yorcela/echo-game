@@ -90,7 +90,7 @@ export function solid(c, r) {
     ch === '&' ||
     ch === '~' ||
     // pont à chrono : solide tant qu'une des plaques b / c est enfoncée (ou son compte à rebours court)
-    (ch === '<' && !!(runtime.openDoors && (runtime.openDoors.b || runtime.openDoors.c))) ||
+    (ch === '<' && !!(runtime.openDoors && (runtime.openDoors.v || runtime.openDoors.w))) ||
     (isDoor(ch) && !runtime.openDoors[ch.toLowerCase()])
   );
 }
@@ -411,7 +411,7 @@ export function updatePlates(dt) {
     let on = false;
     for (const b of bodies())
       if (b.x < x + TILE - 4 && b.x + b.w > x && b.y + b.h > y && b.y < y + 10) on = true;
-    if (on) p.t = PLATE_HOLD_TIME;
+    if (on) p.t = p.hold || PLATE_HOLD_TIME;
     else p.t = Math.max(0, p.t - dt);
     if (p.t > 0 && !p.was) playSfx('plate');
     p.was = p.t > 0 ? 1 : 0;

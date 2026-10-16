@@ -173,7 +173,14 @@ function drawGamepadTab() {
   callout(fx, fy - 28, WIDTH - 40, 258, ['Tir', '△ · Y (Xbox) · X (Switch) · ou RT'], 'right');
   callout(fx + 28, fy, WIDTH - 40, 318, ['Écho · retour', '○ · B (Xbox) · A (Switch)'], 'right');
   callout(fx - 28, fy, WIDTH - 40, 378, ['Coup', '□ · X (Xbox) · Y (Switch)'], 'right');
-  callout(fx, fy + 28, WIDTH - 40, 438, ['Sauter · valider', '✕ · A (Xbox) · B (Switch)'], 'right');
+  callout(
+    fx,
+    fy + 28,
+    WIDTH - 40,
+    438,
+    ['Sauter · valider · dormir (près du lit)', '✕ · A (Xbox) · B (Switch)'],
+    'right',
+  );
 }
 export function drawControls() {
   drawBackground(0, 0);

@@ -1,5 +1,5 @@
 import { runtime } from '../state/runtime.ts';
-import { HEIGHT, PLAYER_H, PLAYER_W, MOVE_SPEED, TILE, WIDTH } from '../core/config.ts';
+import { HEIGHT, PLAYER_H, PLAYER_W, MOVE_SPEED, PLATE_HOLD_TIME, TILE, WIDTH } from '../core/config.ts';
 import { levels } from '../data/levels.js';
 import { seededRandom } from './generator.js';
 import { HUB_ROOM, enemyTypes, gameState, ownedEchoes, showMessage } from '../state/state.ts';
@@ -121,6 +121,8 @@ export function loadRoom(i, from = 'p', fromRoom = -1, frow = 13) {
           id: ch,
           t: 0,
           was: 0,
+          // plaques de pont à chrono (v / w) : le pont dure deux fois moins longtemps
+          hold: ch === 'v' || ch === 'w' ? 1 : PLATE_HOLD_TIME,
         });
       } else if (
         ch === '*' ||

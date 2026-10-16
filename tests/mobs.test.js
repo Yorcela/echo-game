@@ -102,11 +102,10 @@ describe('mobs', () => {
     expect(T.P.x).toBeGreaterThan(x0); // pas ramené au départ de la salle
   });
 
-  it('pont à chrono : sans plaque on tombe dans le fossé, avec la plaque on le traverse', () => {
-    const rows13 = row({ 5: 'b', 24: 'c' });
-    const mk = () => {
-      load(rows13);
-      for (let c = 11; c <= 17; c++) {
+  it('pont à chrono : sans plaque on tombe dans le fossé, avec la plaque (1 s) on le traverse', () => {
+    const mk = (plates) => {
+      load(plates ? row({ 10: 'v', 17: 'w' }) : EMPTY);
+      for (let c = 11; c <= 16; c++) {
         const r14 = T.LV[1].rows[14].split('');
         r14[c] = '<';
         T.LV[1].rows[14] = r14.join('');
@@ -132,13 +131,10 @@ describe('mobs', () => {
       T.I.r = 0;
       return T.P.x;
     };
-    mk();
-    // départ juste avant le fossé (colonne 9), sans passer par la plaque : le pont est absent
-    const noPlate = run(120, 9 * 32);
-    expect(noPlate).toBeLessThan(18 * 32);
-    mk();
-    // départ sur la plaque (colonne 5) : le pont apparaît le temps du chrono
-    const withPlate = run(150, 5 * 32);
-    expect(withPlate).toBeGreaterThan(18 * 32);
+    mk(false);
+    expect(run(120, 8 * 32)).toBeLessThan(17 * 32);
+    mk(true);
+    // la plaque (colonne 10) dure 1 s : on a juste le temps de passer
+    expect(run(150, 8 * 32)).toBeGreaterThan(17 * 32);
   });
 });

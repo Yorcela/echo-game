@@ -214,15 +214,16 @@ function findFreeStart(grid, zones, width, rnd, lo = 8, hi = 21) {
 }
 
 /**
- * Énigme « pont à chrono » : un fossé trop large pour être sauté (7 cases), une plaque de chaque côté. Marcher sur
- * une plaque fait apparaître un pont (cases '<') pendant quelques secondes (la plaque affiche son compte à rebours) :
+ * Énigme « pont à chrono » : un fossé trop large pour être sauté (6 cases), une plaque de chaque côté. Marcher sur
+ * une plaque fait apparaître un pont (cases '<') pendant 1 s (plaques v / w) (la plaque affiche son compte à rebours) :
  * assez pour traverser. Aucun pouvoir ni clone nécessaire.
  */
 function placeSwitchDoor(grid, m) {
-  placePit(grid, m - 3, m + 3);
-  for (let c = m - 3; c <= m + 3; c++) grid[14][c] = '<';
-  grid[13][m - 6] = 'b';
-  grid[13][m + 6] = 'c';
+  // fossé de 6 cases (m-3 .. m+2), plaques collées à ses bords : le pont (1 s) se traverse tout juste en courant
+  placePit(grid, m - 3, m + 2);
+  for (let c = m - 3; c <= m + 2; c++) grid[14][c] = '<';
+  grid[13][m - 4] = 'v';
+  grid[13][m + 3] = 'w';
   return [m - 9, m + 9];
 }
 
