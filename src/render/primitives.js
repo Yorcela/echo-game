@@ -35,6 +35,8 @@ export function drawOutlinedText(txt, x, y, size, fill, align = 'center') {
   ctx.fillText(txt, x, y);
 }
 export const uiHitBoxes = [];
+/** Bouton sélectionné à la manette (null = souris / clavier) : il est dessiné plus grand, les autres plus petits. */
+export const uiFocus = { id: null };
 /* bouton « touche de clavier » : face orange, lèvre brune, ombre sombre décalée, texte blanc ombré */
 export function drawButton(id, x, y, w, h, label, o = {}) {
   const lip = o.lip || 10,
@@ -43,14 +45,24 @@ export function drawButton(id, x, y, w, h, label, o = {}) {
     col = o.c || '#F0A64B',
     dk = o.d || '#8A5419',
     R = o.r || 14;
+  // navigation manette : l'élément courant grossit, les autres rapetissent (autour de leur centre)
+  const sc = uiFocus.id && !['pause', 'bed', 'bedz'].includes(id) ? (uiFocus.id === id ? 1.18 : 0.86) : 1;
   uiHitBoxes.push({
     id,
     x: x - 4,
     y: y - 4,
     w: w + 8,
     h: h + lip + 8,
+    sc,
   });
   ctx.save();
+  if (sc !== 1) {
+    const mx = x + w / 2,
+      my = y + (h + lip) / 2;
+    ctx.translate(mx, my);
+    ctx.scale(sc, sc);
+    ctx.translate(-mx, -my);
+  }
   ctx.fillStyle = '#261704';
   roundRectPath(x - 5, y + 5 - (pr ? 2 : 0), w + 10, h + lip + 1, R + 3);
   ctx.fill();

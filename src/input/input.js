@@ -20,6 +20,7 @@ import { hitTestUI } from '../render/primitives.js';
 import { HINT_T, nameInputElement, showNameInput } from '../ui/hud.js';
 import { endTrial, markSeedCopied, startTrial } from '../ui/screens.js';
 import { setScheme } from '../ui/controls.js';
+import { clearMenuFocus, menuConfirm, menuNavigate } from './gamepad.js';
 import { TEST_MODE, grantTestPowers } from '../game/test-mode.js';
 /* ---------- Entrées ---------- */
 const KEYS = {
@@ -277,10 +278,11 @@ addEventListener('keydown', (e) => {
     if (e.code === 'Enter' && gameState.overPhase === 1) advance();
     return;
   }
-  if (gameState.mode === 'controls' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
-    setScheme(e.code === 'ArrowRight' ? 'gamepad' : 'keyboard');
-    playSfx('tick');
-    return;
+  // menus : les flèches déplacent le focus (le bouton courant grossit), Entrée / Espace valident
+  {
+    const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.code];
+    if (dir && menuNavigate(dir[0], dir[1])) return;
+    if ((e.code === 'Enter' || e.code === 'Space') && menuConfirm()) return;
   }
   if (k === 'd') {
     press(k, true);
@@ -377,6 +379,7 @@ addEventListener('blur', () => document.querySelectorAll('.kb2.on').forEach((x) 
 canvas.addEventListener('pointerdown', (e) => {
   ensureAudio();
   const r = canvas.getBoundingClientRect();
+  clearMenuFocus();
   advance((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
 });
 document.querySelectorAll('#pad button').forEach((b) => {

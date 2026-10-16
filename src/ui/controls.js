@@ -169,9 +169,8 @@ function drawGamepadTab() {
   callout(dp, dq + 10, 40, 360, ['Croix : comme le stick'], 'left');
   callout(cx - 22, cy - 34, cx - 110, 452, ['Carte', 'Vue · Share · −'], 'center');
   callout(cx + 22, cy - 34, cx + 110, 452, ['Pause', 'Menu · Options · +'], 'center');
-  callout(cx + 150, cy - 124, WIDTH - 40, 128, ['Tir', 'RT · R2 · ZR'], 'right');
-  callout(cx + 150, cy - 96, WIDTH - 40, 188, ['Changer d’écho', 'RB · R1 · R'], 'right');
-  callout(fx, fy - 28, WIDTH - 40, 258, ['Tir', '△ · Y (Xbox) · X (Switch)'], 'right');
+  callout(cx + 150, cy - 96, WIDTH - 40, 158, ['Changer d’écho', 'RB · R1 · R'], 'right');
+  callout(fx, fy - 28, WIDTH - 40, 258, ['Tir', '△ · Y (Xbox) · X (Switch) · ou RT'], 'right');
   callout(fx + 28, fy, WIDTH - 40, 318, ['Écho · retour', '○ · B (Xbox) · A (Switch)'], 'right');
   callout(fx - 28, fy, WIDTH - 40, 378, ['Coup', '□ · X (Xbox) · Y (Switch)'], 'right');
   callout(fx, fy + 28, WIDTH - 40, 438, ['Sauter · valider', '✕ · A (Xbox) · B (Switch)'], 'right');

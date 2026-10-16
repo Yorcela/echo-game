@@ -1,7 +1,6 @@
 import { HEIGHT, WIDTH } from '../core/config.ts';
 import { ctx } from '../core/canvas.ts';
 import { BOSS_PORTRAITS } from '../data/boss-portraits.js';
-import { ECHO_TYPES } from '../data/echoes.js';
 import { BOSS_ORDER, levels } from '../data/levels.js';
 import { MAP_COLS, HUB_ROOM, infoEnabled, formatTime, gameState, ownedEchoes } from '../state/state.ts';
 import { isOnlineEnabled, worldBoard } from '../online/leaderboard.js';
@@ -85,22 +84,22 @@ export function drawTitle() {
   ctx.fillText(
     levels[n].name + ' · ' + Object.keys(gameState.visitedRooms).length + ' / ' + levels.length + ' salles',
     WIDTH / 2,
-    324,
+    286,
   );
   const prog =
     gameState.hasTimeEcho || ownedEchoes().length || Object.keys(gameState.visitedRooms).length > 1;
-  drawButton('play', WIDTH / 2 - 150, 352, 300, 58, prog ? 'CONTINUER' : 'JOUER', {
+  drawButton('play', WIDTH / 2 - 150, 326, 300, 58, prog ? 'CONTINUER' : 'JOUER', {
     size: 32,
     lip: 12,
     r: 16,
   });
   const armed = gameState.resetArmedTimer > 0;
-  drawButton('scores', WIDTH / 2 + 60, 436, 170, 38, 'SCORES', {
+  drawButton('scores', WIDTH / 2 + 60, 414, 170, 38, 'SCORES', {
     size: 19,
     lip: 8,
     r: 12,
   });
-  drawButton('reset', WIDTH / 2 - 240, 436, 290, 38, armed ? 'SÛR ? TOUCHE ENCORE' : 'NOUVELLE PARTIE', {
+  drawButton('reset', WIDTH / 2 - 240, 414, 290, 38, armed ? 'SÛR ? TOUCHE ENCORE' : 'NOUVELLE PARTIE', {
     size: armed ? 17 : 19,
     lip: 8,
     r: 12,
@@ -108,22 +107,12 @@ export function drawTitle() {
     d: armed ? '#7A1F14' : undefined,
   });
   ctx.textBaseline = 'alphabetic';
-  const o = ownedEchoes();
-  ctx.font = '700 13px ' + FONT_BODY;
-  ctx.fillStyle = 'rgba(27,22,18,.7)';
-  ctx.textAlign = 'center';
-  ctx.fillText(
-    'Échos gagnés : ' +
-      ((gameState.hasTimeEcho ? ['Temps'] : []).concat(o.map((i) => ECHO_TYPES[i].n)).join(' · ') || 'aucun'),
-    WIDTH / 2,
-    HEIGHT - 7,
-  );
   drawBossPortraits();
 }
 
 const PORTRAIT_SIZE = 34;
 const PORTRAIT_GAP = 10;
-const PORTRAIT_Y = 487;
+const PORTRAIT_Y = 496;
 
 /** Le boss est-il vaincu ? (le Roi : une partie terminée figure au classement) */
 function isBossDefeated(echo) {
@@ -761,48 +750,43 @@ export function drawSleep() {
   ctx.fillText('Entrée : dormir · Échap : non', WIDTH / 2, HEIGHT / 2 + 104);
 }
 export function drawPause() {
+  // bloc de menu centré verticalement (titre en haut, bouton Infos en bas)
+  const Y = HEIGHT / 2 - 58;
   ctx.fillStyle = 'rgba(27,22,18,.62)';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  drawOutlinedText('PAUSE', WIDTH / 2, HEIGHT / 2 - 100, 64, '#E2A93B');
-  drawButton('resume', WIDTH / 2 - 140, HEIGHT / 2 - 58, 280, 56, 'REPRENDRE', {
-    size: 28,
-    lip: 11,
-    r: 15,
+  drawOutlinedText('PAUSE', WIDTH / 2, Y - 100, 64, '#E2A93B');
+  // même taille que les autres boutons : à la manette / au clavier, c'est la sélection qui l'agrandit
+  drawButton('resume', WIDTH / 2 - 120, Y - 44, 240, 44, 'REPRENDRE', {
+    size: 20,
+    lip: 9,
+    r: 13,
   });
-  drawButton('map', WIDTH / 2 - 120, HEIGHT / 2 + 22, 240, 44, 'CARTE', {
+  drawButton('map', WIDTH / 2 - 120, Y + 22, 240, 44, 'CARTE', {
     size: 20,
     lip: 9,
     r: 13,
     c: '#55C2BA',
     d: '#23807A',
   });
-  drawButton('controls', WIDTH / 2 - 120, HEIGHT / 2 + 88, 240, 44, 'COMMANDES', {
+  drawButton('controls', WIDTH / 2 - 120, Y + 88, 240, 44, 'COMMANDES', {
     size: 20,
     lip: 9,
     r: 13,
     c: '#8E7BD0',
     d: '#5A4A9A',
   });
-  drawButton('menu', WIDTH / 2 - 120, HEIGHT / 2 + 154, 240, 44, 'MENU PRINCIPAL', {
+  drawButton('menu', WIDTH / 2 - 120, Y + 154, 240, 44, 'MENU PRINCIPAL', {
     size: 20,
     lip: 9,
     r: 13,
   });
-  drawButton(
-    'info',
-    WIDTH / 2 - 120,
-    HEIGHT / 2 + 218,
-    240,
-    38,
-    infoEnabled ? 'INFOS : OUI (I)' : 'INFOS : NON (I)',
-    {
-      size: 18,
-      lip: 8,
-      r: 12,
-      c: infoEnabled ? '#55C2BA' : '#9A9A9A',
-      d: infoEnabled ? '#23807A' : '#5E5E5E',
-    },
-  );
+  drawButton('info', WIDTH / 2 - 120, Y + 218, 240, 38, infoEnabled ? 'INFOS : OUI (I)' : 'INFOS : NON (I)', {
+    size: 18,
+    lip: 8,
+    r: 12,
+    c: infoEnabled ? '#55C2BA' : '#9A9A9A',
+    d: infoEnabled ? '#23807A' : '#5E5E5E',
+  });
 }
 
 /* ---------- Entrées ---------- */
