@@ -19,6 +19,7 @@ import { ensureAudio, playSfx } from '../audio/audio.js';
 import { hitTestUI } from '../render/primitives.js';
 import { HINT_T, nameInputElement, showNameInput } from '../ui/hud.js';
 import { endTrial, markSeedCopied, startTrial } from '../ui/screens.js';
+import { setScheme } from '../ui/controls.js';
 import { TEST_MODE, grantTestPowers } from '../game/test-mode.js';
 /* ---------- Entrées ---------- */
 const KEYS = {
@@ -152,7 +153,10 @@ export function advance(fx, fy) {
       saveGame();
       playSfx('tick');
     } else if (hit === 'map') openMap('pause');
-    else if (hit === 'info') {
+    else if (hit === 'controls') {
+      gameState.mode = 'controls';
+      playSfx('tick');
+    } else if (hit === 'info') {
       setInfoEnabled(!infoEnabled);
       playSfx('tick');
     } else if (hit === 'resume' || fx === undefined) {
@@ -175,6 +179,14 @@ export function advance(fx, fy) {
       gameState.fade = 0.45;
       if (TEST_MODE) grantTestPowers(i);
       loadRoom(i, 'p');
+      playSfx('tick');
+    }
+  } else if (gameState.mode === 'controls') {
+    if (hit === 'ctab_k' || hit === 'ctab_g') {
+      setScheme(hit === 'ctab_g' ? 'gamepad' : 'keyboard');
+      playSfx('tick');
+    } else if (hit === 'cback' || fx === undefined) {
+      gameState.mode = 'pause';
       playSfx('tick');
     }
   } else if (gameState.mode === 'rewind') {
@@ -265,6 +277,11 @@ addEventListener('keydown', (e) => {
     if (e.code === 'Enter' && gameState.overPhase === 1) advance();
     return;
   }
+  if (gameState.mode === 'controls' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+    setScheme(e.code === 'ArrowRight' ? 'gamepad' : 'keyboard');
+    playSfx('tick');
+    return;
+  }
   if (k === 'd') {
     press(k, true);
     return;
@@ -283,7 +300,12 @@ addEventListener('keydown', (e) => {
     else if (gameState.mode === 'sleep') {
       gameState.mode = 'play';
       input.jp = 0;
-    } else if (gameState.mode === 'pause' || gameState.mode === 'scores' || gameState.mode === 'trial')
+    } else if (
+      gameState.mode === 'pause' ||
+      gameState.mode === 'controls' ||
+      gameState.mode === 'scores' ||
+      gameState.mode === 'trial'
+    )
       advance();
     else if (gameState.mode === 'map') mapBack();
     return;

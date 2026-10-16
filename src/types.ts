@@ -56,7 +56,7 @@ export interface BossDefinition {
 }
 
 export type GameMode =
-  'title' | 'play' | 'rewind' | 'gain' | 'map' | 'pause' | 'scores' | 'over' | 'sleep' | 'trial';
+  'title' | 'play' | 'rewind' | 'gain' | 'map' | 'pause' | 'controls' | 'scores' | 'over' | 'sleep' | 'trial';
 
 /** État persistant de la partie et de l'interface. */
 export interface GameState {

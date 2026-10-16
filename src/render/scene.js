@@ -25,6 +25,7 @@ import { drawAfter } from './boss-witch.js';
 import { drawDoors, drawTunnelBG } from './room-overlays.js';
 import { drawMirrorBG } from './boss-mirror.js';
 import { drawHUD, drawHeart, drawOver } from '../ui/hud.js';
+import { drawControls } from '../ui/controls.js';
 import { drawMap, drawPause, drawScores, drawSleep, drawTitle, drawTrial } from '../ui/screens.js';
 const scratchCanvas = document.createElement('canvas');
 scratchCanvas.width = WIDTH;
@@ -338,6 +339,7 @@ export function draw() {
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
   if (gameState.mode === 'pause') drawPause();
+  if (gameState.mode === 'controls') drawControls();
   if (gameState.mode === 'sleep') {
     uiHitBoxes.length = 0;
     drawSleep();

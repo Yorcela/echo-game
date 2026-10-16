@@ -763,7 +763,7 @@ export function drawSleep() {
 export function drawPause() {
   ctx.fillStyle = 'rgba(27,22,18,.62)';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  drawOutlinedText('PAUSE', WIDTH / 2, HEIGHT / 2 - 90, 64, '#E2A93B');
+  drawOutlinedText('PAUSE', WIDTH / 2, HEIGHT / 2 - 100, 64, '#E2A93B');
   drawButton('resume', WIDTH / 2 - 140, HEIGHT / 2 - 58, 280, 56, 'REPRENDRE', {
     size: 28,
     lip: 11,
@@ -776,7 +776,14 @@ export function drawPause() {
     c: '#55C2BA',
     d: '#23807A',
   });
-  drawButton('menu', WIDTH / 2 - 120, HEIGHT / 2 + 88, 240, 44, 'MENU PRINCIPAL', {
+  drawButton('controls', WIDTH / 2 - 120, HEIGHT / 2 + 88, 240, 44, 'COMMANDES', {
+    size: 20,
+    lip: 9,
+    r: 13,
+    c: '#8E7BD0',
+    d: '#5A4A9A',
+  });
+  drawButton('menu', WIDTH / 2 - 120, HEIGHT / 2 + 154, 240, 44, 'MENU PRINCIPAL', {
     size: 20,
     lip: 9,
     r: 13,
@@ -784,7 +791,7 @@ export function drawPause() {
   drawButton(
     'info',
     WIDTH / 2 - 120,
-    HEIGHT / 2 + 154,
+    HEIGHT / 2 + 218,
     240,
     38,
     infoEnabled ? 'INFOS : OUI (I)' : 'INFOS : NON (I)',

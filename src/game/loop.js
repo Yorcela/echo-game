@@ -7,6 +7,7 @@ import { step } from './step.js';
 import { positionName } from '../ui/hud.js';
 import { draw } from '../render/scene.js';
 import { syncTouchPad } from '../input/input.js';
+import { pollGamepad } from '../input/gamepad.js';
 /* ---------- Boucle ---------- */
 let lastFrameTime = 0,
   acc = 0;
@@ -14,6 +15,7 @@ export function frame(ts) {
   const dt = Math.min(0.05, (ts - lastFrameTime) / 1000 || 0);
   lastFrameTime = ts;
   gameState.time += dt;
+  pollGamepad();
   gameState.resetArmedTimer = Math.max(0, gameState.resetArmedTimer - dt);
   if (gameState.pressedFeedbackTimer > 0 && (gameState.pressedFeedbackTimer -= dt) <= 0)
     gameState.pressedButton = null;
