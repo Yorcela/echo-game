@@ -10,6 +10,6 @@ export const BOSS_PORTRAITS = [
   { echo: 6, name: 'La Sorcière', sprite: 'witch-body', crop: [0, 0, 111, 100] },
   { echo: 1, name: 'La Mémoire', sprite: 'ghost', crop: [45, 0, 130, 130] },
   { echo: 4, name: "L'Éclair", sprite: 'bolt-torso', crop: [0, 0, 92, 100] },
-  { echo: 7, name: 'La Pieuvre', sprite: 'octopus-head', crop: [0, 0, 204, 282] },
+  { echo: 7, name: 'La Pieuvre', sprite: 'octopus-portrait', crop: [0, 0, 497, 682] },
   { echo: 'king', name: 'Le Roi des Échos', sprite: null, crop: null },
 ];
